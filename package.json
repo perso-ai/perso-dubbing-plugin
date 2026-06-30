@@ -1,0 +1,29 @@
+{
+  "name": "perso-dubbing",
+  "version": "0.1.0",
+  "description": "Perso AI 영상 자동 더빙 스킬 (Claude Code / Codex / Cursor)",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "perso-dubbing": "scripts/install.mjs"
+  },
+  "files": [
+    "SKILL.md",
+    "README.md",
+    "LICENSE",
+    "lib",
+    "scripts"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "doctor": "node scripts/check_deps.mjs",
+    "key:check": "node scripts/resolve_key.mjs --check",
+    "langs": "node scripts/languages.mjs",
+    "input": "node scripts/prepare_input.mjs",
+    "split": "node scripts/probe_split.mjs",
+    "dub": "node scripts/dubbing.mjs",
+    "install:skill": "node scripts/install.mjs"
+  }
+}

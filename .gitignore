@@ -1,0 +1,22 @@
+# deps
+node_modules/
+
+# secrets — NEVER commit
+.env
+.env.*
+*.key
+*.pem
+.perso/
+credentials
+
+# work artifacts
+*.log
+tmp/
+out/
+*.tmp.*
+
+# 이어하기 상태파일 (로컬 절대경로·projectSeq 포함) / 개발용 스크래치
+*.dubresume.json
+dubbing-resume.json
+.dubbing-done.json
+_*.mjs
