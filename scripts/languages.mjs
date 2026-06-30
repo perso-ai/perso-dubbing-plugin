@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// 지원 언어 코드 출력.
+// Print supported language codes.
 import { getLanguages } from '../lib/languages.mjs';
 
 const langs = await getLanguages();

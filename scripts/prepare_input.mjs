@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// 입력(로컬 경로 또는 URL) 검증·정규화. 결과 JSON을 stdout으로 출력한다.
-//   usage: node scripts/prepare_input.mjs "<로컬경로|URL>"
+// Validate and normalize the input (local path or URL). Prints the result JSON to stdout.
+//   usage: node scripts/prepare_input.mjs "<local path|URL>"
 import { prepareInput } from '../lib/input.mjs';
 
 try {

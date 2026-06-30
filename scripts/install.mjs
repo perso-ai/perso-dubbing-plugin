@@ -1,16 +1,16 @@
 #!/usr/bin/env node
-// 원클릭 설치: 이 스킬을 Claude Code / Antigravity / Codex / Cursor의 skills 폴더에 복사한다.
-//   npx github:<owner>/<repo>                       → 설정 폴더가 있는 호스트에 자동 설치
-//   npx github:<owner>/<repo> --all                 → 모든 호스트
-//   ... --claude | --antigravity | --codex | --cursor → 특정 호스트만
-//   ... --project                                   → 현재 폴더(.claude 등)에 설치
+// One-click install: copy this skill into the skills folder of Claude Code / Antigravity / Codex / Cursor.
+//   npx github:<owner>/<repo>                       → auto-install to hosts that have a config folder
+//   npx github:<owner>/<repo> --all                 → all hosts
+//   ... --claude | --antigravity | --codex | --cursor → specific hosts only
+//   ... --project                                   → install into the current folder (.claude, etc.)
 import { cp, mkdir, access } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const ROOT = dirname(dirname(fileURLToPath(import.meta.url))); // 패키지 루트(= scripts/의 부모)
-const SKILL = 'dubbing'; // 설치 폴더명 → /dubbing 명령
+const ROOT = dirname(dirname(fileURLToPath(import.meta.url))); // package root (= parent of scripts/)
+const SKILL = 'dubbing'; // install folder name → /dubbing command
 const ITEMS = ['SKILL.md', 'lib', 'scripts', 'package.json', 'README.md', 'LICENSE'];
 
 const args = process.argv.slice(2);
@@ -28,9 +28,9 @@ if (!targets.length) {
   for (const h of Object.keys(HOSTS)) {
     try {
       await access(join(baseDir, `.${h}`));
-      targets.push(h); // 설정 폴더가 이미 있는 호스트
+      targets.push(h); // hosts that already have a config folder
     } catch {
-      /* 해당 호스트 미사용 */
+      /* host not in use */
     }
   }
   if (!targets.length) targets = ['claude'];
@@ -44,4 +44,4 @@ for (const h of targets) {
   }
   console.log(`✅ ${h} → ${dest}`);
 }
-console.log('\n설치 완료! 에이전트에서  /dubbing  또는  "이 영상 더빙해줘"  로 사용하세요.');
+console.log('\nInstalled! Use it in your agent with  /dubbing  or just  "dub this video for me".');

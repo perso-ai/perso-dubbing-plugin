@@ -15,7 +15,7 @@ tmp/
 out/
 *.tmp.*
 
-# 이어하기 상태파일 (로컬 절대경로·projectSeq 포함) / 개발용 스크래치
+# resume state files (contain local absolute paths · projectSeq) / dev scratch
 *.dubresume.json
 dubbing-resume.json
 .dubbing-done.json

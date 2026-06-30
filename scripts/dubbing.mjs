@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// /dubbing 진입 오케스트레이터.
-//   키 게이트 → 입력(들) → 입력별 분할 → 전역 풀 스케줄러(모든 입력×조각×언어를 한 큐로) → 입력·언어별 병합 → 안내.
-//   usage: node scripts/dubbing.mjs "<로컬|URL|폴더>" ["<또 다른 입력>" ...] [--source auto] [--target en,ja] [--space N] [--out 경로|폴더]
+// /dubbing entry orchestrator.
+//   key gate → input(s) → per-input split → global pool scheduler (all inputs×parts×languages in one queue) → per-input/per-language merge → notice.
+//   usage: node scripts/dubbing.mjs "<local|URL|folder>" ["<another input>" ...] [--source auto] [--target en,ja] [--space N] [--out path|folder]
 //          node scripts/dubbing.mjs --resume "<statefile>"
 import { writeFileSync, readFileSync, copyFileSync, mkdirSync, readdirSync, unlinkSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
@@ -17,20 +17,20 @@ import { mergeGroups } from '../lib/merge.mjs';
 import { messages } from '../lib/messages.mjs';
 import { cleanupTempDirs, makeTempDir } from '../lib/tmp.mjs';
 
-const log = (m) => console.error('  ' + m); // 백그라운드 상세 로그(stderr)
-// 사용자에게 노출할 마일스톤(stdout). 에이전트는 SKILL 규칙에 따라 이 [진행] 줄을 채팅으로 전달한다.
-const notify = (m) => console.log(`[진행] ${m}`);
+const log = (m) => console.error('  ' + m); // background verbose log (stderr)
+// Milestones exposed to the user (stdout). The agent relays these [progress] lines to chat per the SKILL rules.
+const notify = (m) => console.log(`[progress] ${m}`);
 
-// API 에러를 사용자 친화 문구로 (raw 코드/메시지 노출 방지)
+// Convert API errors into user-friendly text (avoid exposing raw codes/messages)
 function isAuthError(e) {
   return e?.name === 'PersoApiError' && (e.httpStatus === 401 || ['A0009', 'A0010', 'A0011'].includes(e.code ?? ''));
 }
 function friendlyError(e) {
   if (e?.name === 'MissingKeyError' || isAuthError(e)) {
-    return 'API 키가 없거나 유효하지 않습니다(만료·오타 가능). 재등록 후 다시 시도하세요.\n\n' + onboardingHelp();
+    return 'API key is missing or invalid (it may be expired or mistyped). Re-register it and try again.\n\n' + onboardingHelp();
   }
-  if (e?.name === 'PersoApiError') return '처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
-  return e?.message ?? '알 수 없는 오류';
+  if (e?.name === 'PersoApiError') return 'Something went wrong while processing. Please try again in a moment.';
+  return e?.message ?? 'Unknown error';
 }
 
 function parseArgs(argv) {
@@ -43,26 +43,26 @@ function parseArgs(argv) {
     else if (t === '--space') a.space = Number(argv[++i]);
     else if (t === '--out') a.out = argv[++i];
     else if (t === '--recursive') a.recursive = true;
-    else a.inputs.push(t); // 위치인자(여러 개): URL·경로·폴더 혼합 가능
+    else a.inputs.push(t); // positional args (multiple): URL/path/folder may be mixed
   }
   return a;
 }
 
-const labelOf = (inp) => inp?.originalName ?? inp?.sourceUrl ?? '입력';
+const labelOf = (inp) => inp?.originalName ?? inp?.sourceUrl ?? 'input';
 const refOf = (inp) => (inp.source === 'local'
   ? { source: 'local', localPath: inp.localPath, originalName: inp.originalName }
   : { source: inp.source, sourceUrl: inp.sourceUrl, originalName: inp.originalName ?? null });
-// 미지원 형식 건너뜀 안내 문구(사유가 있으면 덧붙임).
-const skipMsg = (name, e) => `지원하지 않아 건너뜁니다: ${name}${e?.cause?.message ? ` (${e.cause.message})` : ''}`;
+// Notice text for skipping an unsupported format (append the reason if present).
+const skipMsg = (name, e) => `Skipped (unsupported format): ${name}${e?.cause?.message ? ` (${e.cause.message})` : ''}`;
 
-// 저장 디렉터리(비휘발): 로컬 원본 옆, URL/외부/미상이면 현재 폴더.
+// Save directory (non-volatile): next to the local original; current folder for URL/external/unknown.
 function inputSaveDir(inp) {
   if (inp?.source === 'local' && inp.localPath) return dirname(inp.localPath);
   return process.cwd();
 }
 
-// 이어하기 상태파일 위치 — 영상 데이터는 저장하지 않고(가벼움) 비휘발 위치에 둔다(temp 청소에도 생존).
-//   --out 있으면 그 옆/안, 없으면 단일 로컬 원본 옆, 그 외 현재 폴더.
+// Resume state-file location — stores no video data (lightweight) and lives in a non-volatile location (survives temp cleanup).
+//   if --out is set, next to/inside it; otherwise next to the single local original; else current folder.
 function resumePath({ out, inputs, multiInput }) {
   if (out) return multiInput ? join(out, '.dubresume.json') : out + '.dubresume.json';
   const only = inputs.length === 1 ? inputs[0] : null;
@@ -70,12 +70,12 @@ function resumePath({ out, inputs, multiInput }) {
   return join(process.cwd(), 'dubbing-resume.json');
 }
 
-// --out 단일입력: 다국어면 언어 접미사 추가(단일 언어는 그대로).
+// --out single input: add a language suffix if multilingual (single language stays as-is).
 function explicitOutPath(argOut, target, multiLang) {
   return multiLang ? argOut.replace(/(\.[^.]+)?$/, `.${target}$1`) : argOut;
 }
 
-// 출력 파일명이 이미 쓰였으면 확장자 앞에 _2,_3… 접미사를 붙여 충돌을 피한다(used에 등록까지).
+// If the output filename is already taken, append a _2,_3… suffix before the extension to avoid collisions (also registering it into used).
 function uniqueName(fname, used) {
   if (!used.has(fname)) { used.add(fname); return fname; }
   const dot = fname.lastIndexOf('.');
@@ -86,18 +86,18 @@ function uniqueName(fname, used) {
   used.add(cand);
   return cand;
 }
-// 디렉터리별 사용중 이름 집합(기존 파일 + 이번 런)을 추적해 충돌 회피.
+// Track the set of in-use names per directory (existing files + this run) to avoid collisions.
 function reserve(dir, name, usedByDir) {
   let s = usedByDir.get(dir);
-  if (!s) { let init = []; try { init = readdirSync(dir); } catch { /* 새 폴더 */ } s = new Set(init); usedByDir.set(dir, s); }
+  if (!s) { let init = []; try { init = readdirSync(dir); } catch { /* new folder */ } s = new Set(init); usedByDir.set(dir, s); }
   return uniqueName(name, s);
 }
 
-// (입력 × 언어) 한 묶음의 최종 저장 경로 결정 + (필요 시) 디렉터리 생성.
-//  1) 단일 입력 + --out → 그 파일(다국어면 _언어, 출력 여럿이면 _2,_3…).  [사용자 명시 우선]
-//  2) 분할 없는 단일 결과 + Perso 파일명 → Perso 이름 그대로(언어·시각 포함 → rename 불필요).
-//  3) 그 외(분할 병합 등) → <원본명>.dubbed.<언어>.<ext> (여러 개면 _2,_3…).
-//  저장 폴더: --out(다중입력이면 폴더) > 입력 원본 옆 > 현재 폴더.
+// Determine the final save path for one (input × language) bundle + create the directory (if needed).
+//  1) single input + --out → that file (_language if multilingual, _2,_3… if multiple outputs).  [user-specified takes precedence]
+//  2) single result without split + Perso filename → keep the Perso name as-is (includes language/timestamp → no rename needed).
+//  3) otherwise (split merge, etc.) → <originalName>.dubbed.<language>.<ext> (_2,_3… if multiple).
+//  Save folder: --out (folder if multi-input) > next to the input original > current folder.
 function targetPaths(outputs, ctx) {
   const { inp, target, isSplit, multiInput, multiLang, out, usedByDir } = ctx;
   if (out && !multiInput) {
@@ -109,7 +109,7 @@ function targetPaths(outputs, ctx) {
   mkdirSync(dir, { recursive: true });
   const names = [];
   if (!isSplit && outputs.length === 1 && outputs[0].name) {
-    names.push(reserve(dir, basename(outputs[0].name), usedByDir)); // Perso명 그대로(시각 포함)
+    names.push(reserve(dir, basename(outputs[0].name), usedByDir)); // keep the Perso name as-is (includes timestamp)
   } else {
     const ext = extname(outputs[0]?.name || outputs[0]?.path || '') || '.mp4';
     const stem = String(labelOf(inp)).replace(/\.[^.]+$/, '') || 'output';
@@ -121,14 +121,14 @@ function targetPaths(outputs, ctx) {
   return names.map((n) => join(dir, n));
 }
 
-// 청크 계획(경계) + (입력|조각|언어)별 완료 상태만 담은 가벼운 manifest(v4).
+// Lightweight manifest (v4) holding the chunk plan (boundaries) + only the completion status per (input|part|language).
 function buildManifest(ctx, perInput, results, prevDone = {}) {
   const done = { ...prevDone };
   for (const r of results) {
     const k = `${r.inputId}|${r.index}|${r.target}`;
     if (r.status === 'OK') done[k] = { status: 'OK', projectSeq: r.projectId };
     else if (r.status === 'PASSTHROUGH') done[k] = { status: 'PASSTHROUGH' };
-    else if (r.status === 'DLFAIL') done[k] = { status: 'OK', projectSeq: r.projectId }; // 생성됨 → 재다운로드용 projectSeq 보존
+    else if (r.status === 'DLFAIL') done[k] = { status: 'OK', projectSeq: r.projectId }; // generated → preserve projectSeq for re-download
   }
   return {
     version: 4, spaceSeq: ctx.spaceSeq, opts: { source: ctx.source }, targets: ctx.targets, out: ctx.out ?? null,
@@ -143,7 +143,7 @@ function buildManifest(ctx, perInput, results, prevDone = {}) {
   };
 }
 
-// 남은(미처리) 청크 길이 합 → 분(올림). 경계 없는 청크만 있으면 null.
+// Sum of remaining (unprocessed) chunk durations → minutes (rounded up). null if only boundary-less chunks exist.
 function remainingMinutes(chunks) {
   const ms = (chunks || []).reduce(
     (s, c) => s + (Number.isFinite(c?.startMs) && Number.isFinite(c?.endMs) ? c.endMs - c.startMs : 0),
@@ -152,7 +152,7 @@ function remainingMinutes(chunks) {
   return ms > 0 ? Math.ceil(ms / 60000) : null;
 }
 
-// 전역 풀 결과를 입력별·언어별로 묶어 병합·저장하고, 미완(크레딧/다운로드 실패)이면 manifest로 이어하기 보존.
+// Group the global pool results by input and language to merge and save them, and if incomplete (credit/download failure), preserve resume state as a manifest.
 //   ctx: { spaceSeq, source, targets, out, multiInput, sched, file, prevDone }
 async function finishPool(allResults, perInput, ctx) {
   const usedByDir = new Map();
@@ -165,31 +165,31 @@ async function finishPool(allResults, perInput, ctx) {
     const isSplit = pin.chunks.length > 1;
     for (const target of ctx.targets) {
       const tRes = inRes.filter((r) => r.target === target);
-      if (!tRes.length) continue; // 전부 취소/결과 없음
+      if (!tRes.length) continue; // all canceled / no results
       const mergeable = tRes.filter((r) => r.status === 'OK' || r.status === 'PASSTHROUGH').length;
-      if (mergeable > 1) notify(`병합 시작 — ${labelOf(pin.inp)}${multiLang ? ` (${target})` : ''}`);
+      if (mergeable > 1) notify(`Merging — ${labelOf(pin.inp)}${multiLang ? ` (${target})` : ''}`);
       const { outputs, report } = await mergeGroups(tRes);
       let saved = [];
       if (outputs.length) {
         const paths = targetPaths(outputs, { inp: pin.inp, target, isSplit, multiInput: ctx.multiInput, multiLang, out: ctx.out, usedByDir });
         outputs.forEach((o, i) => copyFileSync(o.path, paths[i]));
-        await rm(dirname(outputs[0].path), { recursive: true, force: true }).catch(() => {}); // 병합 임시폴더 정리
+        await rm(dirname(outputs[0].path), { recursive: true, force: true }).catch(() => {}); // clean up merge temp folder
         saved = paths;
       }
       const tlab = multiLang ? `${labelOf(pin.inp)} (${target})` : labelOf(pin.inp);
       if (saved.length) {
-        lines.push(`완료: ${tlab} → ${saved.map((p) => basename(p)).join(', ')}${report ? ' (일부 구간 제외)' : ''}`);
+        lines.push(`Done: ${tlab} → ${saved.map((p) => basename(p)).join(', ')}${report ? ' (some parts excluded)' : ''}`);
         okCount++;
       } else {
-        lines.push(`더빙하지 못했습니다: ${tlab} — ${report ?? '결과 없음'}`);
+        lines.push(`Could not dub: ${tlab} — ${report ?? 'no result'}`);
         failCount++;
       }
     }
   }
   if (lines.length) console.log(lines.join('\n'));
-  if (perInput.length > 1 || multiLang) console.log(`\n요약: 완료 ${okCount} · 실패 ${failCount}`);
+  if (perInput.length > 1 || multiLang) console.log(`\nSummary: ${okCount} done · ${failCount} failed`);
 
-  // 또 멈췄거나(크레딧 부족) 다운로드만 실패한 게 남았으면 manifest 저장 → 이어하기.
+  // If it stopped again (out of credit) or only downloads failed, save the manifest → resume.
   const dlPending = allResults.some((r) => r.status === 'DLFAIL');
   const stopped = !!ctx.sched?.stopped;
   if (stopped || dlPending) {
@@ -201,18 +201,18 @@ async function finishPool(allResults, perInput, ctx) {
       console.log('\n' + messages.quotaExceeded({
         planTier: plan?.planTier,
         remainingQuota: plan?.remainingQuota,
-        remainingNote: min != null ? `약 ${min}분` : null,
+        remainingNote: min != null ? `~${min} min` : null,
         resumeHint: `node scripts/dubbing.mjs --resume "${ctx.file}"`,
       }));
     } else {
-      console.log(`\n일부 구간은 생성됐지만 내려받기에 실패했습니다(재더빙 아님). 이어하기로 재다운로드하세요:\n  node scripts/dubbing.mjs --resume "${ctx.file}"`);
+      console.log(`\nSome parts were generated but failed to download (not a re-dub). Resume to re-download:\n  node scripts/dubbing.mjs --resume "${ctx.file}"`);
     }
   } else {
-    try { unlinkSync(ctx.file); } catch { /* 완료 → 이어하기 상태파일 정리(없으면 무시) */ }
+    try { unlinkSync(ctx.file); } catch { /* done → clean up resume state-file (ignore if absent) */ }
   }
 }
 
-// 신규 실행: 모든 입력을 하나의 풀로 스케줄. 입력별 분할·업로드는 1번(mediaSeq 확보) → 언어마다 재사용.
+// New run: schedule all inputs as a single pool. Per-input split/upload happens once (secures mediaSeq) → reused per language.
 async function runPool(args) {
   if (!resolveKey()) {
     console.error(onboardingHelp());
@@ -223,7 +223,7 @@ async function runPool(args) {
   const targets = String(args.target).split(',').map((t) => t.trim()).filter(Boolean); // --target en,ja,ko
   const multiInput = inputs.length > 1;
 
-  // 입력별 분할·업로드 → 모든 조각을 inputId로 태깅해 하나의 풀로.
+  // Per-input split/upload → tag every part with inputId into a single pool.
   const pool = [];
   const perInput = [];
   for (let id = 0; id < inputs.length; id++) {
@@ -233,18 +233,18 @@ async function runPool(args) {
     try {
       ({ chunks } = await resolveChunks(inp, spaceSeq, { log, notify }));
     } catch (e) {
-      if (isAuthError(e)) { console.log(`\n${friendlyError(e)}`); return; } // 키 문제는 전체 중단
-      if (e?.name === 'UnsupportedMediaError') { notify(skipMsg(labelOf(inp), e)); continue; } // 미지원 → 건너뜀
-      console.log(`${tag} — 분할/업로드 실패: ${friendlyError(e)}`); continue;
+      if (isAuthError(e)) { console.log(`\n${friendlyError(e)}`); return; } // key issues abort everything
+      if (e?.name === 'UnsupportedMediaError') { notify(skipMsg(labelOf(inp), e)); continue; } // unsupported → skip
+      console.log(`${tag} — split/upload failed: ${friendlyError(e)}`); continue;
     }
-    if (chunks.length > 1) notify(`분할 완료 — ${labelOf(inp)} (${chunks.length}조각)`);
+    if (chunks.length > 1) notify(`Split complete — ${labelOf(inp)} (${chunks.length} parts)`);
     for (const c of chunks) pool.push({ ...c, inputId: id });
     perInput.push({ inputId: id, inp, ref: refOf(inp), chunks });
   }
-  if (!pool.length) { notify('처리할 입력이 없습니다.'); return; }
+  if (!pool.length) { notify('No inputs to process.'); return; }
 
-  notify(`번역 시작${targets.length > 1 ? ` (${targets.join(', ')})` : ''}`);
-  // 모든 입력×조각×언어를 한 큐로 채워 동시 처리. 빈 슬롯만큼 제출하고 5분 간격으로 추가.
+  notify(`Translating${targets.length > 1 ? ` (${targets.join(', ')})` : ''}`);
+  // Fill all inputs×parts×languages into one queue for concurrent processing. Submit as many as there are empty slots and add more every 5 minutes.
   const sched = await runSchedule(pool, spaceSeq, { source: args.source, targets }, { log });
 
   const file = resumePath({ out: args.out, inputs, multiInput });
@@ -253,18 +253,18 @@ async function runPool(args) {
   });
 }
 
-// 이어하기: 완료분(OK)은 projectSeq로 서버에서 재다운로드, 나머지(PASSTHROUGH/미처리)는 원본에서 재컷해 진행 → 병합.
+// Resume: completed parts (OK) are re-downloaded from the server via projectSeq; the rest (PASSTHROUGH/unprocessed) are re-cut from the original and processed → merged.
 async function runResume(file) {
   if (!resolveKey()) {
     console.error(onboardingHelp());
     process.exit(2);
   }
   const m = JSON.parse(readFileSync(file, 'utf8'));
-  if (m.version !== 4) throw new Error('지원하지 않는 상태파일 형식입니다 — 원본으로 다시 실행하세요.');
+  if (m.version !== 4) throw new Error('Unsupported state-file format — run again from the original.');
   const targets = m.targets ?? [m.opts?.target ?? 'en'];
   const multiInput = (m.inputs?.length ?? 0) > 1;
   const outDir = await makeTempDir('dubbing-resume-');
-  const matCache = new Map(); // `${inputId}|${index}` → 재컷 경로(조각당 1회, 언어 공유)
+  const matCache = new Map(); // `${inputId}|${index}` → re-cut path (once per part, shared across languages)
 
   const downloaded = [];
   const skip = new Set();
@@ -275,23 +275,23 @@ async function runResume(file) {
     const inputStr = pin.ref.source === 'local' ? pin.ref.localPath : pin.ref.sourceUrl;
     let prepared;
     try {
-      prepared = await prepareInput(inputStr); // 로컬 재확인 / URL 재다운로드
+      prepared = await prepareInput(inputStr); // re-check local / re-download URL
     } catch (e) {
-      console.log(`입력을 찾을 수 없어 건너뜁니다: ${pin.ref.originalName ?? inputStr} (${e.message})`);
+      console.log(`Input not found, skipping: ${pin.ref.originalName ?? inputStr} (${e.message})`);
       continue;
     }
     const inp = { ...prepared, originalName: prepared.originalName ?? pin.ref.originalName };
     const localPath = prepared.localPath ?? prepared.path ?? null;
     const materialize = async (c) => {
-      if (c.source === 'external') return null; // external은 재컷 불가 → 그대로 재제출
-      if (!localPath) throw new Error('원본을 찾을 수 없어 이어할 수 없습니다.');
-      if (c.endMs == null) return localPath; // 통짜면 원본
+      if (c.source === 'external') return null; // external cannot be re-cut → resubmit as-is
+      if (!localPath) throw new Error('Original not found — cannot resume.');
+      if (c.endMs == null) return localPath; // if whole (not split), the original
       const mk = `${pin.inputId}|${c.index}`;
       if (!matCache.has(mk)) matCache.set(mk, await recutChunk(localPath, c.startMs, c.endMs));
       return matCache.get(mk);
     };
 
-    // 완료분((inputId|index|target) OK/PASSTHROUGH)은 재다운로드/원본, 나머지는 재제출 대상(skip에서 제외).
+    // Completed parts ((inputId|index|target) OK/PASSTHROUGH) use re-download/original; the rest are resubmission targets (excluded from skip).
     for (const c of pin.chunks) {
       for (const target of targets) {
         const k = `${pin.inputId}|${c.index}|${target}`;
@@ -301,10 +301,10 @@ async function runResume(file) {
           try {
             const dl = await download(d.projectSeq, m.spaceSeq, { kind: c.kind, outPath: out });
             downloaded.push({ inputId: pin.inputId, index: c.index, target, status: 'OK', path: out, projectId: d.projectSeq, name: dl.fileName });
-            log(`[입력 ${pin.inputId + 1}] 구간 ${c.index + 1}(${target}) 재다운로드`);
+            log(`[input ${pin.inputId + 1}] part ${c.index + 1}(${target}) re-downloaded`);
           } catch {
             downloaded.push({ inputId: pin.inputId, index: c.index, target, status: 'DLFAIL', projectId: d.projectSeq, reason: 'download_failed' });
-            log(`[입력 ${pin.inputId + 1}] 구간 ${c.index + 1}(${target}) 재다운로드 실패 — 재더빙 안 함`);
+            log(`[input ${pin.inputId + 1}] part ${c.index + 1}(${target}) re-download failed — no re-dub`);
           }
           skip.add(k);
         } else if (d?.status === 'PASSTHROUGH') {
@@ -314,7 +314,7 @@ async function runResume(file) {
       }
     }
 
-    // 미완 언어가 하나라도 있는 조각만 재컷해 풀에 추가(언어는 skip으로 걸러짐).
+    // Re-cut only parts that have at least one incomplete language and add them to the pool (languages are filtered out via skip).
     for (const c of pin.chunks) {
       if (!targets.some((t) => !skip.has(`${pin.inputId}|${c.index}|${t}`))) continue;
       if (c.source === 'external') pool.push({ inputId: pin.inputId, index: c.index, source: 'external', sourceUrl: c.sourceUrl, kind: c.kind });
@@ -326,7 +326,7 @@ async function runResume(file) {
     perInput.push({ inputId: pin.inputId, inp, ref: pin.ref, chunks: pin.chunks });
   }
 
-  if (pool.length) notify('번역 시작 (이어하기)');
+  if (pool.length) notify('Translating (resume)');
   const sched = pool.length
     ? await runSchedule(pool, m.spaceSeq, { source: m.opts?.source ?? 'auto', targets, done: skip }, { log })
     : { results: new Map(), stopped: false, pendingLeft: [] };
@@ -336,28 +336,28 @@ async function runResume(file) {
   });
 }
 
-// 테스트용 순수 헬퍼 export(직접 실행 시에는 아래 main만 동작).
+// Pure helper exports for testing (when run directly, only main below executes).
 export { parseArgs, targetPaths, buildManifest, finishPool, refOf, resumePath, explicitOutPath, remainingMinutes };
 
 async function main() {
   let exitCode = 0;
   try {
-    preloadKeyEnv(); // async 이전(깨끗한 시점)에 키를 env로 선주입 → 메인 프로세스의 powershell 동기호출/크래시 회피
+    preloadKeyEnv(); // pre-inject the key into env before async (at a clean point) → avoid a synchronous powershell call/crash in the main process
     const args = parseArgs(process.argv.slice(2));
     if (args.resume) await runResume(args.resume);
     else if (!args.inputs.length) {
-      console.error('사용법: node scripts/dubbing.mjs "<파일|폴더|URL>" ["<또 다른 입력>" ...] [--source auto] [--target en,ja] [--space N] [--out 경로|폴더] [--recursive]');
+      console.error('Usage: node scripts/dubbing.mjs "<file|folder|URL>" ["<another input>" ...] [--source auto] [--target en,ja] [--space N] [--out path|folder] [--recursive]');
       exitCode = 1;
     } else await runPool(args);
   } catch (e) {
     console.error(friendlyError(e));
     exitCode = 1;
   } finally {
-    await cleanupTempDirs(); // 자르기/스케줄/병합/다운로드 임시폴더 일괄 정리
+    await cleanupTempDirs(); // bulk-clean the cut/schedule/merge/download temp folders
   }
   process.exit(exitCode);
 }
 
-// 직접 실행(CLI)일 때만 main. import(테스트)될 때는 헬퍼만 노출하고 실행 안 함.
+// main only when run directly (CLI). When imported (tests), expose helpers only and do not execute.
 const invoked = process.argv[1] ? pathToFileURL(process.argv[1]).href : '';
 if (import.meta.url === invoked) await main();

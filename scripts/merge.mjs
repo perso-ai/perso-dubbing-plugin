@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// (standalone) results JSON 배열([{index,status,path,reason}])을 받아 그룹 병합.
+// (standalone) Takes a results JSON array ([{index,status,path,reason}]) and merges groups.
 import { mergeGroups } from '../lib/merge.mjs';
 
 try {

@@ -1,7 +1,7 @@
 {
   "name": "perso-dubbing",
   "version": "0.1.0",
-  "description": "Perso AI 영상 자동 더빙 스킬 (Claude Code / Codex / Cursor)",
+  "description": "Perso AI video auto-dubbing skill (Claude Code / Codex / Cursor)",
   "license": "MIT",
   "type": "module",
   "bin": {
