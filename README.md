@@ -14,108 +14,86 @@ Because every host uses the same **Agent Skills standard** (`SKILL.md`), it work
 
 ---
 
-## Supported platforms
+## Quick start (first time)
 
-- [**Claude Code**](#claude-code)
-- [**Antigravity**](#antigravity)
-- [**Codex App**](#codex-app)
-- [**Codex CLI**](#codex-cli)
-- [**Cursor**](#cursor)
-
-> If you use several hosts together, follow the one-shot install below.
+1. **Create an empty folder** and open your coding agent (Claude Code · Codex · Cursor · Antigravity) in it.
+2. **Tell the agent to install the plugin** — paste this repository's URL and say *"install this"* (or run `npx perso-dubbing` yourself).
+3. **Ask it to dub a video** — e.g. *"Dub this video into English — C:\videos\clip.mp4"* (a YouTube URL or a whole folder works too). On first run it will open a key file for your Perso API key. Unless you pass `--out`, results are saved next to the source video.
 
 ---
 
 ## Install
 
-> **🤖 To the agent:** If you're reading this README from inside the repo, install is a single line. Run the following from the repo root — no repo URL or network needed.
+> **🤖 To the agent:** If you were given only this repository's URL, run this single command — it fetches the package, auto-detects every installed host (Claude Code · Codex · Cursor · Antigravity), and installs the skill into each:
 >
 > ```bash
-> node scripts/install.mjs
+> npx perso-dubbing
 > ```
+>
+> If the repo is already cloned, run `node scripts/install.mjs` from the repo root instead (no network needed). In Claude Code, prefer the plugin-marketplace commands below.
 
-### ⚡ One-line install (recommended · when you already have the repo)
-
-From the repo root:
-
-```bash
-node scripts/install.mjs        # = npm run install:skill
-```
-
-Copies the `dubbing` skill into the skills folder of every detected host (`~/.claude` · `~/.antigravity` · `~/.codex` · `~/.cursor`).
-
-- Specific host only: `--claude` / `--antigravity` / `--codex` / `--cursor`
-- All of them: `--all` · current project only (`./.claude` etc.): `--project`
-
-### 📦 When you don't have the repo yet (npx)
-
-```bash
-npx github:est-perso-dubbing-agent/perso-dubbing-plugin
-```
-
-Installs the same way, auto-detecting hosts. *(Once published to npm: `npx perso-dubbing`.)*
-
-### 🔧 Manual install
-
-If automatic install fails, drop the folder into your host's skills directory under the name **`dubbing`**. From the repo root:
-
-```bash
-# macOS / Linux — see the per-platform locations below for <skills_folder>
-mkdir -p <skills_folder>/dubbing && cp -r ./* <skills_folder>/dubbing/
-```
-
-> 💡 Windows (PowerShell): `New-Item -ItemType Directory -Force <skills_folder>\dubbing; Copy-Item .\* <skills_folder>\dubbing\ -Recurse`
-
-Per-platform `<skills_folder>` locations are below.
-
-### Claude Code
-
-Auto-install target. To install for this host only, use `--claude`.
-
-Manual locations:
+### Claude Code (plugin marketplace — recommended)
 
 ```text
-~/.claude/skills/dubbing/            # global
-.claude/skills/dubbing/              # this project only
+/plugin marketplace add est-perso-dubbing-agent/perso-dubbing-plugin
+/plugin install perso-dubbing@perso-ai
 ```
 
-### Antigravity
+### Codex
 
-Auto-install target. To install for this host only, use `--antigravity`.
-
-Manual location:
+Codex reads skills from the shared Agent Skills folder. Run `npx perso-dubbing --codex`, or copy manually:
 
 ```text
-~/.antigravity/skills/dubbing/
+~/.agents/skills/dubbing/        # personal (all repos) — current Codex
+~/.codex/skills/dubbing/         # older Codex versions (the installer writes both)
+<repo>/.agents/skills/dubbing/   # this repository only
 ```
 
-### Codex App
-
-Codex App shares the **same config folder (`~/.codex`)** as the Codex CLI. Add `--codex` to the install command (`node scripts/install.mjs --codex`) or drop the folder in directly.
-
-```text
-~/.codex/skills/dubbing/
-```
-
-### Codex CLI
-
-Auto-install target. To install for this host only, use `--codex`.
-
-Manual location:
-
-```text
-~/.codex/skills/dubbing/
-```
+The repo also ships a Codex plugin manifest (`.codex-plugin/plugin.json`) for marketplace-based installs.
 
 ### Cursor
 
-Auto-install target. To install for this host only, use `--cursor`.
-
-Manual location:
+Run `npx perso-dubbing --cursor`, or copy into:
 
 ```text
-~/.cursor/skills/dubbing/
+~/.cursor/skills/dubbing/        # global
+.cursor/skills/dubbing/          # this project only
 ```
+
+The repo ships a Cursor plugin manifest (`.cursor-plugin/plugin.json`) for the Cursor plugin marketplace.
+
+### Antigravity
+
+Run `npx perso-dubbing --antigravity`, or copy into either location:
+
+```text
+~/.antigravity/skills/dubbing/   # Antigravity 1.x
+~/.agents/skills/dubbing/        # Antigravity 2.0+ (shared Agent Skills folder)
+```
+
+### ⚡ One-line installer (any host)
+
+Detects which hosts you use and installs to all of them — no clone needed:
+
+```bash
+npx perso-dubbing
+```
+
+- Specific host only: `--claude` / `--antigravity` / `--codex` / `--cursor` · all: `--all`
+- Current project only (`./.claude`, `./.agents`, …): `--project`
+
+Already have the repo cloned? `node scripts/install.mjs` from the repo root does the same without any network.
+
+### 🔧 Manual install
+
+Copy the skill folder into your host's skills directory under the name **`dubbing`**. From the repo root:
+
+```bash
+# macOS / Linux
+mkdir -p <skills_folder>/dubbing && cp -r skills/dubbing/* <skills_folder>/dubbing/
+```
+
+> 💡 Windows (PowerShell): `New-Item -ItemType Directory -Force <skills_folder>\dubbing; Copy-Item .\skills\dubbing\* <skills_folder>\dubbing\ -Recurse`
 
 After installing, type **`/dubbing`** in your agent or just say **"dub this video for me"** to run it.
 
@@ -127,18 +105,20 @@ The easiest way — just tell your agent:
 
 > "Dub this video into English — C:\videos\clip.mp4"
 
-You can also run the CLI directly:
+You can also run the CLI directly from the repo root:
 
 ```bash
 # One video (auto-detect source → English)
-node scripts/dubbing.mjs "clip.mp4" --target en --out result.mp4
+npm run dub -- "clip.mp4" --target en --out result.mp4
 
 # Several languages at once (uploaded/split once, reused per language)
-node scripts/dubbing.mjs "clip.mp4" --target en,ja,zh
+npm run dub -- "clip.mp4" --target en,ja,zh
 
 # Several inputs at once (URLs, files, and folders can be mixed)
-node scripts/dubbing.mjs "https://youtu.be/..." "clip2.mp4" "C:\videos" --target en
+npm run dub -- "https://youtu.be/..." "clip2.mp4" "C:\videos" --target en
 ```
+
+*(Equivalent direct call: `node skills/dubbing/scripts/dubbing.mjs …` — or `node scripts/dubbing.mjs …` from inside an installed skill folder.)*
 
 ---
 
@@ -147,11 +127,21 @@ node scripts/dubbing.mjs "https://youtu.be/..." "clip2.mp4" "C:\videos" --target
 | Symptom | Fix |
 |---|---|
 | Install/run fails | Requires **Node.js 18+**. Check with `node -v`. |
-| `API key missing`-type message | A Perso Dubbing API key is required. Check registration with `node scripts/resolve_key.mjs --check` and follow the prompts. **Do not paste the key into the chat.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Get an API key</a> |
-| ffmpeg-related error | ffmpeg is normally installed automatically. If it fails, run `npm run doctor` (= `node scripts/check_deps.mjs`). |
-| Stops midway (out of credits) | It saves what's already done and stops. After topping up credits, run the **`--resume "<state-file>"`** command shown in the notice to finish only the remaining parts (completed parts are skipped automatically). |
+| No API key yet | Just run any dubbing command — a key file opens automatically; paste your key and save (it's encrypted and the file is deleted). Manual check: `npm run key:check`. **Do not paste the key into the chat.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Get an API key</a> |
+| ffmpeg-related error | ffmpeg is normally installed automatically. If it fails, run `npm run doctor`. |
+| Stops midway (out of credits, crash, killed process) | Progress is saved to a `*.dubresume.json` state file throughout the run. Run the **`--resume "<state-file>"`** command shown in the notice to finish only the remaining parts (completed parts are skipped automatically). |
 
 ---
+
+## Repository layout
+
+```text
+.claude-plugin/    Claude Code plugin + marketplace manifests
+.codex-plugin/     Codex plugin manifest
+.cursor-plugin/    Cursor plugin manifest
+skills/dubbing/    The skill itself (SKILL.md · lib/ · scripts/) — self-contained
+scripts/           Repo-level installer (install.mjs)
+```
 
 ## License
 

@@ -17,7 +17,9 @@ function friendlyReason(reason) {
     no_voice: 'no voice detected (nothing to dub)', elapsed_exceeded: 'timed out', failed: 'processing failed',
   };
   if (map[reason]) return map[reason];
-  if (typeof reason === 'string' && /[가-힣]/.test(reason)) return reason; // pass through Korean guidance from the service as-is
+  // Pass service-provided human messages through in any language (they contain spaces or non-ASCII);
+  // only unknown internal tokens (snake_case etc.) fall back to the generic text.
+  if (typeof reason === 'string' && (/\s/.test(reason.trim()) || /[^\x20-\x7E]/.test(reason))) return reason;
   return 'processing failed';
 }
 

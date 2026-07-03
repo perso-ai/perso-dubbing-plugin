@@ -1,0 +1,7 @@
+interface:
+  display_name: "Perso AI Dubbing"
+  short_description: "Auto-dub videos into other languages with lip-sync (Perso AI)."
+  default_prompt: "Dub this video into English."
+
+policy:
+  allow_implicit_invocation: true

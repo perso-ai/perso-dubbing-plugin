@@ -1,29 +1,47 @@
 {
   "name": "perso-dubbing",
-  "version": "0.1.0",
-  "description": "Perso AI video auto-dubbing skill (Claude Code / Codex / Cursor)",
+  "version": "0.2.0",
+  "description": "Perso AI video auto-dubbing agent skill (Claude Code / Codex / Cursor / Antigravity)",
   "license": "MIT",
   "type": "module",
   "bin": {
     "perso-dubbing": "scripts/install.mjs"
   },
   "files": [
-    "SKILL.md",
-    "README.md",
-    "LICENSE",
-    "lib",
-    "scripts"
+    "skills",
+    "scripts",
+    ".claude-plugin",
+    ".codex-plugin",
+    ".cursor-plugin"
   ],
   "engines": {
     "node": ">=18"
   },
+  "homepage": "https://github.com/est-perso-dubbing-agent/perso-dubbing-plugin#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/est-perso-dubbing-agent/perso-dubbing-plugin.git"
+  },
+  "keywords": [
+    "agent-skills",
+    "skill",
+    "plugin",
+    "dubbing",
+    "video-translation",
+    "lip-sync",
+    "perso-ai",
+    "claude-code",
+    "codex",
+    "cursor",
+    "antigravity"
+  ],
   "scripts": {
-    "doctor": "node scripts/check_deps.mjs",
-    "key:check": "node scripts/resolve_key.mjs --check",
-    "langs": "node scripts/languages.mjs",
-    "input": "node scripts/prepare_input.mjs",
-    "split": "node scripts/probe_split.mjs",
-    "dub": "node scripts/dubbing.mjs",
+    "doctor": "node skills/dubbing/scripts/check_deps.mjs",
+    "key:check": "node skills/dubbing/scripts/resolve_key.mjs --check",
+    "langs": "node skills/dubbing/scripts/languages.mjs",
+    "input": "node skills/dubbing/scripts/prepare_input.mjs",
+    "split": "node skills/dubbing/scripts/probe_split.mjs",
+    "dub": "node skills/dubbing/scripts/dubbing.mjs",
     "install:skill": "node scripts/install.mjs"
   }
 }

@@ -23,6 +23,7 @@ const QUEUE_FULL_CODES = new Set(['VT4292', 'VT5034']);
 //   An unsplit input has a single piece. The same (inputId,index) shares mediaSeq across languages (uploaded once).
 export async function runSchedule(chunks, spaceSeq, opts = {}, hooks = {}) {
   const log = hooks.log ?? (() => {});
+  const onResult = hooks.onResult ?? (() => {}); // fired per confirmed result — lets the caller persist resume state incrementally
   const outDir = await makeTempDir('dubbing-out-');
 
   // Unit of work = (input × chunk × language). Expand every chunk of every input per language to fill one queue.
@@ -46,7 +47,11 @@ export async function runSchedule(chunks, spaceSeq, opts = {}, hooks = {}) {
   let lastProgressAt = Date.now(); // time of last progress. Guards on 'no progress' rather than absolute elapsed time.
 
   const timeUp = () => Date.now() - lastProgressAt >= MAX_IDLE_MS;
-  const setResult = (t, r) => results.set(taskKey(t), { inputId: t.inputId ?? 0, index: t.index, target: t.target, ...r });
+  const setResult = (t, r) => {
+    const rec = { inputId: t.inputId ?? 0, index: t.index, target: t.target, ...r };
+    results.set(taskKey(t), rec);
+    try { onResult(rec); } catch { /* state saving must never break scheduling */ }
+  };
 
   // On stop_all, stop new submissions and only finalize in-flight (submitted) ones → exit when empty (pending is preserved).
   while ((submitted.size || (!stopAll && pending.length)) && !timeUp()) {
@@ -190,7 +195,10 @@ export async function runSchedule(chunks, spaceSeq, opts = {}, hooks = {}) {
 
   function failRemaining(reason) {
     for (const c of pending) if (!results.has(taskKey(c))) setResult(c, { status: 'HARD_FAIL', reason });
-    for (const [pid, c] of submitted) if (!results.has(taskKey(c))) setResult(c, { status: 'HARD_FAIL', projectId: pid, reason });
+    // In-flight projects may still finish server-side (credits already spent) → keep the projectSeq as DLFAIL
+    // so resume re-downloads the result instead of re-dubbing (no double billing). A confirmed server-side
+    // failure is converted back to a re-dub by the resume flow.
+    for (const [pid, c] of submitted) if (!results.has(taskKey(c))) setResult(c, { status: 'DLFAIL', projectId: pid, reason });
     submitted.clear();
     pending.length = 0;
   }

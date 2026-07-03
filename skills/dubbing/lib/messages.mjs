@@ -1,13 +1,15 @@
 // User-facing guidance message templates.
-import { CLIENT_HOST } from './client_info.mjs';
+import { CLIENT_HOST, CLIENT_VERSION } from './client_info.mjs';
 
 export const SUBSCRIPTION_URL = 'https://portal.perso.ai/en/workspace/space-settings?tab=Subscription';
 export const PRICING_URL = 'https://perso.ai/en/workspace/vt?pricing';
 
-// utm_source for analytics — distinguishes the agent host (claude-code→claude, antigravity, codex, cursor / detection failure=unknown).
-const UTM_BY_HOST = { 'claude-code': 'claude', antigravity: 'antigravity', codex: 'codex', cursor: 'cursor' };
-export const UTM_SOURCE = UTM_BY_HOST[CLIENT_HOST] || CLIENT_HOST || 'unknown';
-const withUtm = (url) => url + (url.includes('?') ? '&' : '?') + `utm_source=${UTM_SOURCE}`;
+// UTM identity — mirrors the API-call identity (User-Agent perso-dubbing/<version> (host=agents)):
+// one unified 'agents' channel across all hosts; the skill version is carried in utm_content.
+export const UTM_SOURCE = CLIENT_HOST;
+export const UTM_PARAMS =
+  `utm_source=${UTM_SOURCE}&utm_medium=agent-skill&utm_campaign=perso-dubbing&utm_content=v${CLIENT_VERSION}`;
+const withUtm = (url) => url + (url.includes('?') ? '&' : '?') + UTM_PARAMS;
 
 // free/starter have no credit purchase, so only a plan upgrade is suggested.
 const LOW_TIERS = new Set(['free', 'starter']);

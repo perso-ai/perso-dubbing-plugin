@@ -1,18 +1,21 @@
 #!/usr/bin/env node
 // /dubbing entry orchestrator.
 //   key gate → input(s) → per-input split → global pool scheduler (all inputs×parts×languages in one queue) → per-input/per-language merge → notice.
-//   usage: node scripts/dubbing.mjs "<local|URL|folder>" ["<another input>" ...] [--source auto] [--target en,ja] [--space N] [--out path|folder]
+//   usage: node scripts/dubbing.mjs "<local|URL|folder>" ["<another input>" ...] [--source auto] [--target en,ja] [--space "space name"] [--out path|folder]
 //          node scripts/dubbing.mjs --resume "<statefile>"
-import { writeFileSync, readFileSync, copyFileSync, mkdirSync, readdirSync, unlinkSync } from 'node:fs';
+import { writeFileSync, readFileSync, copyFileSync, mkdirSync, readdirSync, unlinkSync, renameSync, realpathSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
 import { join, basename, dirname, extname } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
+import { createInterface } from 'node:readline/promises';
 import { resolveKey, onboardingHelp, preloadKeyEnv } from './resolve_key.mjs';
 import { expandInputs, prepareInput } from '../lib/input.mjs';
-import { resolveSpace, getPlanStatus } from '../lib/space.mjs';
+import { dubbingSpaces, getPlanStatus } from '../lib/space.mjs';
+import { getLanguages } from '../lib/languages.mjs';
 import { resolveChunks, recutChunk } from '../lib/split.mjs';
 import { runSchedule } from '../lib/scheduler.mjs';
-import { download } from '../lib/api_adapter.mjs';
+import { download, getStatus } from '../lib/api_adapter.mjs';
 import { mergeGroups } from '../lib/merge.mjs';
 import { messages } from '../lib/messages.mjs';
 import { cleanupTempDirs, makeTempDir } from '../lib/tmp.mjs';
@@ -33,19 +36,139 @@ function friendlyError(e) {
   return e?.message ?? 'Unknown error';
 }
 
+// Key gate with self-healing: when no key is registered, hand off to `resolve_key.mjs --watch` in a child
+// process (creates the key file, opens it in the editor, encrypts on save, deletes the file) and continue
+// once registered. Runs in a child because Windows DPAPI work (powershell) must not run in this main process.
+// PERSO_NO_WATCH=1 restores the old fail-fast behavior (headless/CI).
+async function ensureKey() {
+  if (resolveKey()) return;
+  if (process.env.PERSO_NO_WATCH) {
+    console.error(onboardingHelp());
+    throw new ExitCode(2);
+  }
+  notify('No API key registered — a key file will open; paste just your Perso API key and save it. (Get one: https://developers.perso.ai/api-keys)');
+  const watcher = fileURLToPath(new URL('./resolve_key.mjs', import.meta.url));
+  const code = await new Promise((res) => {
+    const child = spawn(process.execPath, [watcher, '--watch'], { stdio: 'inherit' });
+    child.on('close', res);
+    child.on('error', () => res(1));
+  });
+  preloadKeyEnv();
+  if (code !== 0 || !resolveKey()) {
+    console.error(onboardingHelp());
+    throw new ExitCode(2);
+  }
+  notify('API key registered — continuing.');
+}
+
+// Space gate: which workspace to dub in. The user only ever sees space NAME + PLAN (never the seq):
+// --space accepts a space name (or a raw seq for scripts); PERSO_SPACE_SEQ pins it; a single space is used
+// as-is. With several spaces the user chooses — interactively on a TTY; otherwise (agent/background) the
+// name+plan options are printed as [space-select] lines and the run exits with code 3 → re-run with
+// --space "<space name>".
+async function ensureSpace(args) {
+  const wanted = args.space != null ? String(args.space).trim() : '';
+  if (/^\d+$/.test(wanted)) return Number(wanted); // raw seq — power users/scripts; not shown to end users
+  const pinned = Number(process.env.PERSO_SPACE_SEQ);
+  if (!wanted && pinned) return pinned;
+
+  const spaces = await dubbingSpaces();
+  // Options shown to the user carry "name | (plan) | remaining credits" — never the internal seq.
+  // Credits are fetched only when a list is actually displayed (one plan-status call per option).
+  const enrich = (list) => Promise.all(list.map(async (s) => ({ ...s, credits: (await getPlanStatus(s.seq))?.remainingQuota ?? null })));
+  const label = (s) => [s.name, s.tier ? `(${s.tier})` : '(-)', s.credits != null ? `${s.credits} credits left` : 'credits unknown'].join(' | ');
+  const brief = (s) => `${s.name}${s.tier ? ` (${s.tier})` : ''}`;
+
+  if (wanted) {
+    const hits = spaces.filter((s) => s.name.toLowerCase() === wanted.toLowerCase());
+    if (hits.length === 1) { console.log(`Space: ${brief(hits[0])}`); return hits[0].seq; }
+    if (hits.length > 1) {
+      console.log(`[space-select] Several spaces share the name "${wanted}" — rename one in Perso, or pin PERSO_SPACE_SEQ:`);
+      for (const s of await enrich(hits)) console.log(`  PERSO_SPACE_SEQ=${s.seq}  →  ${label(s)}`);
+      throw new ExitCode(3);
+    }
+    console.log(`[space-select] No space named "${wanted}". Ask the user to pick one of these:`);
+    for (const s of await enrich(spaces)) console.log(`  - ${label(s)}`);
+    throw new ExitCode(3);
+  }
+
+  if (spaces.length === 1) return spaces[0].seq;
+  const options = await enrich(spaces);
+  if (process.stdin.isTTY && process.stdout.isTTY) {
+    console.log('Several spaces are available. Which one should this dubbing run in?');
+    options.forEach((s, i) => console.log(`  ${i + 1}) ${label(s)}`));
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    const answer = (await rl.question('Select (number or name): ')).trim();
+    rl.close();
+    const chosen = options[Number(answer) - 1] ?? options.find((s) => s.name.toLowerCase() === answer.toLowerCase());
+    if (!chosen) { console.error('Invalid selection — run again.'); throw new ExitCode(1); }
+    console.log(`Space: ${brief(chosen)}`);
+    return chosen.seq;
+  }
+  console.log('[space-select] Several spaces are available — show the user ONLY these options (name | plan | credits left), ask which one to dub in, then re-run the same command with --space "<space name>":');
+  for (const s of options) console.log(`  - ${label(s)}`);
+  throw new ExitCode(3);
+}
+
+const USAGE = [
+  'Usage: node scripts/dubbing.mjs "<file|folder|URL>" ["<another input>" ...] [--source auto] [--target en,ja] [--space "space name"] [--out path|folder] [--recursive]',
+  '       node scripts/dubbing.mjs --resume "<state-file>"',
+].join('\n');
+
+class UsageError extends Error {
+  constructor(msg) { super(msg); this.name = 'UsageError'; }
+}
+
+// Signals "stop with this exit code" after the message was already printed. Thrown instead of calling
+// process.exit() directly: a hard exit while fetch sockets are tearing down hits a Windows libuv assert
+// (async.c) and corrupts the exit code — main() sets process.exitCode and lets the loop drain instead.
+class ExitCode extends Error {
+  constructor(code) { super(`exit ${code}`); this.name = 'ExitCode'; this.code = code; }
+}
+
 function parseArgs(argv) {
   const a = { source: 'auto', target: 'en', inputs: [] };
+  const VALUE_FLAGS = { '--resume': 'resume', '--source': 'source', '--target': 'target', '--space': 'space', '--out': 'out' };
   for (let i = 0; i < argv.length; i++) {
     const t = argv[i];
-    if (t === '--resume') a.resume = argv[++i];
-    else if (t === '--source') a.source = argv[++i];
-    else if (t === '--target') a.target = argv[++i];
-    else if (t === '--space') a.space = Number(argv[++i]);
-    else if (t === '--out') a.out = argv[++i];
+    if (t === '--help' || t === '-h') a.help = true;
     else if (t === '--recursive') a.recursive = true;
-    else a.inputs.push(t); // positional args (multiple): URL/path/folder may be mixed
+    else if (t in VALUE_FLAGS) {
+      const v = argv[++i];
+      if (v === undefined || v.startsWith('--')) throw new UsageError(`Missing value for ${t}`);
+      a[VALUE_FLAGS[t]] = v;
+    } else if (t.startsWith('--')) {
+      throw new UsageError(`Unknown option: ${t}`); // typos must not be swallowed as input paths
+    } else a.inputs.push(t); // positional args (multiple): URL/path/folder may be mixed
   }
   return a;
+}
+
+// Language codes are validated up-front: a typo is a permanent error, so fail with the supported list
+// instead of a mid-run "try again". Best-effort — if the list can't be fetched, let the server decide.
+async function validateLanguages(targets, source) {
+  const langs = await getLanguages().catch(() => []);
+  const codes = langs.map((l) => (typeof l === 'string' ? l : l.code ?? l.languageCode)).filter(Boolean);
+  if (!codes.length) return { targets, source };
+  const canon = new Map(codes.map((c) => [String(c).toLowerCase(), c]));
+  const fixed = targets.map((t) => {
+    const hit = canon.get(t.toLowerCase());
+    if (!hit) {
+      console.error(`Unsupported target language code: "${t}"\nSupported: ${codes.join(', ')}`);
+      throw new ExitCode(1);
+    }
+    return hit;
+  });
+  let src = source;
+  if (source && source !== 'auto') {
+    const hit = canon.get(source.toLowerCase());
+    if (!hit) {
+      console.error(`Unsupported source language code: "${source}" (use "auto" to detect)\nSupported: ${codes.join(', ')}`);
+      throw new ExitCode(1);
+    }
+    src = hit;
+  }
+  return { targets: fixed, source: src };
 }
 
 const labelOf = (inp) => inp?.originalName ?? inp?.sourceUrl ?? 'input';
@@ -71,8 +194,9 @@ function resumePath({ out, inputs, multiInput }) {
 }
 
 // --out single input: add a language suffix if multilingual (single language stays as-is).
+// The extension class excludes path separators — a dot in a FOLDER name must not be taken as the extension.
 function explicitOutPath(argOut, target, multiLang) {
-  return multiLang ? argOut.replace(/(\.[^.]+)?$/, `.${target}$1`) : argOut;
+  return multiLang ? argOut.replace(/(\.[^.\\/]+)?$/, `.${target}$1`) : argOut;
 }
 
 // If the output filename is already taken, append a _2,_3… suffix before the extension to avoid collisions (also registering it into used).
@@ -103,7 +227,7 @@ function targetPaths(outputs, ctx) {
   if (out && !multiInput) {
     const file = explicitOutPath(out, target, multiLang);
     mkdirSync(dirname(file), { recursive: true });
-    return outputs.length === 1 ? [file] : outputs.map((_, i) => file.replace(/(\.[^.]+)?$/, `_${i + 1}$1`));
+    return outputs.length === 1 ? [file] : outputs.map((_, i) => file.replace(/(\.[^.\\/]+)?$/, `_${i + 1}$1`));
   }
   const dir = (out && multiInput) ? out : inputSaveDir(inp);
   mkdirSync(dir, { recursive: true });
@@ -112,7 +236,7 @@ function targetPaths(outputs, ctx) {
     names.push(reserve(dir, basename(outputs[0].name), usedByDir)); // keep the Perso name as-is (includes timestamp)
   } else {
     const ext = extname(outputs[0]?.name || outputs[0]?.path || '') || '.mp4';
-    const stem = String(labelOf(inp)).replace(/\.[^.]+$/, '') || 'output';
+    const stem = String(labelOf(inp)).replace(/\.[^.\\/]+$/, '') || 'output';
     outputs.forEach((_, i) => {
       const base = `${stem}.dubbed.${target}${outputs.length > 1 ? `_${i + 1}` : ''}${ext}`;
       names.push(reserve(dir, base, usedByDir));
@@ -121,14 +245,19 @@ function targetPaths(outputs, ctx) {
   return names.map((n) => join(dir, n));
 }
 
+// Persistable completion entry for one result — what resume needs to skip/re-download. null = nothing worth keeping.
+function doneEntry(r) {
+  if (r.status === 'OK' || r.status === 'DLFAIL') return { status: 'OK', projectSeq: r.projectId }; // DLFAIL: generated → re-download on resume
+  if (r.status === 'PASSTHROUGH') return { status: 'PASSTHROUGH' };
+  return null;
+}
+
 // Lightweight manifest (v4) holding the chunk plan (boundaries) + only the completion status per (input|part|language).
 function buildManifest(ctx, perInput, results, prevDone = {}) {
   const done = { ...prevDone };
   for (const r of results) {
-    const k = `${r.inputId}|${r.index}|${r.target}`;
-    if (r.status === 'OK') done[k] = { status: 'OK', projectSeq: r.projectId };
-    else if (r.status === 'PASSTHROUGH') done[k] = { status: 'PASSTHROUGH' };
-    else if (r.status === 'DLFAIL') done[k] = { status: 'OK', projectSeq: r.projectId }; // generated → preserve projectSeq for re-download
+    const e = doneEntry(r);
+    if (e) done[`${r.inputId}|${r.index}|${r.target}`] = e;
   }
   return {
     version: 4, spaceSeq: ctx.spaceSeq, opts: { source: ctx.source }, targets: ctx.targets, out: ctx.out ?? null,
@@ -141,6 +270,25 @@ function buildManifest(ctx, perInput, results, prevDone = {}) {
     })),
     done,
   };
+}
+
+// Incremental resume-state saving: the manifest is written as soon as a chunk plan is known and rewritten after every
+// completed piece, so a run that dies mid-way (crash, Ctrl-C, shell timeout, sleep) can still resume instead of losing paid work.
+function manifestSaver(ctx, perInput, prevDone = {}) {
+  const done = { ...prevDone };
+  const writeNow = () => {
+    try {
+      mkdirSync(dirname(ctx.file), { recursive: true });
+      const tmp = ctx.file + '.tmp';
+      writeFileSync(tmp, JSON.stringify(buildManifest(ctx, perInput, [], done)), 'utf8');
+      renameSync(tmp, ctx.file); // swap so a crash mid-write can't leave a corrupt manifest
+    } catch { /* best-effort — saving state must never break the run */ }
+  };
+  const onResult = (r) => {
+    const e = doneEntry(r);
+    if (e) { done[`${r.inputId}|${r.index}|${r.target}`] = e; writeNow(); }
+  };
+  return { writeNow, onResult };
 }
 
 // Sum of remaining (unprocessed) chunk durations → minutes (rounded up). null if only boundary-less chunks exist.
@@ -166,8 +314,15 @@ async function finishPool(allResults, perInput, ctx) {
     for (const target of ctx.targets) {
       const tRes = inRes.filter((r) => r.target === target);
       if (!tRes.length) continue; // all canceled / no results
-      const mergeable = tRes.filter((r) => r.status === 'OK' || r.status === 'PASSTHROUGH').length;
-      if (mergeable > 1) notify(`Merging — ${labelOf(pin.inp)}${multiLang ? ` (${target})` : ''}`);
+      const tlab = multiLang ? `${labelOf(pin.inp)} (${target})` : labelOf(pin.inp);
+      const mergeable = tRes.filter((r) => r.status === 'OK' || r.status === 'PASSTHROUGH');
+      if (mergeable.length && mergeable.every((r) => r.status === 'PASSTHROUGH')) {
+        // every processed part was silent — merging would just hand the original back as a "dubbed" result
+        lines.push(`Could not dub: ${tlab} — no voice detected (nothing to dub)`);
+        failCount++;
+        continue;
+      }
+      if (mergeable.length > 1) notify(`Merging — ${labelOf(pin.inp)}${multiLang ? ` (${target})` : ''}`);
       const { outputs, report } = await mergeGroups(tRes);
       let saved = [];
       if (outputs.length) {
@@ -176,7 +331,6 @@ async function finishPool(allResults, perInput, ctx) {
         await rm(dirname(outputs[0].path), { recursive: true, force: true }).catch(() => {}); // clean up merge temp folder
         saved = paths;
       }
-      const tlab = multiLang ? `${labelOf(pin.inp)} (${target})` : labelOf(pin.inp);
       if (saved.length) {
         lines.push(`Done: ${tlab} → ${saved.map((p) => basename(p)).join(', ')}${report ? ' (some parts excluded)' : ''}`);
         okCount++;
@@ -205,7 +359,7 @@ async function finishPool(allResults, perInput, ctx) {
         resumeHint: `node scripts/dubbing.mjs --resume "${ctx.file}"`,
       }));
     } else {
-      console.log(`\nSome parts were generated but failed to download (not a re-dub). Resume to re-download:\n  node scripts/dubbing.mjs --resume "${ctx.file}"`);
+      console.log(`\nSome parts are still finishing on the server or could not be downloaded — resume later to fetch them (no re-dub, no extra credits):\n  node scripts/dubbing.mjs --resume "${ctx.file}"`);
     }
   } else {
     try { unlinkSync(ctx.file); } catch { /* done → clean up resume state-file (ignore if absent) */ }
@@ -214,18 +368,20 @@ async function finishPool(allResults, perInput, ctx) {
 
 // New run: schedule all inputs as a single pool. Per-input split/upload happens once (secures mediaSeq) → reused per language.
 async function runPool(args) {
-  if (!resolveKey()) {
-    console.error(onboardingHelp());
-    process.exit(2);
-  }
+  await ensureKey();
+  const wantedTargets = String(args.target).split(',').map((t) => t.trim()).filter(Boolean); // --target en,ja,ko
+  if (!wantedTargets.length) throw new UsageError('No target language specified (--target en,ja,...)');
+  const { targets, source } = await validateLanguages(wantedTargets, args.source); // typo-fail before asking anything
+  const spaceSeq = await ensureSpace(args); // ask before any download/upload work (cheap to re-run with --space)
   const inputs = await expandInputs(args.inputs, { recursive: args.recursive });
-  const spaceSeq = args.space ?? (await resolveSpace());
-  const targets = String(args.target).split(',').map((t) => t.trim()).filter(Boolean); // --target en,ja,ko
   const multiInput = inputs.length > 1;
+  const file = resumePath({ out: args.out, inputs, multiInput });
+  const ctx = { spaceSeq, source, targets, out: args.out, multiInput, file, prevDone: {} };
 
   // Per-input split/upload → tag every part with inputId into a single pool.
   const pool = [];
   const perInput = [];
+  const saver = manifestSaver(ctx, perInput);
   for (let id = 0; id < inputs.length; id++) {
     const inp = inputs[id];
     const tag = multiInput ? `[${id + 1}/${inputs.length}] ${labelOf(inp)}` : labelOf(inp);
@@ -240,29 +396,25 @@ async function runPool(args) {
     if (chunks.length > 1) notify(`Split complete — ${labelOf(inp)} (${chunks.length} parts)`);
     for (const c of chunks) pool.push({ ...c, inputId: id });
     perInput.push({ inputId: id, inp, ref: refOf(inp), chunks });
+    saver.writeNow(); // the chunk plan (boundaries) survives a crash from this point on
   }
   if (!pool.length) { notify('No inputs to process.'); return; }
 
   notify(`Translating${targets.length > 1 ? ` (${targets.join(', ')})` : ''}`);
   // Fill all inputs×parts×languages into one queue for concurrent processing. Submit as many as there are empty slots and add more every 5 minutes.
-  const sched = await runSchedule(pool, spaceSeq, { source: args.source, targets }, { log });
+  const sched = await runSchedule(pool, spaceSeq, { source, targets }, { log, onResult: saver.onResult });
 
-  const file = resumePath({ out: args.out, inputs, multiInput });
-  await finishPool([...sched.results.values()], perInput, {
-    spaceSeq, source: args.source, targets, out: args.out, multiInput, sched, file, prevDone: {},
-  });
+  await finishPool([...sched.results.values()], perInput, { ...ctx, sched });
 }
 
 // Resume: completed parts (OK) are re-downloaded from the server via projectSeq; the rest (PASSTHROUGH/unprocessed) are re-cut from the original and processed → merged.
 async function runResume(file) {
-  if (!resolveKey()) {
-    console.error(onboardingHelp());
-    process.exit(2);
-  }
+  await ensureKey();
   const m = JSON.parse(readFileSync(file, 'utf8'));
   if (m.version !== 4) throw new Error('Unsupported state-file format — run again from the original.');
   const targets = m.targets ?? [m.opts?.target ?? 'en'];
   const multiInput = (m.inputs?.length ?? 0) > 1;
+  const ctx = { spaceSeq: m.spaceSeq, source: m.opts?.source ?? 'auto', targets, out: m.out, multiInput, file, prevDone: m.done ?? {} };
   const outDir = await makeTempDir('dubbing-resume-');
   const matCache = new Map(); // `${inputId}|${index}` → re-cut path (once per part, shared across languages)
 
@@ -270,6 +422,7 @@ async function runResume(file) {
   const skip = new Set();
   const pool = [];
   const perInput = [];
+  const saver = manifestSaver(ctx, perInput, m.done ?? {});
 
   for (const pin of m.inputs) {
     const inputStr = pin.ref.source === 'local' ? pin.ref.localPath : pin.ref.sourceUrl;
@@ -302,11 +455,20 @@ async function runResume(file) {
             const dl = await download(d.projectSeq, m.spaceSeq, { kind: c.kind, outPath: out });
             downloaded.push({ inputId: pin.inputId, index: c.index, target, status: 'OK', path: out, projectId: d.projectSeq, name: dl.fileName });
             log(`[input ${pin.inputId + 1}] part ${c.index + 1}(${target}) re-downloaded`);
+            skip.add(k);
           } catch {
-            downloaded.push({ inputId: pin.inputId, index: c.index, target, status: 'DLFAIL', projectId: d.projectSeq, reason: 'download_failed' });
-            log(`[input ${pin.inputId + 1}] part ${c.index + 1}(${target}) re-download failed — no re-dub`);
+            // Not downloadable (yet). Only a confirmed server-side failure gets re-dubbed; otherwise keep the
+            // projectSeq and let a later resume fetch it — never re-spend credits on a job that may still finish.
+            let failedOnServer = false;
+            try { failedOnServer = (await getStatus(d.projectSeq, m.spaceSeq)).state === 'failed'; } catch { /* unknown → keep waiting */ }
+            if (failedOnServer) {
+              log(`[input ${pin.inputId + 1}] part ${c.index + 1}(${target}) failed on the server — will re-dub`);
+            } else {
+              downloaded.push({ inputId: pin.inputId, index: c.index, target, status: 'DLFAIL', projectId: d.projectSeq, reason: 'download_failed' });
+              log(`[input ${pin.inputId + 1}] part ${c.index + 1}(${target}) not ready/download failed — resume again later (no re-dub)`);
+              skip.add(k);
+            }
           }
-          skip.add(k);
         } else if (d?.status === 'PASSTHROUGH') {
           downloaded.push({ inputId: pin.inputId, index: c.index, target, status: 'PASSTHROUGH', path: await materialize(c) });
           skip.add(k);
@@ -328,36 +490,45 @@ async function runResume(file) {
 
   if (pool.length) notify('Translating (resume)');
   const sched = pool.length
-    ? await runSchedule(pool, m.spaceSeq, { source: m.opts?.source ?? 'auto', targets, done: skip }, { log })
+    ? await runSchedule(pool, m.spaceSeq, { source: m.opts?.source ?? 'auto', targets, done: skip }, { log, onResult: saver.onResult })
     : { results: new Map(), stopped: false, pendingLeft: [] };
 
-  await finishPool([...downloaded, ...sched.results.values()], perInput, {
-    spaceSeq: m.spaceSeq, source: m.opts?.source ?? 'auto', targets, out: m.out, multiInput, sched, file, prevDone: m.done ?? {},
-  });
+  await finishPool([...downloaded, ...sched.results.values()], perInput, { ...ctx, sched });
 }
 
 // Pure helper exports for testing (when run directly, only main below executes).
-export { parseArgs, targetPaths, buildManifest, finishPool, refOf, resumePath, explicitOutPath, remainingMinutes };
+export { parseArgs, targetPaths, buildManifest, doneEntry, manifestSaver, finishPool, refOf, resumePath, explicitOutPath, remainingMinutes };
 
 async function main() {
   let exitCode = 0;
   try {
     preloadKeyEnv(); // pre-inject the key into env before async (at a clean point) → avoid a synchronous powershell call/crash in the main process
     const args = parseArgs(process.argv.slice(2));
-    if (args.resume) await runResume(args.resume);
+    if (args.help) console.log(USAGE);
+    else if (args.resume) await runResume(args.resume);
     else if (!args.inputs.length) {
-      console.error('Usage: node scripts/dubbing.mjs "<file|folder|URL>" ["<another input>" ...] [--source auto] [--target en,ja] [--space N] [--out path|folder] [--recursive]');
+      console.error(USAGE);
       exitCode = 1;
     } else await runPool(args);
   } catch (e) {
-    console.error(friendlyError(e));
-    exitCode = 1;
+    if (e?.name === 'ExitCode') exitCode = e.code; // message already printed at the throw site
+    else if (e?.name === 'UsageError') { console.error(`${e.message}\n${USAGE}`); exitCode = 1; }
+    else { console.error(friendlyError(e)); exitCode = 1; }
   } finally {
     await cleanupTempDirs(); // bulk-clean the cut/schedule/merge/download temp folders
   }
-  process.exit(exitCode);
+  // Natural exit (loop drain) — process.exit() while fetch sockets are closing hits a Windows libuv assert
+  // (async.c) that corrupts the exit code. The unref'd timer is a hard-exit fallback if a handle ever hangs.
+  process.exitCode = exitCode;
+  setTimeout(() => process.exit(exitCode), 5000).unref();
 }
 
 // main only when run directly (CLI). When imported (tests), expose helpers only and do not execute.
-const invoked = process.argv[1] ? pathToFileURL(process.argv[1]).href : '';
-if (import.meta.url === invoked) await main();
+// realpath both sides — Node resolves symlinks for the main module, so a skill installed via symlink/junction
+// would otherwise silently never run main (argv[1] keeps the link path while import.meta.url is the real one).
+const isMain = (() => {
+  if (!process.argv[1]) return false;
+  try { return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url)); }
+  catch { return false; }
+})();
+if (isMain) await main();

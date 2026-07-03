@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Upload-first split decision. Takes prepare_input JSON (or a local path) as an argument.
-//   node scripts/probe_split.mjs '<json>' | "<local path>"   (space is PERSO_SPACE_SEQ or auto)
+//   node scripts/probe_split.mjs '<json>' | "<local path>"   (space: PERSO_SPACE_SEQ, else the account's only space)
 import { resolveChunks } from '../lib/split.mjs';
 import { resolveSpace } from '../lib/space.mjs';
 
