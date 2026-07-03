@@ -41,7 +41,13 @@ Because every host uses the same **Agent Skills standard** (`SKILL.md`), it work
 
 ### Codex
 
-Codex reads skills from the shared Agent Skills folder. Run `npx perso-dubbing --codex`, or copy manually:
+Via the Codex plugin marketplace:
+
+```text
+codex plugin marketplace add est-perso-dubbing-agent/perso-dubbing-plugin
+```
+
+Or: Codex reads skills from the shared Agent Skills folder — run `npx perso-dubbing --codex`, or copy manually:
 
 ```text
 ~/.agents/skills/dubbing/        # personal (all repos) — current Codex
