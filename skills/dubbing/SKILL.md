@@ -9,58 +9,94 @@ A skill that auto-dubs videos via the Perso AI Dubbing API.
 
 ## Core rules (must follow)
 
-- **Only the worker sees the raw key.** Never open the key with `Read`, echo it, or pass it as a command-line argument. The real key is used by the `lib/`·`scripts/` workers in the `XP-API-KEY` header only.
-- **One command = the whole job.** `scripts/dubbing.mjs` does everything: validate input → upload → split only if needed → translate → merge → save. **Never run `prepare_input.mjs` or `probe_split.mjs` before it** — they are debug tools, and `probe_split.mjs` performs a real upload (running it first uploads the same video twice).
-- **Always run `dubbing.mjs` in the background.** Jobs take minutes to hours; a foreground shell with a timeout kills the run mid-way.
-- When languages are unspecified: source `auto`, target `en`.
-- **Multiple languages in a single command** — comma-separate them (`--target en,zh,ja`): split/upload happens once per video and the mediaSeq is reused per language. Running once per language re-uploads the same source once per language — avoid it.
-- **Relay progress faithfully.** Surface the `[progress]` lines the worker prints to stdout to the user's chat **verbatim (or summarized)** — don't let them stay buried in background logs, and don't announce steps that didn't appear: splitting/merging happen only for videos that exceeded the limit, so an unsplit video is just "translation → save" (never promise a "merge" step for it). The two-space-indented stderr detail logs don't need relaying.
-- **Unsupported formats are skipped automatically.** If upload doesn't accept a format, that file is skipped and the rest keep processing. Relay the skip notice to the user too.
+- **Only the worker sees the raw key.** Never open the key with `Read`, echo it, or pass it as a command-line argument. Workers send it in the `XP-API-KEY` header only.
+- **One command = the whole job.** `scripts/dubbing.mjs` handles upload · split · translate · merge · save by itself. **Never run `prepare_input.mjs` or `probe_split.mjs` before it** — they are debug tools, and `probe_split.mjs` performs a real upload (the video would upload twice).
+- **Always run `dubbing.mjs` in the background.** Jobs take minutes to hours; a foreground shell timeout kills the run mid-way.
+- Languages unspecified → source `auto`, target `en`.
+- **Multiple languages go in one command** (`--target en,zh,ja`) — upload/split happens once and is reused per language. Never run once per language (re-uploads the source each time).
+- **Relay progress faithfully.** Surface the worker's stdout `[progress]` lines to chat, verbatim or summarized — and don't announce steps that didn't appear (splitting/merging exist only for over-limit videos). The indented stderr detail logs don't need relaying.
+- **Unsupported formats are skipped automatically** and the rest keep processing — relay the skip notice.
 
 ## One-time setup
 
-1. **API key** — no separate step needed: if no key is registered, `dubbing.mjs` opens a key file itself on first run (self-heal) — show the user the printed key-file path (as a **clickable** path) and tell them to "click to open, paste just the key, and save." It's encrypted on save and the file is deleted. To check/register ahead of time: `node scripts/resolve_key.mjs --check` (exit 2 = missing → `--watch` registers the same way; don't run `--watch` if a dubbing run is already waiting for the key — two watchers would open two editors). Never paste the key into chat. Get a key: https://developers.perso.ai/api-keys
-2. **ffmpeg/ffprobe** — no need to pre-install. Installed automatically **only when a video exceeds the plan's length limit and must be split** (approve only if permission is requested). Manual check: `node scripts/check_deps.mjs`.
+1. **API key** — no separate step: with no key registered, `dubbing.mjs` opens a key file on first run. Show the user the printed key-file path (clickable) and tell them to paste just the key and save (it's encrypted and the file deleted). Pre-check: `node scripts/resolve_key.mjs --check` (exit 2 = missing; `--watch` registers the same way — never start it while a run is already waiting for the key). Never paste the key into chat. Get a key: https://developers.perso.ai/api-keys
+2. **ffmpeg/ffprobe** — auto-installed only when a video exceeds the plan limit and must be split (approve if permission is requested). Manual check: `node scripts/check_deps.mjs`.
 
 ## Run
 
 After the key gate, collect the input (local path or URL — re-ask if missing) and run **in the background**:
 
-- Single: `node scripts/dubbing.mjs "<file|URL>" [--source auto] [--target en] [--space "space name"] [--out result.mp4]`
-- Multi-language: `node scripts/dubbing.mjs "<file|URL>" --target en,zh,ja` — one output file per language.
-- Multiple inputs (URLs, files, and folders can be mixed): `node scripts/dubbing.mjs "<URL1>" "<URL2>" "<file>" --target en,ja` — results are saved per input × language next to each source (`--out <folder>` collects them into that folder).
+- Single: `node scripts/dubbing.mjs "<file|URL>" [--source auto] [--target en] [--space "space name"] [--out result.mp4] [--lipsync]`
+- Multi-language / multi-input (one or more inputs; URLs and files can be mixed): `node scripts/dubbing.mjs "<URL>" "<file>" --target en,ja` — one output per input × language, saved next to each source (`--out <folder>` collects them).
 - Folder (batch): `node scripts/dubbing.mjs "<folder>" [--target en,zh] [--recursive] [--out output-folder]`
 
-**Space selection** — if the account has several workspaces, the worker stops before uploading anything, prints `[space-select]` lines listing each space as **name | (plan) | remaining credits**, and exits (code 3). Show the user ONLY those options (no internal numbers), ask which one to dub in, then re-run the same command with `--space "<space name>"`. A single-space account proceeds without asking; `PERSO_SPACE_SEQ` pins the choice for every run.
+**Space selection** — with several workspaces the worker stops before uploading, prints `[space-select]` lines (**name | (plan) | remaining credits**) and exits (code 3). Show the user ONLY those options (no internal numbers), ask which one, and re-run with `--space "<space name>"`. One space → no question; `PERSO_SPACE_SEQ` pins it.
 
-What happens while it runs (so you can explain the waiting to the user):
+While it runs (for explaining the wait):
 
-- **Upload-first split decision**: the whole file is uploaded first; only if the plan limit rejects it (`F4008`/size) is ffmpeg installed and the video split losslessly (`-c copy`, re-encode only when lossless isn't possible). External URLs (YouTube·TikTok·Drive·Vimeo) are handled server-side.
-- **One global queue**: all inputs × parts × languages fill a single pool. Only as many jobs as there are free slots are submitted; when the queue is fully occupied by other jobs, it re-checks every 5 minutes. An engine error on a part cancels that part's other languages; a silent (no-voice) part of a split video passes the original through; an idle guard prevents hanging forever.
-- **Merge & save**: consecutive successful parts are concatenated into one file per (input × language). Output names: a non-split single output keeps the **Perso download filename as-is**; a split-and-merged output is `<original-name>.dubbed.<lang>.<ext>`; on name collision, `_2`,`_3`….
+- **Split**: the whole file is uploaded first; only a plan-limit rejection installs ffmpeg and splits losslessly. External URLs (YouTube·TikTok·Drive·Vimeo) are handled server-side.
+- **Queue**: all inputs × parts × languages share one pool; a full queue is re-checked every 5 minutes. An engine error on a part cancels that part's other languages; a silent part passes the original through; an idle guard prevents hanging forever.
+- **Save**: parts are merged back into one file per (input × language). An unsplit output keeps the Perso filename; a merged one is `<original-name>.dubbed.<lang>.<ext>`; collisions get `_2`,`_3`….
+
+## Lip-sync
+
+Lip-sync (mouth matched to the dubbed audio) runs **after** dubbing, on the finished dubbing project. Video only — audio inputs are rejected. It is a long job: **run in the background and tell the user up-front it takes considerably longer than dubbing.** Credits (server billing is authoritative): dubbing ≈ seconds ×1 · lip-sync ≈ ×2 · both ≈ ×3 — dubbing now + lip-sync later costs the same as both at once. **4K+ sources: every rate ×3 on pro/business/enterprise plans** (e.g. a 1-min 4K dub+lip-sync ≈ 60×3×3 = 540) — mention this when the video is 4K.
+
+Pick the flow by what exists:
+
+1. **New video + lip-sync** — one command runs the whole chain (dub → lip-sync → save); warn that both stages bill:
+   `node scripts/dubbing.mjs "<file|URL>" --target en --lipsync`
+   If `[credit-check]` lines print and it exits (code 3), the estimate exceeds the remaining credits: show those lines (top-up URL included), and re-run with `--force` only after the user tops up or approves continuing anyway.
+2. **Dubbed earlier in this session** — every finished run prints a `[project-ref] {...}` line. **Keep it; never show it to the user.** Lip-sync without re-dubbing (×2, no dubbing charge):
+   `node scripts/dubbing.mjs --lipsync-only '<that [project-ref] JSON>'`
+3. **No [project-ref] in this session** — ask if the user knows the project number from the Perso portal (`--lipsync-only <number>`, ×2). Otherwise the video must be dubbed again (`--lipsync`, ×3) — confirm before re-dubbing.
+
+Rules:
+
+- **Repeating lip-sync on the same project bills again** (no server-side dedup). If this session already lip-synced it, point at the existing file and re-run only on explicit confirmation.
+- **If lip-sync fails, the worker saves the dubbed video instead** and says so in the final report — relay that clearly; the dubbing credits are not wasted.
+- Credits running out between dubbing and lip-sync: the dubbed videos are saved and resume finishes only the lip-sync — relay the printed top-up URL and resume command verbatim.
+
+## Audio separation
+
+To split voice from background sound (no dubbing involved), run **in the background**:
+
+`node scripts/dubbing.mjs --separate "<file|URL|folder>" [--space "space name"] [--out folder]`
+
+- Outputs per input, next to the source (`--out` is a folder here): `<name>.voice.wav` · `<name>.background.wav` · `<name>.sub_background.wav`.
+- Credits ≈ seconds ×0.5. No language options; cannot combine with lip-sync flags.
+- Auto-split/merge, key gate, `[space-select]` and `[progress]` rules apply unchanged.
+- **No resume for separation yet** — re-running an interrupted run re-bills (parts run one at a time, so at most one part is at risk). Don't kill a running separation casually.
 
 ## Interruption & resume
 
-The worker saves a state file (`*.dubresume.json`, next to the source or `--out`) **from the moment the split plan is known and after every completed piece** — so a run that dies for ANY reason (out of credits, crash, killed shell, Ctrl+C) can resume without redoing paid work:
+The worker saves a state file (`*.dubresume.json`, next to the source or `--out`) from the moment the split plan is known and after every completed piece, so a run that dies for ANY reason (credits, crash, killed shell) resumes without redoing paid work:
 
 ```
 node scripts/dubbing.mjs --resume "<state-file>"
 ```
 
-Completed parts are skipped automatically (same for single · multi-input · batch). The state file is deleted when everything finishes.
+Completed parts are skipped automatically; the state file is deleted when everything finishes.
 
-**When it stops due to insufficient usage (credits)**: deliver the completed parts and **surface the upgrade / buy-more-credits (Get credits) URL and the resume instructions printed by the worker, verbatim and without omission**. (That URL line is plain stdout, not a `[progress]` line, so it's easy to drop while summarizing — never just say "top up credits and re-run" without the upgrade/credit path. Always include the URL.)
+**Re-running the original command while a state file exists is blocked** — the worker prints `[resume-check]` lines (exit 3) instead of re-billing. Relay the printed `--resume` command and run that. Delete the state file **only** if the user explicitly chooses to pay for the completed parts again — never on your own.
+
+**On an insufficient-credits stop**: deliver the completed parts and relay the worker's upgrade/Get-credits URL and resume command **verbatim** — that URL is plain stdout (not `[progress]`), so don't drop it while summarizing.
+
+## Perso portal (answer only when asked)
+
+Every run is also a project in the user's Perso portal account. If the user wants more than the delivered files (subtitles, audio-only, other formats) or to browse/re-download earlier projects, point them to https://portal.perso.ai — projects live in the workspace used for the run; split parts are numbered `_01`, `_02`, …. Never add this to progress relays or final reports.
 
 ## Config (env)
 
-- `PERSO_API_BASE` — API base URL (default `https://api.perso.ai`).
-- `PERSO_MEDIA_BASE` — media host for result files (default `https://portal-media.perso.ai`). Prepended when a response path is relative.
+- `PERSO_API_BASE` — API base URL (default `https://api.perso.ai`). **https `perso.ai` hosts only** — anything else is rejected at startup (the API key travels in a header to this host).
+- `PERSO_MEDIA_BASE` — media host for result files (default `https://portal-media.perso.ai`). Prepended when a response path is relative. Same https `perso.ai`-only rule.
 - `PERSO_SPACE_SEQ` — pin the space to use for every run (skips the space question).
 - `XP_API_KEY` — set the key directly (highest priority). Otherwise resolved from `~/.perso/credentials` (DPAPI-encrypted on Windows).
 - `PERSO_NO_WATCH` — when no key is registered, `dubbing.mjs` normally self-heals by opening a key file and waiting for the user to paste the key. Set this to fail fast instead (headless/CI).
 - `PERSO_NO_OPEN` — don't auto-open the key file in an editor during key registration (headless; the file path is still printed).
 - `PERSO_SIZE_CAP_BYTES` — upload size cap used for the split decision (default ≈1.9 GB, under the API's 2 GB limit).
 - `PERSO_QUEUE_WAIT_MS` — how long to wait between queue re-checks when all slots are occupied by other jobs (default 5 minutes).
+- `PERSO_LIPSYNC_IDLE_MS` — no-progress allowance for a lip-sync job whose video length is unknown (default 3 hours).
 
 ## Advanced (debug only — not part of the normal flow)
 

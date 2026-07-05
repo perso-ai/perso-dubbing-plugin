@@ -1,8 +1,8 @@
 {
   "name": "perso-dubbing",
   "displayName": "Perso AI Dubbing",
-  "version": "0.2.0",
-  "description": "Auto-dub videos into other languages with lip-sync via the Perso AI Dubbing API. Handles single files, folders, URLs, oversized/long media (auto split & merge), multi-language output, and resume.",
+  "version": "0.3.0",
+  "description": "Auto-dub videos into other languages with lip-sync via the Perso AI Dubbing API, plus voice/background audio separation. Handles single files, folders, URLs, oversized/long media (auto split & merge), multi-language output, and resume.",
   "author": { "name": "Perso AI" },
   "homepage": "https://github.com/est-perso-dubbing-agent/perso-dubbing-plugin#readme",
   "repository": "https://github.com/est-perso-dubbing-agent/perso-dubbing-plugin",

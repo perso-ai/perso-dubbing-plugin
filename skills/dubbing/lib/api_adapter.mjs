@@ -3,11 +3,11 @@
 // Errors are thrown as-is via PersoApiError (with code/data) so the caller (scheduler) can branch on them.
 import { stat } from 'node:fs/promises';
 import { createWriteStream, createReadStream } from 'node:fs';
-import { basename } from 'node:path';
+import { basename, extname } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { get, post, put, PersoApiError } from './http_client.mjs';
-import { AUDIO_EXT } from './config.mjs';
+import { AUDIO_EXT, persoBaseUrl } from './config.mjs';
 
 const VT = '/video-translator/api/v1';
 
@@ -21,8 +21,9 @@ export class UnsupportedMediaError extends Error {
   }
 }
 // A file path in the response may be relative (perso-storage) → turn it into an absolute URL via the media base + encoding.
-// The media host can differ per environment, so it can be overridden with PERSO_MEDIA_BASE (defaults to production).
-const MEDIA_BASE = (process.env.PERSO_MEDIA_BASE || 'https://portal-media.perso.ai').replace(/\/+$/, '');
+// The media host can differ per environment, so it can be overridden with PERSO_MEDIA_BASE (defaults to
+// production) — perso.ai hosts only, or an injected env could swap the delivered result files.
+const MEDIA_BASE = persoBaseUrl('PERSO_MEDIA_BASE', process.env.PERSO_MEDIA_BASE, 'https://portal-media.perso.ai');
 const absolutize = (u) => {
   if (!u) return u;
   if (/^https?:\/\//i.test(u)) return u;
@@ -137,6 +138,49 @@ export async function requestTranslation(spaceSeq, mediaSeq, opts = {}) {
   return res?.result?.startGenerateProjectIdList ?? [];
 }
 
+// ── audio separation ───────────────────────────────────
+/** Request voice/background separation of an uploaded media → array of projectIds (same async project pattern as translate). */
+export async function requestAudioSeparation(spaceSeq, mediaSeq, { title, kind = 'video' } = {}) {
+  if (!_queueInited.has(spaceSeq)) {
+    await put(`${VT}/projects/spaces/${spaceSeq}/queue`).catch(() => {});
+    _queueInited.add(spaceSeq);
+  }
+  const body = { mediaSeq, isVideoProject: kind !== 'audio', ...(title ? { title } : {}) };
+  const res = await post(`${VT}/projects/spaces/${spaceSeq}/audio-separation`, { body });
+  return res?.result?.startGenerateProjectIdList ?? [];
+}
+
+/** Download the separated tracks of a completed separation project. `download?target=` does not serve the
+ *  voice/base-background tracks (server gap, verified 2026-07: VT4001/VT5001) — the project detail's
+ *  downloadPathInfo does. outPathFor(label, ext) decides where each track is written. */
+export async function downloadSeparation(projectSeq, spaceSeq, outPathFor) {
+  const p = await get(`${VT}/projects/${projectSeq}/spaces/${spaceSeq}`);
+  const d = p?.downloadPathInfo ?? {};
+  const tracks = [
+    ['voice', d.originalVoicePath],
+    ['background', d.originalBackgroundPath],
+    ['sub_background', d.originalSubBackgroundPath],
+  ].filter(([, rel]) => rel);
+  if (!tracks.length) throw new Error('No separated tracks found on the project.');
+  const saved = [];
+  for (const [label, rel] of tracks) {
+    const link = absolutize(rel);
+    const fileName = decodeURIComponent(new URL(link).pathname.split('/').pop() || '') || null;
+    const outPath = outPathFor(label, extname(fileName ?? '') || '.wav');
+    await fetchToFile(link, outPath);
+    saved.push({ label, path: outPath, fileName });
+  }
+  return saved;
+}
+
+// ── requestLipSync ─────────────────────────────────────
+/** Request lip-sync generation for a completed translation project → array of new projectIds (a lip-sync run is a separate project). */
+export async function requestLipSync(projectSeq, spaceSeq, { speed = 'GREEN', title } = {}) {
+  const body = { preferredSpeedType: speed, ...(title ? { title } : {}) }; // title omitted → the parent project's title is used
+  const res = await post(`${VT}/projects/${projectSeq}/spaces/${spaceSeq}/lip-sync`, { body });
+  return res?.result?.startGenerateProjectIdList ?? [];
+}
+
 // ── getStatus ──────────────────────────────────────────
 /** Normalize based on progressReason. On failure, classify whether it's silence via engineErrorMessage from /progress. */
 export async function getStatus(projectSeq, spaceSeq) {
@@ -178,13 +222,28 @@ export async function cancel(projectSeq, spaceSeq) {
 }
 
 // ── download ───────────────────────────────────────────
-/** Check download-info → download?target → download link (save to outPath if needed). */
-export async function download(projectSeq, spaceSeq, { kind = 'video', outPath } = {}) {
-  const isAudio = kind === 'audio';
-  const target = isAudio ? 'voiceWithBackgroundAudio' : 'dubbingVideo'; // target for the audio-dubbing result
+// Fallback link scan: any string value under a *DownloadLink key (payload field names vary per target).
+function findDownloadLink(o) {
+  if (!o || typeof o !== 'object') return null;
+  for (const [k, v] of Object.entries(o)) {
+    if (typeof v === 'string' && /DownloadLink$/.test(k) && v) return v;
+    if (v && typeof v === 'object') {
+      const hit = findDownloadLink(v);
+      if (hit) return hit;
+    }
+  }
+  return null;
+}
+
+/** Check download-info → download?target → download link (save to outPath if needed). lipsync:true fetches the lip-sync video. */
+export async function download(projectSeq, spaceSeq, { kind = 'video', outPath, lipsync = false } = {}) {
+  const isAudio = !lipsync && kind === 'audio';
+  const target = lipsync ? 'lipSyncVideo' : isAudio ? 'voiceWithBackgroundAudio' : 'dubbingVideo';
   const info = await get(`${VT}/projects/${projectSeq}/spaces/${spaceSeq}/download-info`);
   const flags = info?.result ?? info;
-  if (isAudio) {
+  if (lipsync) {
+    if (flags?.hasLipSyncVideo === false) throw new Error('Lip-sync video is not ready yet.');
+  } else if (isAudio) {
     if (flags?.hasTranslatedVoice === false && flags?.hasTranslateAudio === false) {
       throw new Error('Translated audio is not ready yet.');
     }
@@ -198,7 +257,7 @@ export async function download(projectSeq, spaceSeq, { kind = 'video', outPath }
     r.videoFile?.videoDownloadLink ??
     r.audioFile?.voiceWithBackgroundAudioDownloadLink ??
     r.zippedFileDownloadLink ??
-    null;
+    findDownloadLink(r);
   if (!raw) throw new Error('Could not find a download link.');
   const link = absolutize(raw);
   const fileName = decodeURIComponent(new URL(link).pathname.split('/').pop() || '') || null;

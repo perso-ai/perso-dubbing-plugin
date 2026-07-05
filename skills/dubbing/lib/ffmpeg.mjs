@@ -3,7 +3,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { platform } from 'node:os';
 import { readdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, extname } from 'node:path';
 import { makeTempDir } from './tmp.mjs';
 
 const exec = promisify(execFile);
@@ -112,6 +112,46 @@ export function encoderVideoArgs(enc) {
     case 'h264_videotoolbox': return ['-c:v', 'h264_videotoolbox', '-q:v', '55'];
     default: return ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20'];
   }
+}
+
+// ── passthrough normalization (mixed-group concat safety) ─────
+/** Codec parameters of the first video/audio stream — the reference for normalizing passthrough pieces. */
+export async function probeStreams(path) {
+  const { stdout } = await exec('ffprobe', ['-v', 'error',
+    '-show_entries', 'stream=codec_type,width,height,pix_fmt,avg_frame_rate,sample_rate,channels',
+    '-of', 'json', path], { maxBuffer: 1 << 20 });
+  const streams = JSON.parse(stdout)?.streams ?? [];
+  const v = streams.find((s) => s.codec_type === 'video');
+  const a = streams.find((s) => s.codec_type === 'audio');
+  // keep fps as the exact ffprobe fraction (e.g. 30000/1001) — a float would drift on NTSC rates
+  const fps = /^[1-9]\d*\/[1-9]\d*$/.test(v?.avg_frame_rate ?? '') ? v.avg_frame_rate : null;
+  return {
+    video: v ? { width: v.width, height: v.height, pixFmt: v.pix_fmt ?? null, fps } : null,
+    audio: a ? { sampleRate: Number(a.sample_rate) || null, channels: a.channels ?? null } : null,
+  };
+}
+
+/** Re-encode one piece to the reference parameters (H.264/AAC for video, container codec for audio-only)
+ * so a following concat -c copy is stream-compatible. Used on passthrough pieces only — dubbed output is never touched. */
+export async function normalizeTo(path, ref, outPath) {
+  const args = ['-y', '-i', path];
+  if (ref.video) {
+    const vf = [];
+    if (ref.video.width && ref.video.height) vf.push(`scale=${ref.video.width}:${ref.video.height}`);
+    if (ref.video.fps) vf.push(`fps=${ref.video.fps}`);
+    if (vf.length) args.push('-vf', vf.join(','));
+    args.push(...encoderVideoArgs(await pickVideoEncoder()));
+    if (ref.video.pixFmt) args.push('-pix_fmt', ref.video.pixFmt);
+    args.push('-c:a', 'aac', '-b:a', '128k');
+  } else {
+    args.push('-map', '0:a', ...audioCodecArgs(extname(outPath)));
+  }
+  if (ref.audio?.sampleRate) args.push('-ar', String(ref.audio.sampleRate));
+  if (ref.audio?.channels) args.push('-ac', String(ref.audio.channels));
+  if (ref.video) args.push('-movflags', '+faststart');
+  args.push(outPath);
+  await exec('ffmpeg', args, { maxBuffer: 1 << 20 });
+  return outPath;
 }
 
 // ── segment splitting ───────────────────────────────────

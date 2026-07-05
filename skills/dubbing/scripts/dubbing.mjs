@@ -3,7 +3,7 @@
 //   key gate → input(s) → per-input split → global pool scheduler (all inputs×parts×languages in one queue) → per-input/per-language merge → notice.
 //   usage: node scripts/dubbing.mjs "<local|URL|folder>" ["<another input>" ...] [--source auto] [--target en,ja] [--space "space name"] [--out path|folder]
 //          node scripts/dubbing.mjs --resume "<statefile>"
-import { writeFileSync, readFileSync, copyFileSync, mkdirSync, readdirSync, unlinkSync, renameSync, realpathSync } from 'node:fs';
+import { writeFileSync, readFileSync, copyFileSync, mkdirSync, readdirSync, unlinkSync, renameSync, realpathSync, existsSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { join, basename, dirname, extname } from 'node:path';
@@ -15,10 +15,12 @@ import { dubbingSpaces, getPlanStatus } from '../lib/space.mjs';
 import { getLanguages } from '../lib/languages.mjs';
 import { resolveChunks, recutChunk } from '../lib/split.mjs';
 import { runSchedule } from '../lib/scheduler.mjs';
-import { download, getStatus } from '../lib/api_adapter.mjs';
+import { download, getStatus, upload, requestAudioSeparation, downloadSeparation } from '../lib/api_adapter.mjs';
 import { mergeGroups } from '../lib/merge.mjs';
-import { messages } from '../lib/messages.mjs';
+import { messages, withUtm, SUBSCRIPTION_URL } from '../lib/messages.mjs';
 import { cleanupTempDirs, makeTempDir } from '../lib/tmp.mjs';
+import { probe } from '../lib/ffmpeg.mjs';
+import { AUDIO_EXT, CREDIT_RATE_DUB, CREDIT_RATE_LIPSYNC, UHD_CREDIT_MULT, UHD_BILLED_TIERS, POLL_INTERVAL_MS, MAX_IDLE_MS } from '../lib/config.mjs';
 
 const log = (m) => console.error('  ' + m); // background verbose log (stderr)
 // Milestones exposed to the user (stdout). The agent relays these [progress] lines to chat per the SKILL rules.
@@ -111,8 +113,15 @@ async function ensureSpace(args) {
 }
 
 const USAGE = [
-  'Usage: node scripts/dubbing.mjs "<file|folder|URL>" ["<another input>" ...] [--source auto] [--target en,ja] [--space "space name"] [--out path|folder] [--recursive]',
+  'Usage: node scripts/dubbing.mjs "<file|folder|URL>" ["<another input>" ...] [--source auto] [--target en,ja] [--space "space name"] [--out path|folder] [--recursive] [--lipsync] [--force]',
+  '       node scripts/dubbing.mjs --lipsync-only "<project-ref JSON | projectSeq[,projectSeq...]>" [--space "space name"] [--out path|folder]',
+  '       node scripts/dubbing.mjs --separate "<file|folder|URL>" ["<another input>" ...] [--space "space name"] [--out folder]',
   '       node scripts/dubbing.mjs --resume "<state-file>"',
+  '',
+  '  --lipsync       dub, then generate the lip-synced video (extra credits; takes much longer than dubbing)',
+  '  --lipsync-only  lip-sync an already-dubbed project (uses the [project-ref] line printed by a finished run; no re-dub charge)',
+  '  --separate      split the source into voice / background / sub-background audio tracks (no dubbing; ~0.5 credit per second)',
+  '  --force         skip the upfront credit-estimate gate of --lipsync',
 ].join('\n');
 
 class UsageError extends Error {
@@ -128,11 +137,14 @@ class ExitCode extends Error {
 
 function parseArgs(argv) {
   const a = { source: 'auto', target: 'en', inputs: [] };
-  const VALUE_FLAGS = { '--resume': 'resume', '--source': 'source', '--target': 'target', '--space': 'space', '--out': 'out' };
+  const VALUE_FLAGS = { '--resume': 'resume', '--source': 'source', '--target': 'target', '--space': 'space', '--out': 'out', '--lipsync-only': 'lipsyncOnly' };
   for (let i = 0; i < argv.length; i++) {
     const t = argv[i];
     if (t === '--help' || t === '-h') a.help = true;
     else if (t === '--recursive') a.recursive = true;
+    else if (t === '--separate') a.separate = true;
+    else if (t === '--lipsync') a.lipsync = true;
+    else if (t === '--force') a.force = true;
     else if (t in VALUE_FLAGS) {
       const v = argv[++i];
       if (v === undefined || v.startsWith('--')) throw new UsageError(`Missing value for ${t}`);
@@ -193,6 +205,18 @@ function resumePath({ out, inputs, multiInput }) {
   return join(process.cwd(), 'dubbing-resume.json');
 }
 
+// A state file at the target path means an earlier run for this input never finished (it is deleted on
+// success). Starting fresh would overwrite it and re-bill work the server already completed, so stop before
+// any network/billing and hand the choice to the user (exit 3 = "ask the user", like [space-select]).
+function guardExistingState(file) {
+  if (!existsSync(file)) return;
+  console.log(`[resume-check] An earlier run for this input did not finish — its state file still exists: ${file}`);
+  console.log('[resume-check] To finish it without paying again for the completed parts, run:');
+  console.log(`[resume-check]   node scripts/dubbing.mjs --resume "${file}"`);
+  console.log('[resume-check] To discard it and start over instead (completed parts will be billed again), delete that state file and re-run this command.');
+  throw new ExitCode(3);
+}
+
 // --out single input: add a language suffix if multilingual (single language stays as-is).
 // The extension class excludes path separators — a dot in a FOLDER name must not be taken as the extension.
 function explicitOutPath(argOut, target, multiLang) {
@@ -220,10 +244,10 @@ function reserve(dir, name, usedByDir) {
 // Determine the final save path for one (input × language) bundle + create the directory (if needed).
 //  1) single input + --out → that file (_language if multilingual, _2,_3… if multiple outputs).  [user-specified takes precedence]
 //  2) single result without split + Perso filename → keep the Perso name as-is (includes language/timestamp → no rename needed).
-//  3) otherwise (split merge, etc.) → <originalName>.dubbed.<language>.<ext> (_2,_3… if multiple).
+//  3) otherwise (split merge, etc.) → <originalName>.<suffix>.<language>.<ext> (_2,_3… if multiple; suffix: dubbed|lipsync).
 //  Save folder: --out (folder if multi-input) > next to the input original > current folder.
 function targetPaths(outputs, ctx) {
-  const { inp, target, isSplit, multiInput, multiLang, out, usedByDir } = ctx;
+  const { inp, target, isSplit, multiInput, multiLang, out, usedByDir, suffix = 'dubbed' } = ctx;
   if (out && !multiInput) {
     const file = explicitOutPath(out, target, multiLang);
     mkdirSync(dirname(file), { recursive: true });
@@ -238,7 +262,7 @@ function targetPaths(outputs, ctx) {
     const ext = extname(outputs[0]?.name || outputs[0]?.path || '') || '.mp4';
     const stem = String(labelOf(inp)).replace(/\.[^.\\/]+$/, '') || 'output';
     outputs.forEach((_, i) => {
-      const base = `${stem}.dubbed.${target}${outputs.length > 1 ? `_${i + 1}` : ''}${ext}`;
+      const base = `${stem}.${suffix}.${target}${outputs.length > 1 ? `_${i + 1}` : ''}${ext}`;
       names.push(reserve(dir, base, usedByDir));
     });
   }
@@ -246,13 +270,22 @@ function targetPaths(outputs, ctx) {
 }
 
 // Persistable completion entry for one result — what resume needs to skip/re-download. null = nothing worth keeping.
+//   OK{projectSeq}                → final project (add lipsync:1 [+dubSeq] when the deliverable is the lip-sync video)
+//   OK{…, lipsyncFailed:1}        → lip-sync failed permanently; the dubbed video is the deliverable (never retried)
+//   LSWAIT{projectSeq}            → dubbing project exists, lip-sync still owed (resume runs only the lip-sync)
 function doneEntry(r) {
-  if (r.status === 'OK' || r.status === 'DLFAIL') return { status: 'OK', projectSeq: r.projectId }; // DLFAIL: generated → re-download on resume
+  if (r.status === 'OK' || r.status === 'DLFAIL') { // DLFAIL: generated → re-download on resume
+    if (r.lipsyncPending) return { status: 'LSWAIT', projectSeq: r.projectId };
+    const e = { status: 'OK', projectSeq: r.projectId };
+    if (r.lipsync) { e.lipsync = 1; if (r.dubProjectId != null) e.dubSeq = r.dubProjectId; }
+    if (r.lipsyncFailed) e.lipsyncFailed = 1;
+    return e;
+  }
   if (r.status === 'PASSTHROUGH') return { status: 'PASSTHROUGH' };
   return null;
 }
 
-// Lightweight manifest (v4) holding the chunk plan (boundaries) + only the completion status per (input|part|language).
+// Lightweight manifest (v5) holding the chunk plan (boundaries) + only the completion status per (input|part|language).
 function buildManifest(ctx, perInput, results, prevDone = {}) {
   const done = { ...prevDone };
   for (const r of results) {
@@ -260,12 +293,14 @@ function buildManifest(ctx, perInput, results, prevDone = {}) {
     if (e) done[`${r.inputId}|${r.index}|${r.target}`] = e;
   }
   return {
-    version: 4, spaceSeq: ctx.spaceSeq, opts: { source: ctx.source }, targets: ctx.targets, out: ctx.out ?? null,
+    version: 5, spaceSeq: ctx.spaceSeq, opts: { source: ctx.source }, targets: ctx.targets, out: ctx.out ?? null,
+    lipsync: !!ctx.lipsync,
     inputs: perInput.map((p) => ({
       inputId: p.inputId, ref: p.ref,
       chunks: p.chunks.map((c) => ({
         index: c.index, source: c.source, sourceUrl: c.sourceUrl ?? null,
         startMs: c.startMs ?? null, endMs: c.endMs ?? null, title: c.title ?? null, kind: c.kind ?? null,
+        ...(c.parentSeq != null ? { parentSeq: c.parentSeq } : {}), // lipsync-only: the dubbed project behind this part
       })),
     })),
     done,
@@ -285,10 +320,21 @@ function manifestSaver(ctx, perInput, prevDone = {}) {
     } catch { /* best-effort — saving state must never break the run */ }
   };
   const onResult = (r) => {
+    const k = `${r.inputId}|${r.index}|${r.target}`;
     const e = doneEntry(r);
-    if (e) { done[`${r.inputId}|${r.index}|${r.target}`] = e; writeNow(); }
+    if (e) { done[k] = e; writeNow(); }
+    else if (done[k]) { delete done[k]; writeNow(); } // hard failure after a submit checkpoint → drop the stale entry
   };
-  return { writeNow, onResult };
+  // Submission checkpoint: the paid projectSeq is persisted the moment it exists, so even a hard kill
+  // before any result cannot cause a re-submission (= double billing) on resume.
+  const onSubmit = (s) => {
+    const k = `${s.inputId}|${s.index}|${s.target}`;
+    if (s.stage === 'lipsync') done[k] = { status: 'LSRUN', projectSeq: s.projectId, dubSeq: s.parentSeq };
+    else if (s.lipsync) done[k] = { status: 'LSWAIT', projectSeq: s.projectId }; // chain: this dub still owes a lip-sync
+    else done[k] = { status: 'RUN', projectSeq: s.projectId };
+    writeNow();
+  };
+  return { writeNow, onResult, onSubmit };
 }
 
 // Sum of remaining (unprocessed) chunk durations → minutes (rounded up). null if only boundary-less chunks exist.
@@ -298,6 +344,28 @@ function remainingMinutes(chunks) {
     0,
   );
   return ms > 0 ? Math.ceil(ms / 60000) : null;
+}
+
+// Machine-readable project reference, one line per delivered (input × language). Lets the agent lip-sync
+// this exact dubbing later in the session (--lipsync-only) without re-dubbing. Not meant for end users.
+function emitProjectRef(pin, tRes, target, ctx, { lipsync }) {
+  const parts = [];
+  for (const c of pin.chunks) {
+    const r = tRes.find((x) => x.index === c.index);
+    if (!r) return;
+    if (r.status === 'PASSTHROUGH') {
+      parts.push({ pt: [c.startMs ?? 0, c.endMs ?? 0] });
+    } else if (r.status === 'OK' || r.status === 'DLFAIL') {
+      const dubSeq = r.lipsync ? r.dubProjectId : r.projectId; // always reference the dubbing project (lip-sync reuse needs it)
+      if (dubSeq == null) return;
+      const part = { seq: dubSeq };
+      if (Number.isFinite(c.startMs) && Number.isFinite(c.endMs)) part.ms = [c.startMs, c.endMs];
+      parts.push(part);
+    } else return;
+  }
+  if (!parts.some((p) => p.seq != null)) return;
+  const input = pin.ref?.localPath ?? pin.ref?.sourceUrl ?? null;
+  console.log(`[project-ref] ${JSON.stringify({ v: 1, space: ctx.spaceSeq, input, lang: target, parts, lipsync: !!lipsync })}`);
 }
 
 // Group the global pool results by input and language to merge and save them, and if incomplete (credit/download failure), preserve resume state as a manifest.
@@ -322,18 +390,27 @@ async function finishPool(allResults, perInput, ctx) {
         failCount++;
         continue;
       }
+      const hasLs = mergeable.some((r) => r.lipsync);
+      const lsFailed = mergeable.some((r) => r.lipsyncFailed);
+      const lsPending = mergeable.some((r) => r.lipsyncPending);
       if (mergeable.length > 1) notify(`Merging — ${labelOf(pin.inp)}${multiLang ? ` (${target})` : ''}`);
       const { outputs, report } = await mergeGroups(tRes);
       let saved = [];
       if (outputs.length) {
-        const paths = targetPaths(outputs, { inp: pin.inp, target, isSplit, multiInput: ctx.multiInput, multiLang, out: ctx.out, usedByDir });
+        const suffix = hasLs ? 'lipsync' : 'dubbed';
+        const paths = targetPaths(outputs, { inp: pin.inp, target, isSplit, multiInput: ctx.multiInput, multiLang, out: ctx.out, usedByDir, suffix });
         outputs.forEach((o, i) => copyFileSync(o.path, paths[i]));
         await rm(dirname(outputs[0].path), { recursive: true, force: true }).catch(() => {}); // clean up merge temp folder
         saved = paths;
       }
       if (saved.length) {
-        lines.push(`Done: ${tlab} → ${saved.map((p) => basename(p)).join(', ')}${report ? ' (some parts excluded)' : ''}`);
+        const notes = [];
+        if (report) notes.push('some parts excluded');
+        if (lsFailed) notes.push(hasLs ? 'lip-sync failed on some parts — dubbed video used for those' : 'lip-sync failed — dubbed video delivered instead');
+        if (lsPending) notes.push('lip-sync still pending — resume to finish it');
+        lines.push(`Done${hasLs ? ' (lip-sync)' : ''}: ${tlab} → ${saved.map((p) => basename(p)).join(', ')}${notes.length ? ` (${notes.join('; ')})` : ''}`);
         okCount++;
+        emitProjectRef(pin, tRes, target, ctx, { lipsync: hasLs && !lsFailed && !lsPending });
       } else {
         lines.push(`Could not dub: ${tlab} — ${report ?? 'no result'}`);
         failCount++;
@@ -352,11 +429,13 @@ async function finishPool(allResults, perInput, ctx) {
     if (stopped) {
       const plan = await getPlanStatus(ctx.spaceSeq);
       const min = remainingMinutes(ctx.sched.pendingLeft);
+      const lsOwed = allResults.some((r) => r.lipsyncPending);
       console.log('\n' + messages.quotaExceeded({
         planTier: plan?.planTier,
         remainingQuota: plan?.remainingQuota,
         remainingNote: min != null ? `~${min} min` : null,
         resumeHint: `node scripts/dubbing.mjs --resume "${ctx.file}"`,
+        note: lsOwed ? '   Dubbing for some items is already done — resume will run only the remaining lip-sync (no re-dub charge).' : null,
       }));
     } else {
       console.log(`\nSome parts are still finishing on the server or could not be downloaded — resume later to fetch them (no re-dub, no extra credits):\n  node scripts/dubbing.mjs --resume "${ctx.file}"`);
@@ -371,12 +450,22 @@ async function runPool(args) {
   await ensureKey();
   const wantedTargets = String(args.target).split(',').map((t) => t.trim()).filter(Boolean); // --target en,ja,ko
   if (!wantedTargets.length) throw new UsageError('No target language specified (--target en,ja,...)');
-  const { targets, source } = await validateLanguages(wantedTargets, args.source); // typo-fail before asking anything
-  const spaceSeq = await ensureSpace(args); // ask before any download/upload work (cheap to re-run with --space)
-  const inputs = await expandInputs(args.inputs, { recursive: args.recursive });
+  let inputs = await expandInputs(args.inputs, { recursive: args.recursive });
+  if (args.lipsync) {
+    // Lip-sync applies to video only — drop audio inputs up-front (before any upload).
+    const isAudioInput = (i) => AUDIO_EXT.test(i.originalName ?? i.localPath ?? '');
+    const audio = inputs.filter(isAudioInput);
+    if (audio.length && audio.length === inputs.length) { console.error('Lip-sync requires video input.'); throw new ExitCode(1); }
+    for (const a of audio) notify(`Skipped (lip-sync requires video): ${labelOf(a)}`);
+    inputs = inputs.filter((i) => !isAudioInput(i));
+    notify('Lip-sync requested — dubbing first, then lip-sync generation (this takes considerably longer than dubbing alone).');
+  }
   const multiInput = inputs.length > 1;
   const file = resumePath({ out: args.out, inputs, multiInput });
-  const ctx = { spaceSeq, source, targets, out: args.out, multiInput, file, prevDone: {} };
+  guardExistingState(file); // before validate/space/upload — never silently restart (and re-bill) an interrupted run
+  const { targets, source } = await validateLanguages(wantedTargets, args.source); // typo-fail before asking anything
+  const spaceSeq = await ensureSpace(args); // ask before any download/upload work (cheap to re-run with --space)
+  const ctx = { spaceSeq, source, targets, out: args.out, multiInput, file, prevDone: {}, lipsync: !!args.lipsync };
 
   // Per-input split/upload → tag every part with inputId into a single pool.
   const pool = [];
@@ -400,21 +489,62 @@ async function runPool(args) {
   }
   if (!pool.length) { notify('No inputs to process.'); return; }
 
+  if (args.lipsync && !args.force) await creditPreflight(perInput, spaceSeq, targets.length);
+
   notify(`Translating${targets.length > 1 ? ` (${targets.join(', ')})` : ''}`);
   // Fill all inputs×parts×languages into one queue for concurrent processing. Submit as many as there are empty slots and add more every 5 minutes.
-  const sched = await runSchedule(pool, spaceSeq, { source, targets }, { log, onResult: saver.onResult });
+  const sched = await runSchedule(pool, spaceSeq, { source, targets, lipsync: !!args.lipsync }, { log, notify, onResult: saver.onResult, onSubmit: saver.onSubmit });
 
   await finishPool([...sched.results.values()], perInput, { ...ctx, sched });
 }
 
+// Upfront credit-estimate gate for --lipsync: the dub+lip-sync chain is long, and running out of credits
+// half-way strands the user mid-chain — warn before submitting anything when the estimate clearly exceeds
+// the remaining credits. Durations aren't always known locally (no probe available, external URL) — then
+// the gate is skipped and the server's own billing check decides.
+async function creditPreflight(perInput, spaceSeq, targetCount) {
+  const plan = await getPlanStatus(spaceSeq);
+  const remaining = plan?.remainingQuota;
+  if (remaining == null || typeof remaining !== 'number') return;
+  // 4K+ surcharge applies to specific plans only (allowlist — an unknown tier gets no surcharge; the server bills authoritatively).
+  const uhdBilled = UHD_BILLED_TIERS.includes(String(plan.planTier ?? '').toLowerCase());
+  let needed = 0;
+  let anyUhd = false;
+  for (const pin of perInput) {
+    let inputMs = 0;
+    for (const c of pin.chunks) {
+      let ms = Number.isFinite(c.startMs) && Number.isFinite(c.endMs) ? c.endMs - c.startMs : null;
+      if (ms == null && c.source === 'local' && (c.path || pin.inp?.localPath)) {
+        ms = (await probe(c.path ?? pin.inp.localPath).catch(() => ({}))).durationMs ?? null;
+      }
+      if (ms == null || ms <= 0) return; // unknown duration → no estimate possible
+      inputMs += ms;
+    }
+    let mult = 1;
+    if (uhdBilled) {
+      const src = pin.inp?.localPath ?? pin.chunks.find((c) => c.path)?.path;
+      const { width = 0, height = 0 } = src ? await probe(src).catch(() => ({})) : {};
+      if (Math.max(width, height) >= 3840) { mult = UHD_CREDIT_MULT; anyUhd = true; } // resolution unknown → assume non-4K (estimate only; the server bills authoritatively)
+    }
+    needed += Math.ceil(inputMs / 1000) * (CREDIT_RATE_DUB + CREDIT_RATE_LIPSYNC) * targetCount * mult;
+  }
+  if (!needed || remaining >= needed) return;
+  console.log(`[credit-check] Estimated credits for dubbing + lip-sync: ~${needed}${anyUhd ? ` (includes the ×${UHD_CREDIT_MULT} 4K surcharge)` : ''}. Credits left: ${remaining}.`);
+  console.log('[credit-check] The run would stop part-way. Ask the user to top up first, or approve continuing anyway — then re-run the same command with --force (whatever completes is kept; the rest resumes later):');
+  console.log(`  → ${withUtm(SUBSCRIPTION_URL)}`);
+  throw new ExitCode(3);
+}
+
 // Resume: completed parts (OK) are re-downloaded from the server via projectSeq; the rest (PASSTHROUGH/unprocessed) are re-cut from the original and processed → merged.
+// v5 adds submit checkpoints (RUN/LSRUN) and the lip-sync chain (LSWAIT) — nothing already paid for is ever re-submitted.
 async function runResume(file) {
   await ensureKey();
   const m = JSON.parse(readFileSync(file, 'utf8'));
-  if (m.version !== 4) throw new Error('Unsupported state-file format — run again from the original.');
+  if (m.version !== 4 && m.version !== 5) throw new Error('Unsupported state-file format — run again from the original.');
   const targets = m.targets ?? [m.opts?.target ?? 'en'];
   const multiInput = (m.inputs?.length ?? 0) > 1;
-  const ctx = { spaceSeq: m.spaceSeq, source: m.opts?.source ?? 'auto', targets, out: m.out, multiInput, file, prevDone: m.done ?? {} };
+  const lipsync = !!m.lipsync;
+  const ctx = { spaceSeq: m.spaceSeq, source: m.opts?.source ?? 'auto', targets, out: m.out, multiInput, file, prevDone: m.done ?? {}, lipsync };
   const outDir = await makeTempDir('dubbing-resume-');
   const matCache = new Map(); // `${inputId}|${index}` → re-cut path (once per part, shared across languages)
 
@@ -426,35 +556,45 @@ async function runResume(file) {
 
   for (const pin of m.inputs) {
     const inputStr = pin.ref.source === 'local' ? pin.ref.localPath : pin.ref.sourceUrl;
-    let prepared;
+    let prepared = null;
     try {
       prepared = await prepareInput(inputStr); // re-check local / re-download URL
     } catch (e) {
-      console.log(`Input not found, skipping: ${pin.ref.originalName ?? inputStr} (${e.message})`);
-      continue;
+      // Server-side work (re-downloads, pending lip-sync) can still proceed without the original;
+      // only parts that would need re-cutting/re-uploading are skipped below.
+      console.log(`Original not available: ${pin.ref.originalName ?? inputStr ?? 'input'} (${e.message}) — continuing with server-side results only.`);
     }
-    const inp = { ...prepared, originalName: prepared.originalName ?? pin.ref.originalName };
-    const localPath = prepared.localPath ?? prepared.path ?? null;
+    const inp = prepared
+      ? { ...prepared, originalName: prepared.originalName ?? pin.ref.originalName }
+      : { source: pin.ref.source ?? 'local', localPath: pin.ref.localPath ?? null, originalName: pin.ref.originalName ?? null };
+    const localPath = prepared ? (prepared.localPath ?? prepared.path ?? null) : null;
     const materialize = async (c) => {
       if (c.source === 'external') return null; // external cannot be re-cut → resubmit as-is
-      if (!localPath) throw new Error('Original not found — cannot resume.');
+      if (!localPath) throw new Error('Original not found — cannot resume this part.');
       if (c.endMs == null) return localPath; // if whole (not split), the original
       const mk = `${pin.inputId}|${c.index}`;
       if (!matCache.has(mk)) matCache.set(mk, await recutChunk(localPath, c.startMs, c.endMs));
       return matCache.get(mk);
     };
 
-    // Completed parts ((inputId|index|target) OK/PASSTHROUGH) use re-download/original; the rest are resubmission targets (excluded from skip).
+    // Completed parts use re-download/original; LSWAIT/LSRUN continue the lip-sync chain from the recorded
+    // projectSeq (never re-submitting paid work); the rest are resubmission targets (excluded from skip).
     for (const c of pin.chunks) {
       for (const target of targets) {
         const k = `${pin.inputId}|${c.index}|${target}`;
         const d = m.done?.[k];
-        if (d?.status === 'OK') {
+        const base = { inputId: pin.inputId, index: c.index, target };
+        const tag = `[input ${pin.inputId + 1}] part ${c.index + 1}(${target})`;
+        if (d?.status === 'OK' || d?.status === 'RUN') {
           const out = join(outDir, `dub_${pin.inputId}_${String(c.index).padStart(3, '0')}_${target}.mp4`);
           try {
-            const dl = await download(d.projectSeq, m.spaceSeq, { kind: c.kind, outPath: out });
-            downloaded.push({ inputId: pin.inputId, index: c.index, target, status: 'OK', path: out, projectId: d.projectSeq, name: dl.fileName });
-            log(`[input ${pin.inputId + 1}] part ${c.index + 1}(${target}) re-downloaded`);
+            const dl = await download(d.projectSeq, m.spaceSeq, { kind: c.kind, outPath: out, lipsync: !!d.lipsync });
+            downloaded.push({
+              ...base, status: 'OK', path: out, projectId: d.projectSeq, name: dl.fileName,
+              ...(d.lipsync ? { lipsync: true, dubProjectId: d.dubSeq ?? null } : {}),
+              ...(d.lipsyncFailed ? { lipsyncFailed: true } : {}),
+            });
+            log(`${tag} re-downloaded`);
             skip.add(k);
           } catch {
             // Not downloadable (yet). Only a confirmed server-side failure gets re-dubbed; otherwise keep the
@@ -462,15 +602,61 @@ async function runResume(file) {
             let failedOnServer = false;
             try { failedOnServer = (await getStatus(d.projectSeq, m.spaceSeq)).state === 'failed'; } catch { /* unknown → keep waiting */ }
             if (failedOnServer) {
-              log(`[input ${pin.inputId + 1}] part ${c.index + 1}(${target}) failed on the server — will re-dub`);
+              log(`${tag} failed on the server — will re-dub`);
             } else {
-              downloaded.push({ inputId: pin.inputId, index: c.index, target, status: 'DLFAIL', projectId: d.projectSeq, reason: 'download_failed' });
-              log(`[input ${pin.inputId + 1}] part ${c.index + 1}(${target}) not ready/download failed — resume again later (no re-dub)`);
+              downloaded.push({ ...base, status: 'DLFAIL', projectId: d.projectSeq, reason: 'download_failed', ...(d.lipsync ? { lipsync: true, dubProjectId: d.dubSeq ?? null } : {}) });
+              log(`${tag} not ready/download failed — resume again later (no re-dub)`);
+              skip.add(k);
+            }
+          }
+        } else if (d?.status === 'LSWAIT') {
+          // Dubbing project recorded; lip-sync still owed for this part.
+          let s = null;
+          try { s = await getStatus(d.projectSeq, m.spaceSeq); } catch { /* unknown → treat as still processing */ }
+          if (s?.state === 'complete') {
+            pool.push({ inputId: pin.inputId, index: c.index, stage: 'lipsync', parentSeq: d.projectSeq, target, kind: c.kind, startMs: c.startMs, endMs: c.endMs });
+            log(`${tag} dubbed — lip-sync will be requested`);
+            skip.add(k);
+          } else if (s?.state === 'failed') {
+            log(`${tag} dubbing failed on the server — will re-dub`);
+          } else {
+            downloaded.push({ ...base, status: 'DLFAIL', projectId: d.projectSeq, lipsyncPending: true, reason: 'dub_processing' });
+            log(`${tag} dubbing still processing on the server — resume again later`);
+            skip.add(k);
+          }
+        } else if (d?.status === 'LSRUN') {
+          // Lip-sync already submitted — never submit again (it would generate and bill again): download, wait, or fall back.
+          const out = join(outDir, `lip_${pin.inputId}_${String(c.index).padStart(3, '0')}_${target}.mp4`);
+          try {
+            const dl = await download(d.projectSeq, m.spaceSeq, { lipsync: true, outPath: out });
+            downloaded.push({ ...base, status: 'OK', path: out, projectId: d.projectSeq, lipsync: true, dubProjectId: d.dubSeq ?? null, name: dl.fileName });
+            log(`${tag} lip-sync re-downloaded`);
+            skip.add(k);
+          } catch {
+            let s = null;
+            try { s = await getStatus(d.projectSeq, m.spaceSeq); } catch { /* unknown → keep waiting */ }
+            if (s?.state === 'failed' && d.dubSeq != null) {
+              const out2 = join(outDir, `dub_${pin.inputId}_${String(c.index).padStart(3, '0')}_${target}.mp4`);
+              try {
+                const dl = await download(d.dubSeq, m.spaceSeq, { kind: c.kind, outPath: out2 });
+                downloaded.push({ ...base, status: 'OK', path: out2, projectId: d.dubSeq, lipsyncFailed: true, reason: s.message ?? 'lipsync_failed', name: dl.fileName });
+                log(`${tag} lip-sync failed — dubbed video delivered instead`);
+              } catch {
+                downloaded.push({ ...base, status: 'DLFAIL', projectId: d.dubSeq, lipsyncFailed: true, reason: 'download_failed' });
+              }
+              skip.add(k);
+            } else {
+              downloaded.push({ ...base, status: 'DLFAIL', projectId: d.projectSeq, lipsync: true, dubProjectId: d.dubSeq ?? null, reason: 'download_failed' });
+              log(`${tag} lip-sync still processing — resume again later`);
               skip.add(k);
             }
           }
         } else if (d?.status === 'PASSTHROUGH') {
-          downloaded.push({ inputId: pin.inputId, index: c.index, target, status: 'PASSTHROUGH', path: await materialize(c) });
+          try {
+            downloaded.push({ ...base, status: 'PASSTHROUGH', path: await materialize(c) });
+          } catch (e) {
+            log(`${tag} silent part needs the original video — left out of the merge (${e.message})`);
+          }
           skip.add(k);
         }
       }
@@ -478,11 +664,20 @@ async function runResume(file) {
 
     // Re-cut only parts that have at least one incomplete language and add them to the pool (languages are filtered out via skip).
     for (const c of pin.chunks) {
-      if (!targets.some((t) => !skip.has(`${pin.inputId}|${c.index}|${t}`))) continue;
-      if (c.source === 'external') pool.push({ inputId: pin.inputId, index: c.index, source: 'external', sourceUrl: c.sourceUrl, kind: c.kind });
-      else {
-        const path = await materialize(c);
-        pool.push({ inputId: pin.inputId, index: c.index, source: 'local', path, startMs: c.startMs, endMs: c.endMs, originalName: basename(path), title: c.title, kind: c.kind });
+      const missing = targets.filter((t) => !skip.has(`${pin.inputId}|${c.index}|${t}`));
+      if (!missing.length) continue;
+      if (c.parentSeq != null) {
+        // lipsync-only plan interrupted before submission — the dubbed project is known, only lip-sync is owed
+        for (const t of missing) pool.push({ inputId: pin.inputId, index: c.index, stage: 'lipsync', parentSeq: c.parentSeq, target: t, kind: c.kind ?? 'video', startMs: c.startMs, endMs: c.endMs });
+      } else if (c.source === 'external') {
+        pool.push({ inputId: pin.inputId, index: c.index, source: 'external', sourceUrl: c.sourceUrl, kind: c.kind });
+      } else {
+        try {
+          const path = await materialize(c);
+          pool.push({ inputId: pin.inputId, index: c.index, source: 'local', path, startMs: c.startMs, endMs: c.endMs, originalName: basename(path), title: c.title, kind: c.kind });
+        } catch (e) {
+          log(`[input ${pin.inputId + 1}] part ${c.index + 1} needs the original video to be re-dubbed — skipped (${e.message})`);
+        }
       }
     }
     perInput.push({ inputId: pin.inputId, inp, ref: pin.ref, chunks: pin.chunks });
@@ -490,14 +685,164 @@ async function runResume(file) {
 
   if (pool.length) notify('Translating (resume)');
   const sched = pool.length
-    ? await runSchedule(pool, m.spaceSeq, { source: m.opts?.source ?? 'auto', targets, done: skip }, { log, onResult: saver.onResult })
+    ? await runSchedule(pool, m.spaceSeq, { source: m.opts?.source ?? 'auto', targets, done: skip, lipsync }, { log, notify, onResult: saver.onResult, onSubmit: saver.onSubmit })
     : { results: new Map(), stopped: false, pendingLeft: [] };
 
   await finishPool([...downloaded, ...sched.results.values()], perInput, { ...ctx, sched });
 }
 
+// Lip-sync an already-dubbed project set: --lipsync-only "<project-ref JSON | seq[,seq...]>".
+// Nothing is uploaded or re-dubbed — each part's dubbed project gets a lip-sync request (billed by the
+// server as a new generation), then the results are downloaded and merged like a normal run.
+async function runLipsyncOnly(args) {
+  await ensureKey();
+  const raw = String(args.lipsyncOnly).trim();
+  let ref;
+  if (raw.startsWith('{')) {
+    try { ref = JSON.parse(raw); } catch { throw new UsageError('Invalid --lipsync-only value — pass the [project-ref] JSON or a projectSeq list.'); }
+  } else if (/^\d+(\s*,\s*\d+)*$/.test(raw)) {
+    ref = { parts: raw.split(',').map((s) => ({ seq: Number(s.trim()) })) };
+  } else {
+    throw new UsageError('Invalid --lipsync-only value — pass the [project-ref] JSON or a projectSeq list.');
+  }
+  const parts = Array.isArray(ref.parts) ? ref.parts : [];
+  if (!parts.some((p) => p?.seq != null)) throw new UsageError('No dubbed project found in the --lipsync-only reference.');
+
+  const target = ref.lang ?? 'out';
+  const localPath = ref.input && !/^[a-z]+:\/\//i.test(ref.input) ? ref.input : null;
+  const inp = { source: 'local', localPath, originalName: localPath ? basename(localPath) : ref.input ?? null };
+  const file = resumePath({ out: args.out, inputs: [inp], multiInput: false });
+  guardExistingState(file); // an interrupted earlier run owns this state file — resume it instead of re-billing
+  const spaceSeq = Number(ref.space) || await ensureSpace(args);
+  const ctx = { spaceSeq, source: 'auto', targets: [target], out: args.out, multiInput: false, file, prevDone: {}, lipsync: true };
+
+  const chunks = parts.map((p, i) => ({
+    index: i, source: 'local',
+    startMs: p?.ms?.[0] ?? p?.pt?.[0] ?? null, endMs: p?.ms?.[1] ?? p?.pt?.[1] ?? null,
+    kind: 'video', ...(p?.seq != null ? { parentSeq: p.seq } : {}),
+  }));
+  const perInput = [{ inputId: 0, inp, ref: { source: 'local', localPath, originalName: inp.originalName }, chunks }];
+  const saver = manifestSaver(ctx, perInput);
+
+  const downloaded = [];
+  const pool = [];
+  for (const c of chunks) {
+    if (c.parentSeq == null) {
+      // silent segment of the original run — rebuild it from the original video for the merge
+      if (!localPath) { console.error('This reference contains silent segments — the original video path is required to rebuild them.'); throw new ExitCode(1); }
+      const r = { inputId: 0, index: c.index, target, status: 'PASSTHROUGH', path: await recutChunk(localPath, c.startMs, c.endMs) };
+      downloaded.push(r);
+      saver.onResult(r);
+    } else {
+      pool.push({ inputId: 0, index: c.index, stage: 'lipsync', parentSeq: c.parentSeq, target, kind: 'video', startMs: c.startMs, endMs: c.endMs });
+    }
+  }
+  saver.writeNow();
+  notify('Requesting lip-sync for the existing dubbed project — no re-dubbing, no re-upload.');
+  const sched = await runSchedule(pool, spaceSeq, { targets: [target], lipsync: true }, { log, notify, onResult: saver.onResult, onSubmit: saver.onSubmit });
+  await finishPool([...downloaded, ...sched.results.values()], perInput, { ...ctx, sched });
+}
+
+// ── audio separation (--separate) ─────────────────────────
+// Voice/background separation — no languages involved. Chunks are processed sequentially (one queue slot),
+// long/large sources reuse the same auto-split, and per-track pieces are merged back like dubbed parts.
+// Billing ≈ 0.5 credit per second (server authoritative). Interrupted runs are not resumable yet (re-run re-bills).
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const SEPARATION_TRACKS = ['voice', 'background', 'sub_background'];
+
+async function runSeparation(args) {
+  await ensureKey();
+  const inputs = await expandInputs(args.inputs, { recursive: args.recursive });
+  const spaceSeq = await ensureSpace(args);
+  const usedByDir = new Map();
+  const lines = [];
+  let okCount = 0;
+  let failCount = 0;
+  for (const inp of inputs) {
+    try {
+      const line = await separateOne(inp, spaceSeq, { out: args.out, usedByDir });
+      lines.push(line);
+      if (line.startsWith('Done')) okCount++; else failCount++;
+    } catch (e) {
+      if (e?.httpStatus === 402) { // out of credits — deliver what finished and surface the top-up path verbatim
+        if (lines.length) console.log('\n' + lines.join('\n'));
+        const plan = await getPlanStatus(spaceSeq);
+        console.log(messages.quotaExceeded({ planTier: plan?.planTier, remainingQuota: plan?.remainingQuota }));
+        throw new ExitCode(1);
+      }
+      if (e?.name === 'UnsupportedMediaError') { notify(skipMsg(labelOf(inp), e)); continue; }
+      failCount++;
+      lines.push(`Could not separate: ${labelOf(inp)} — ${friendlyError(e)}`);
+    }
+  }
+  console.log('\n' + lines.join('\n'));
+  if (inputs.length > 1) console.log(`\nSummary: ${okCount} done · ${failCount} failed`);
+}
+
+async function separateOne(inp, spaceSeq, { out, usedByDir }) {
+  const { chunks, notice } = await resolveChunks(inp, spaceSeq, { log, notify });
+  if (notice) notify(notice);
+  notify(`Separating voice/background — ${labelOf(inp)}`);
+
+  const byTrack = new Map(SEPARATION_TRACKS.map((t) => [t, []]));
+  const tmp = await makeTempDir('dubbing-sep-');
+  for (const c of chunks) {
+    let { mediaSeq, kind = 'video' } = c;
+    if (mediaSeq == null) ({ seq: mediaSeq, kind } = await upload(refOf(inp), spaceSeq)); // external URL uploads here
+    const [projectId] = await requestAudioSeparation(spaceSeq, mediaSeq, { title: c.title, kind });
+    if (projectId == null) throw new Error('Separation request was not accepted.');
+    if (chunks.length > 1) log(`part ${c.index + 1}/${chunks.length}: separation submitted`);
+    const st = await waitForProject(projectId, spaceSeq);
+    if (st.state !== 'complete') { // a failed part becomes a gap in every track (same as dubbing merge boundaries)
+      for (const t of SEPARATION_TRACKS) byTrack.get(t).push({ index: c.index, status: 'HARD_FAIL', reason: st.message ?? st.failureReason ?? 'failed' });
+      continue;
+    }
+    const tracks = await downloadSeparation(projectId, spaceSeq, (label, ext) => join(tmp, `sep_${c.index}_${label}${ext}`));
+    for (const t of tracks) byTrack.get(t.label)?.push({ index: c.index, status: 'OK', path: t.path, name: t.fileName });
+  }
+
+  const dir = out ?? inputSaveDir(inp); // --separate treats --out as a folder (three tracks per input)
+  mkdirSync(dir, { recursive: true });
+  const stem = String(labelOf(inp)).replace(/\.[^.\\/]+$/, '') || 'output';
+  const saved = [];
+  let excluded = false;
+  for (const t of SEPARATION_TRACKS) {
+    const results = byTrack.get(t);
+    if (!results.some((r) => r.status === 'OK')) continue;
+    const { outputs, report } = await mergeGroups(results);
+    if (report) excluded = true;
+    for (let i = 0; i < outputs.length; i++) {
+      const o = outputs[i];
+      const ext = extname(o.name ?? o.path ?? '') || '.wav';
+      const name = reserve(dir, `${stem}.${t}${outputs.length > 1 ? `_${i + 1}` : ''}${ext}`, usedByDir);
+      copyFileSync(o.path, join(dir, name));
+      saved.push(name);
+    }
+  }
+  if (!saved.length) {
+    const why = byTrack.get('voice').find((r) => r.reason)?.reason ?? 'no result';
+    return `Could not separate: ${labelOf(inp)} — ${why}`;
+  }
+  return `Done (separation): ${labelOf(inp)} → ${saved.join(', ')}${excluded ? ' (some parts excluded)' : ''}`;
+}
+
+// Poll a project until it settles. Progress changes reset the idle window; a stuck job times out.
+async function waitForProject(projectSeq, spaceSeq) {
+  let last = -1;
+  let lastChange = Date.now();
+  for (;;) {
+    let st = null;
+    try { st = await getStatus(projectSeq, spaceSeq); } catch { /* transient — keep polling */ }
+    if (st?.state === 'complete' || st?.state === 'failed') return st;
+    const p = st?.progress ?? -1;
+    if (p !== last) { last = p; lastChange = Date.now(); if (p > 0) log(`separating... ${p}%`); }
+    if (Date.now() - lastChange > MAX_IDLE_MS) return { state: 'failed', message: 'timed out (no progress)' };
+    await sleep(POLL_INTERVAL_MS);
+  }
+}
+
 // Pure helper exports for testing (when run directly, only main below executes).
-export { parseArgs, targetPaths, buildManifest, doneEntry, manifestSaver, finishPool, refOf, resumePath, explicitOutPath, remainingMinutes };
+export { parseArgs, targetPaths, buildManifest, doneEntry, manifestSaver, finishPool, refOf, resumePath, explicitOutPath, remainingMinutes, guardExistingState };
 
 async function main() {
   let exitCode = 0;
@@ -506,7 +851,15 @@ async function main() {
     const args = parseArgs(process.argv.slice(2));
     if (args.help) console.log(USAGE);
     else if (args.resume) await runResume(args.resume);
-    else if (!args.inputs.length) {
+    else if (args.separate) {
+      if (args.lipsync || args.lipsyncOnly) throw new UsageError('Use --separate on its own — it cannot be combined with lip-sync options.');
+      if (!args.inputs.length) { console.error(USAGE); exitCode = 1; }
+      else await runSeparation(args);
+    } else if (args.lipsyncOnly) {
+      if (args.inputs.length) throw new UsageError('--lipsync-only takes no input files (the project reference identifies them).');
+      if (args.lipsync) throw new UsageError('Use either --lipsync (dub + lip-sync) or --lipsync-only, not both.');
+      await runLipsyncOnly(args);
+    } else if (!args.inputs.length) {
       console.error(USAGE);
       exitCode = 1;
     } else await runPool(args);

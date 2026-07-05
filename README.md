@@ -6,7 +6,7 @@
 ![Platforms](https://img.shields.io/badge/platforms-Claude%20Code%20%C2%B7%20Antigravity%20%C2%B7%20Codex%20%C2%B7%20Cursor-555)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-A coding-agent skill that brings [Perso AI](https://perso.ai)'s **Dubbing (AI dubbing)** to your agent. It **auto-dubs** videos into other languages — a single file or a whole folder, and even oversized or very long media is automatically split, processed, and merged back together.
+A coding-agent skill that brings [Perso AI](https://perso.ai)'s **Dubbing (AI dubbing)** to your agent. It **auto-dubs** videos into other languages — a single file or a whole folder, and even oversized or very long media is automatically split, processed, and merged back together. It can also **lip-sync** the dubbed video and **separate voice from background audio**.
 
 It calls the Perso Dubbing API under the hood, so **a Perso Dubbing API key is required.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Get an API key</a>
 
@@ -116,6 +116,12 @@ npm run dub -- "clip.mp4" --target en,ja,zh
 
 # Several inputs at once (URLs, files, and folders can be mixed)
 npm run dub -- "https://youtu.be/..." "clip2.mp4" "C:\videos" --target en
+
+# Dub + lip-sync (mouth matched to the dubbed audio; extra credits)
+npm run dub -- "clip.mp4" --target en --lipsync
+
+# Separate voice / background audio tracks (no dubbing)
+npm run dub -- "clip.mp4" --separate
 ```
 
 *(Equivalent direct call: `node skills/dubbing/scripts/dubbing.mjs …` — or `node scripts/dubbing.mjs …` from inside an installed skill folder.)*

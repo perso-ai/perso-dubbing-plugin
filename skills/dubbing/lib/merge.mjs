@@ -6,7 +6,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { ensureFfmpeg } from '../scripts/check_deps.mjs';
 import { makeTempDir } from './tmp.mjs';
-import { pickVideoEncoder, encoderVideoArgs } from './ffmpeg.mjs';
+import { pickVideoEncoder, encoderVideoArgs, probeStreams, normalizeTo } from './ffmpeg.mjs';
 
 const exec = promisify(execFile);
 
@@ -52,7 +52,7 @@ export async function mergeGroups(results, { outDir } = {}) {
     const ext = (persoName && extname(persoName)) || '.mp4'; // result container (e.g. .wav for audio dubbing)
     const name = groups.length === 1 ? `output${ext}` : `output_${g + 1}${ext}`;
     const out = join(dir, name);
-    await concat(group.map((i) => i.path), out);
+    await concat(await normalizeMixed(group, ext), out);
     outputs.push({ path: out, indices: group.map((i) => i.index), name: persoName });
   }
 
@@ -61,6 +61,27 @@ export async function mergeGroups(results, { outDir } = {}) {
     : null;
 
   return { outputs, failures, report };
+}
+
+// A group can mix Perso-encoded (OK) pieces with local original (PASSTHROUGH) pieces whose codec
+// parameters rarely match — and concat -c copy does not validate stream parameters, so it can "succeed"
+// into a file that plays back broken (boundary glitches, A/V desync). Re-encode ONLY the passthrough
+// pieces to a dubbed piece's parameters; the paid dubbed output is concatenated untouched. Any failure
+// here falls back to the original piece — concat's own re-encode fallback still guards the result.
+async function normalizeMixed(group, ext) {
+  const dubbed = group.find((i) => i.status === 'OK' && i.path);
+  const pass = group.filter((i) => i.status === 'PASSTHROUGH' && i.path);
+  if (!dubbed || !pass.length) return group.map((i) => i.path);
+  ensureFfmpeg(); // mixed groups only exist for split videos, so ffmpeg was already installed for the split
+  const ref = await probeStreams(dubbed.path).catch(() => null);
+  if (!ref) return group.map((i) => i.path);
+  const dir = await makeTempDir('dubbing-norm-');
+  const normalized = new Map();
+  for (const p of pass) {
+    try { normalized.set(p, await normalizeTo(p.path, ref, join(dir, `norm_${p.index}${ext}`))); }
+    catch { /* keep the original piece */ }
+  }
+  return group.map((i) => normalized.get(i) ?? i.path);
 }
 
 async function concat(paths, outPath) {
