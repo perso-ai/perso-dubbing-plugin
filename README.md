@@ -24,13 +24,16 @@ Because every host uses the same **Agent Skills standard** (`SKILL.md`), it work
 
 ## Install
 
-> **🤖 To the agent:** If you were given only this repository's URL, run this single command — it fetches the package, auto-detects every installed host (Claude Code · Codex · Cursor · Antigravity), and installs the skill into each:
+> **🤖 To the agent:** If you were given only this repository's URL, pick the path for your host:
+>
+> - **Claude Code:** do **not** run npx right away — even if the user said "install this". Show the user the two plugin-marketplace commands below and ask them to type the commands themselves (they are user-typed slash commands you cannot execute). Fall back to npx only if the user still wants you to handle the install after seeing them.
+> - **Codex · Cursor · Antigravity, or the user delegated the install to you:** run this single command — it fetches the package, auto-detects every installed host, and installs the skill into each:
 >
 > ```bash
 > npx perso-dubbing
 > ```
 >
-> If the repo is already cloned, run `node scripts/install.mjs` from the repo root instead (no network needed). In Claude Code, prefer the plugin-marketplace commands below.
+> If the repo is already cloned, run `node scripts/install.mjs` from the repo root instead (no network needed).
 
 ### Claude Code (plugin marketplace — recommended)
 
