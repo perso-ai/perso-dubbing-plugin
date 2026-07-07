@@ -18,7 +18,7 @@ function parseArg(arg) {
 try {
   const prepared = parseArg(process.argv[2]);
   const spaceSeq = Number(process.env.PERSO_SPACE_SEQ) || (await resolveSpace());
-  const result = await resolveChunks(prepared, spaceSeq);
+  const result = await resolveChunks(prepared, spaceSeq, { allowSplit: true }); // debug tool: split without the pre-confirm gate
   console.log(JSON.stringify(result));
 } catch (e) {
   console.error(e.message);

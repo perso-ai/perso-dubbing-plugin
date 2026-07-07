@@ -11,29 +11,23 @@ export const UTM_PARAMS =
   `utm_source=${UTM_SOURCE}&utm_medium=agent-skill&utm_campaign=perso-dubbing&utm_content=v${CLIENT_VERSION}`;
 export const withUtm = (url) => url + (url.includes('?') ? '&' : '?') + UTM_PARAMS;
 
-// free/starter have no credit purchase, so only a plan upgrade is suggested.
-const LOW_TIERS = new Set(['free', 'starter']);
-
 export const messages = {
-  // Out-of-usage guidance. Depending on planTier: free/starter get upgrade-only, others get both upgrade and credits.
+  // Out-of-usage guidance. The agent can generate a direct Stripe link via scripts/billing.mjs, which
+  // routes by the current plan tier (free → subscribe · starter/creator → change plan · pro/business → credits).
   //   { planTier, remainingQuota, remainingNote, resumeHint, note }
   quotaExceeded: ({ planTier, remainingQuota, remainingNote, resumeHint, note } = {}) => {
-    const isLow = LOW_TIERS.has(String(planTier ?? '').toLowerCase());
     const status =
       `   Current plan: ${planTier ?? 'unknown'} · Credits left: ${remainingQuota ?? '?'}` +
       (remainingNote ? ` · Remaining: ${remainingNote}` : '');
-    const lines = [
+    return [
       'Out of usage/credits — only part of the work completed. The finished items are delivered above.',
       status,
       ...(note ? [note] : []),
       '',
-    ];
-    if (isLow) {
-      lines.push('To continue, upgrade your plan:', `  → ${withUtm(PRICING_URL)}`);
-    } else {
-      lines.push('To continue, upgrade your plan or buy more credits (Get credits), then run again:', `  → ${withUtm(SUBSCRIPTION_URL)}`);
-    }
-    if (resumeHint) lines.push(`  Resume: ${resumeHint}`);
-    return lines.join('\n');
+      'To continue you can generate a payment link (routes by plan: subscribe / change plan / buy credits):',
+      '  → node scripts/billing.mjs options   (add --shortfall <estimated remaining credits> for a recommendation)',
+      '  Then give the returned Stripe link to the user to complete payment in their browser — never pay on their behalf.',
+      ...(resumeHint ? [`  Resume after topping up: ${resumeHint}`] : []),
+    ].join('\n');
   },
 };

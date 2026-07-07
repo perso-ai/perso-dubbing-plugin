@@ -13,11 +13,12 @@ import { resolveKey, onboardingHelp, preloadKeyEnv } from './resolve_key.mjs';
 import { expandInputs, prepareInput } from '../lib/input.mjs';
 import { dubbingSpaces, getPlanStatus } from '../lib/space.mjs';
 import { getLanguages } from '../lib/languages.mjs';
-import { resolveChunks, recutChunk } from '../lib/split.mjs';
+import { resolveChunks, recutChunk, SplitConfirmNeeded } from '../lib/split.mjs';
 import { runSchedule } from '../lib/scheduler.mjs';
 import { download, getStatus, upload, requestAudioSeparation, downloadSeparation } from '../lib/api_adapter.mjs';
 import { mergeGroups } from '../lib/merge.mjs';
 import { messages, withUtm, SUBSCRIPTION_URL } from '../lib/messages.mjs';
+import { checkForUpdate } from '../lib/update_check.mjs';
 import { cleanupTempDirs, makeTempDir } from '../lib/tmp.mjs';
 import { probe } from '../lib/ffmpeg.mjs';
 import { AUDIO_EXT, CREDIT_RATE_DUB, CREDIT_RATE_LIPSYNC, UHD_CREDIT_MULT, UHD_BILLED_TIERS, POLL_INTERVAL_MS, MAX_IDLE_MS } from '../lib/config.mjs';
@@ -145,6 +146,7 @@ function parseArgs(argv) {
     else if (t === '--separate') a.separate = true;
     else if (t === '--lipsync') a.lipsync = true;
     else if (t === '--force') a.force = true;
+    else if (t === '--allow-split') a.allowSplit = true; // user confirmed auto split→dub→merge (set on the re-run after [split-confirm])
     else if (t in VALUE_FLAGS) {
       const v = argv[++i];
       if (v === undefined || v.startsWith('--')) throw new UsageError(`Missing value for ${t}`);
@@ -189,6 +191,34 @@ const refOf = (inp) => (inp.source === 'local'
   : { source: inp.source, sourceUrl: inp.sourceUrl, originalName: inp.originalName ?? null });
 // Notice text for skipping an unsupported format (append the reason if present).
 const skipMsg = (name, e) => `Skipped (unsupported format): ${name}${e?.cause?.message ? ` (${e.cause.message})` : ''}`;
+
+// [split-confirm] prompt: which limit was exceeded + the quality caveat + how to proceed. Emitted (exit 3) before
+// the first split when --allow-split isn't set; the agent relays it and re-runs with --allow-split on the user's OK.
+function splitConfirmMessage(d, tag, action = 'dub') {
+  const min = (ms) => Math.max(1, Math.round(ms / 60000));
+  const gb = (b) => (b / 1024 ** 3).toFixed(1);
+  const label = tag ? `${tag}: ` : '';
+  const noun = action === 'separate' ? 'This file' : 'This video';
+  let head;
+  if (d.reason === 'length') {
+    const lim = d.limitMs ? `${min(d.limitMs)} min` : 'the plan limit';
+    head = d.actualMs
+      ? `${noun} exceeds the length limit (${lim}; it is ${min(d.actualMs)} min).`
+      : `${noun} exceeds the length limit (${lim}).`;
+  } else {
+    head = d.actualBytes
+      ? `${noun} exceeds the 2 GB upload limit (it is ${gb(d.actualBytes)} GB).`
+      : `${noun} exceeds the 2 GB upload limit.`;
+  }
+  const mid = action === 'separate'
+    ? 'Separating it needs automatic split → separate → merge, which may come out less polished than splitting it up yourself.'
+    : 'Dubbing it needs automatic split → dub → merge, which may come out less polished than splitting it up yourself.';
+  return [
+    `[split-confirm] ${label}${head}`,
+    `[split-confirm] ${mid}`,
+    '[split-confirm] Proceed automatically? To confirm, re-run the same command with --allow-split.',
+  ].join('\n');
+}
 
 // Save directory (non-volatile): next to the local original; current folder for URL/external/unknown.
 function inputSaveDir(inp) {
@@ -476,8 +506,14 @@ async function runPool(args) {
     const tag = multiInput ? `[${id + 1}/${inputs.length}] ${labelOf(inp)}` : labelOf(inp);
     let chunks;
     try {
-      ({ chunks } = await resolveChunks(inp, spaceSeq, { log, notify }));
+      ({ chunks } = await resolveChunks(inp, spaceSeq, { log, notify, allowSplit: args.allowSplit }));
     } catch (e) {
+      if (e?.name === 'SplitConfirmNeeded') {
+        console.log(splitConfirmMessage(e.details, tag));
+        // Nothing is billed yet at the split stage, so discard any partial state so the --allow-split re-run isn't blocked by the resume guard.
+        try { if (existsSync(file)) unlinkSync(file); } catch { /* ignore */ }
+        throw new ExitCode(3);
+      }
       if (isAuthError(e)) { console.log(`\n${friendlyError(e)}`); return; } // key issues abort everything
       if (e?.name === 'UnsupportedMediaError') { notify(skipMsg(labelOf(inp), e)); continue; } // unsupported → skip
       console.log(`${tag} — split/upload failed: ${friendlyError(e)}`); continue;
@@ -540,6 +576,7 @@ async function creditPreflight(perInput, spaceSeq, targetCount) {
 async function runResume(file) {
   await ensureKey();
   const m = JSON.parse(readFileSync(file, 'utf8'));
+  if (m.kind === 'separation') return runResumeSeparation(m, file); // separation has its own (scheduler-less) resume
   if (m.version !== 4 && m.version !== 5) throw new Error('Unsupported state-file format — run again from the original.');
   const targets = m.targets ?? [m.opts?.target ?? 'en'];
   const multiInput = (m.inputs?.length ?? 0) > 1;
@@ -750,57 +787,188 @@ async function runLipsyncOnly(args) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const SEPARATION_TRACKS = ['voice', 'background', 'sub_background'];
 
+// Separation resume state (version 1, kind 'separation'): the chunk plan + a per-chunk projectId checkpoint.
+// Mirrors the dubbing manifest but keyed by inputId|chunkIndex (no target language).
+function buildSepManifest(ctx, perInput, done) {
+  return {
+    version: 1, kind: 'separation', spaceSeq: ctx.spaceSeq, out: ctx.out ?? null,
+    inputs: perInput.map((p) => ({
+      inputId: p.inputId, ref: p.ref,
+      chunks: p.chunks.map((c) => ({
+        index: c.index, source: c.source, sourceUrl: c.sourceUrl ?? null,
+        startMs: c.startMs ?? null, endMs: c.endMs ?? null, title: c.title ?? null, kind: c.kind ?? null,
+      })),
+    })),
+    done, // `${inputId}|${index}` → { status:'RUN'|'OK'|'HARD_FAIL', projectId?, reason? }
+  };
+}
+function sepSaver(ctx, perInput, prevDone = {}) {
+  const done = { ...prevDone };
+  const writeNow = () => {
+    try {
+      mkdirSync(dirname(ctx.file), { recursive: true });
+      const tmp = ctx.file + '.tmp';
+      writeFileSync(tmp, JSON.stringify(buildSepManifest(ctx, perInput, done)), 'utf8');
+      renameSync(tmp, ctx.file);
+    } catch { /* best-effort — saving state must never break the run */ }
+  };
+  return {
+    writeNow, done,
+    // The paid projectId is persisted the moment it exists → a hard kill can't cause a re-submission on resume.
+    onSubmit: (inputId, index, projectId) => { done[`${inputId}|${index}`] = { status: 'RUN', projectId }; writeNow(); },
+    onComplete: (inputId, index, projectId) => { done[`${inputId}|${index}`] = { status: 'OK', projectId }; writeNow(); },
+    onFail: (inputId, index, reason) => { done[`${inputId}|${index}`] = { status: 'HARD_FAIL', reason }; writeNow(); },
+  };
+}
+
 async function runSeparation(args) {
   await ensureKey();
   const inputs = await expandInputs(args.inputs, { recursive: args.recursive });
+  const multiInput = inputs.length > 1;
+  const file = resumePath({ out: args.out, inputs, multiInput });
+  guardExistingState(file); // block re-running the original; --resume continues without re-billing submitted parts
   const spaceSeq = await ensureSpace(args);
-  const usedByDir = new Map();
-  const lines = [];
-  let okCount = 0;
-  let failCount = 0;
-  for (const inp of inputs) {
+  const ctx = { spaceSeq, out: args.out ?? null, file };
+  const perInput = [];
+  const saver = sepSaver(ctx, perInput);
+  // Phase 1 — resolve chunk plans (split-confirm happens here) and persist them before any submission.
+  for (let id = 0; id < inputs.length; id++) {
+    const inp = inputs[id];
+    let chunks;
     try {
-      const line = await separateOne(inp, spaceSeq, { out: args.out, usedByDir });
-      lines.push(line);
-      if (line.startsWith('Done')) okCount++; else failCount++;
+      ({ chunks } = await resolveChunks(inp, spaceSeq, { log, notify, allowSplit: args.allowSplit }));
     } catch (e) {
-      if (e?.httpStatus === 402) { // out of credits — deliver what finished and surface the top-up path verbatim
-        if (lines.length) console.log('\n' + lines.join('\n'));
-        const plan = await getPlanStatus(spaceSeq);
-        console.log(messages.quotaExceeded({ planTier: plan?.planTier, remainingQuota: plan?.remainingQuota }));
-        throw new ExitCode(1);
+      if (e?.name === 'SplitConfirmNeeded') {
+        console.log(splitConfirmMessage(e.details, multiInput ? labelOf(inp) : null, 'separate'));
+        try { if (existsSync(file)) unlinkSync(file); } catch { /* nothing billed yet → safe to discard */ }
+        throw new ExitCode(3);
       }
       if (e?.name === 'UnsupportedMediaError') { notify(skipMsg(labelOf(inp), e)); continue; }
-      failCount++;
-      lines.push(`Could not separate: ${labelOf(inp)} — ${friendlyError(e)}`);
+      notify(`Could not prepare: ${labelOf(inp)} — ${friendlyError(e)}`); continue;
+    }
+    if (chunks.length > 1) notify(`Split complete — ${labelOf(inp)} (${chunks.length} parts)`);
+    perInput.push({ inputId: id, inp, ref: refOf(inp), chunks });
+    saver.writeNow();
+  }
+  if (!perInput.length) { notify('No inputs to separate.'); return; }
+  notify('Separating voice/background');
+  // Phase 2 — submit (checkpointed) → wait → download → merge → save.
+  const pending = await separationProcess(perInput, spaceSeq, ctx, saver, null);
+  finishSepState(file, pending);
+}
+
+// Drop the state file only when nothing paid is still owed; otherwise keep it and point at --resume (no re-billing).
+function finishSepState(file, pending) {
+  if (pending) { notify(`Some parts still need downloading — resume with: node scripts/dubbing.mjs --resume "${file}"`); return; }
+  try { if (existsSync(file)) unlinkSync(file); } catch { /* ignore */ }
+}
+
+// Resume: reload the chunk plan, re-cut/re-upload only the parts never submitted, poll/re-download the submitted ones.
+async function runResumeSeparation(m, file) {
+  if (m.version !== 1) throw new Error('Unsupported separation state-file format — run again from the original.');
+  const spaceSeq = m.spaceSeq;
+  const ctx = { spaceSeq, out: m.out ?? null, file };
+  const perInput = [];
+  const recutCache = new Map(); // `${inputId}|${index}` → re-cut path (once per part)
+  for (const pin of m.inputs) {
+    const inputStr = pin.ref.source === 'local' ? pin.ref.localPath : pin.ref.sourceUrl;
+    let localPath = null; // null when the original can't be re-prepared → materializeFor's guard fires cleanly (server-side parts still resume)
+    try { const prepared = await prepareInput(inputStr); localPath = prepared.localPath ?? prepared.path ?? null; }
+    catch (e) { console.log(`Original not available: ${pin.ref.originalName ?? inputStr ?? 'input'} (${e.message}) — server-side results only.`); }
+    perInput.push({ inputId: pin.inputId, ref: pin.ref, inp: pin.ref, chunks: pin.chunks, _localPath: localPath });
+  }
+  const saver = sepSaver(ctx, perInput, m.done ?? {});
+  const materializeFor = async (pin, c) => {
+    if (c.source === 'external') return null; // can't re-cut → upload the source URL
+    if (!pin._localPath) throw new Error('Original not found — cannot resume this part.');
+    if (c.endMs == null) return pin._localPath; // whole (unsplit) → the original
+    const mk = `${pin.inputId}|${c.index}`;
+    if (!recutCache.has(mk)) recutCache.set(mk, await recutChunk(pin._localPath, c.startMs, c.endMs));
+    return recutCache.get(mk);
+  };
+  const pending = await separationProcess(perInput, spaceSeq, ctx, saver, materializeFor);
+  finishSepState(file, pending);
+}
+
+// Per-input: separate every chunk (checkpointing each submission), merge tracks, save. Shared by run + resume.
+// Returns true when some paid part is still owed (undelivered) → the caller must keep the state file for resume.
+async function separationProcess(perInput, spaceSeq, ctx, saver, materializeFor) {
+  const usedByDir = new Map();
+  const lines = [];
+  let ok = 0, fail = 0;
+  const flags = { pending: false };
+  const tmp = await makeTempDir('dubbing-sep-');
+  for (const pin of perInput) {
+    try {
+      const byTrack = await separateChunks(pin, spaceSeq, tmp, saver, materializeFor, flags);
+      const line = await saveSeparationTracks(pin, byTrack, { out: ctx.out, usedByDir });
+      lines.push(line);
+      if (line.startsWith('Done')) ok++; else fail++;
+    } catch (e) {
+      if (e?.httpStatus === 402) { // out of credits — deliver what finished + top-up/resume path, then stop
+        if (lines.length) console.log('\n' + lines.join('\n'));
+        const plan = await getPlanStatus(spaceSeq);
+        console.log(messages.quotaExceeded({ planTier: plan?.planTier, remainingQuota: plan?.remainingQuota, resumeHint: `node scripts/dubbing.mjs --resume "${ctx.file}"` }));
+        throw new ExitCode(1);
+      }
+      if (e?.name === 'UnsupportedMediaError') { notify(skipMsg(labelOf(pin.inp ?? pin.ref), e)); continue; }
+      flags.pending = true; // errored after some chunks may have been billed → keep state so resume re-downloads them
+      fail++;
+      lines.push(`Could not separate: ${labelOf(pin.inp ?? pin.ref)} — ${friendlyError(e)}`);
     }
   }
   console.log('\n' + lines.join('\n'));
-  if (inputs.length > 1) console.log(`\nSummary: ${okCount} done · ${failCount} failed`);
+  if (perInput.length > 1) console.log(`\nSummary: ${ok} done · ${fail} failed`);
+  return flags.pending;
 }
 
-async function separateOne(inp, spaceSeq, { out, usedByDir }) {
-  const { chunks, notice } = await resolveChunks(inp, spaceSeq, { log, notify });
-  if (notice) notify(notice);
-  notify(`Separating voice/background — ${labelOf(inp)}`);
-
+// Separate one input's chunks. A chunk with a recorded projectId is polled/re-downloaded (no re-submit); the rest are
+// (re-cut/uploaded and) submitted, checkpointing the projectId the instant it exists.
+async function separateChunks(pin, spaceSeq, tmp, saver, materializeFor, flags) {
   const byTrack = new Map(SEPARATION_TRACKS.map((t) => [t, []]));
-  const tmp = await makeTempDir('dubbing-sep-');
-  for (const c of chunks) {
-    let { mediaSeq, kind = 'video' } = c;
-    if (mediaSeq == null) ({ seq: mediaSeq, kind } = await upload(refOf(inp), spaceSeq)); // external URL uploads here
-    const [projectId] = await requestAudioSeparation(spaceSeq, mediaSeq, { title: c.title, kind });
-    if (projectId == null) throw new Error('Separation request was not accepted.');
-    if (chunks.length > 1) log(`part ${c.index + 1}/${chunks.length}: separation submitted`);
-    const st = await waitForProject(projectId, spaceSeq);
-    if (st.state !== 'complete') { // a failed part becomes a gap in every track (same as dubbing merge boundaries)
-      for (const t of SEPARATION_TRACKS) byTrack.get(t).push({ index: c.index, status: 'HARD_FAIL', reason: st.message ?? st.failureReason ?? 'failed' });
-      continue;
+  const gap = (index, reason) => { for (const t of SEPARATION_TRACKS) byTrack.get(t).push({ index, status: 'HARD_FAIL', reason }); };
+  for (const c of pin.chunks) {
+    const prev = saver.done[`${pin.inputId}|${c.index}`];
+    if (prev?.status === 'HARD_FAIL') { gap(c.index, prev.reason ?? 'failed'); continue; }
+    let projectId = prev?.projectId ?? null;
+    try {
+      if (projectId == null) { // never submitted → (re-cut/upload and) submit
+        let mediaSeq = c.mediaSeq ?? null, kind = c.kind ?? 'video';
+        if (mediaSeq == null) {
+          const cut = materializeFor ? await materializeFor(pin, c) : null;
+          const ref = cut ? { source: 'local', localPath: cut, originalName: basename(cut) } // basename keeps the extension (c.title has none)
+            : (c.source === 'external' ? { source: 'external', sourceUrl: c.sourceUrl } : refOf(pin.inp ?? pin.ref));
+          ({ seq: mediaSeq, kind } = await upload(ref, spaceSeq));
+        }
+        ([projectId] = await requestAudioSeparation(spaceSeq, mediaSeq, { title: c.title, kind }));
+        if (projectId == null) throw new Error('Separation request was not accepted.');
+        saver.onSubmit(pin.inputId, c.index, projectId); // checkpoint the billed unit before any wait
+        if (pin.chunks.length > 1) log(`part ${c.index + 1}/${pin.chunks.length}: separation submitted`);
+      }
+      if (prev?.status !== 'OK') { // RUN (resume) or freshly submitted → wait for completion
+        const st = await waitForProject(projectId, spaceSeq);
+        if (st.state !== 'complete') {
+          if (st.timedOut) { flags.pending = true; gap(c.index, st.message ?? 'timed out'); continue; } // may still be running (paid) → keep the RUN checkpoint so resume re-polls it
+          saver.onFail(pin.inputId, c.index, st.message ?? st.failureReason ?? 'failed'); // genuine server failure → terminal
+          gap(c.index, st.message ?? st.failureReason ?? 'failed');
+          continue;
+        }
+        saver.onComplete(pin.inputId, c.index, projectId);
+      }
+      const tracks = await downloadSeparation(projectId, spaceSeq, (label, ext) => join(tmp, `sep_${pin.inputId}_${c.index}_${label}${ext}`));
+      for (const t of tracks) byTrack.get(t.label)?.push({ index: c.index, status: 'OK', path: t.path, name: t.fileName });
+    } catch (e) {
+      if (e?.httpStatus === 402) throw e; // credit-out → let separationProcess deliver finished parts + surface the resume path
+      // One part failed to prepare/upload/submit/download — gap it so finished sibling parts still merge & save; keep state so resume retries.
+      flags.pending = true;
+      gap(c.index, friendlyError(e));
     }
-    const tracks = await downloadSeparation(projectId, spaceSeq, (label, ext) => join(tmp, `sep_${c.index}_${label}${ext}`));
-    for (const t of tracks) byTrack.get(t.label)?.push({ index: c.index, status: 'OK', path: t.path, name: t.fileName });
   }
+  return byTrack;
+}
 
+async function saveSeparationTracks(pin, byTrack, { out, usedByDir }) {
+  const inp = pin.inp ?? pin.ref;
   const dir = out ?? inputSaveDir(inp); // --separate treats --out as a folder (three tracks per input)
   mkdirSync(dir, { recursive: true });
   const stem = String(labelOf(inp)).replace(/\.[^.\\/]+$/, '') || 'output';
@@ -836,19 +1004,21 @@ async function waitForProject(projectSeq, spaceSeq) {
     if (st?.state === 'complete' || st?.state === 'failed') return st;
     const p = st?.progress ?? -1;
     if (p !== last) { last = p; lastChange = Date.now(); if (p > 0) log(`separating... ${p}%`); }
-    if (Date.now() - lastChange > MAX_IDLE_MS) return { state: 'failed', message: 'timed out (no progress)' };
+    if (Date.now() - lastChange > MAX_IDLE_MS) return { state: 'failed', timedOut: true, message: 'timed out (no progress)' };
     await sleep(POLL_INTERVAL_MS);
   }
 }
 
 // Pure helper exports for testing (when run directly, only main below executes).
-export { parseArgs, targetPaths, buildManifest, doneEntry, manifestSaver, finishPool, refOf, resumePath, explicitOutPath, remainingMinutes, guardExistingState };
+export { parseArgs, targetPaths, buildManifest, doneEntry, manifestSaver, finishPool, refOf, resumePath, explicitOutPath, remainingMinutes, guardExistingState, splitConfirmMessage, buildSepManifest, sepSaver };
 
 async function main() {
   let exitCode = 0;
+  let updateNotice = null; // daily version check, kicked off in the background and printed after the work finishes
   try {
     preloadKeyEnv(); // pre-inject the key into env before async (at a clean point) → avoid a synchronous powershell call/crash in the main process
     const args = parseArgs(process.argv.slice(2));
+    if (!args.help) updateNotice = checkForUpdate().catch(() => null); // non-blocking; never fails the run
     if (args.help) console.log(USAGE);
     else if (args.resume) await runResume(args.resume);
     else if (args.separate) {
@@ -870,6 +1040,8 @@ async function main() {
   } finally {
     await cleanupTempDirs(); // bulk-clean the cut/schedule/merge/download temp folders
   }
+  // After the work is done (never mid-job), surface a version-update notice if one is available.
+  if (updateNotice) { try { const n = await updateNotice; if (n) console.log('\n' + n); } catch { /* ignore */ } }
   // Natural exit (loop drain) — process.exit() while fetch sockets are closing hits a Windows libuv assert
   // (async.c) that corrupts the exit code. The unref'd timer is a hard-exit fallback if a handle ever hangs.
   process.exitCode = exitCode;

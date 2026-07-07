@@ -17,16 +17,23 @@ const MAX_DEPTH = 4;
 const SEG_MARGIN_MS = 2000; // SEG = cap − GOP − margin: a safety buffer to stay below the cap
 const MIN_SEG_MS = 3000;    // if SEG is smaller than this (GOP too large relative to the cap), lossless is impossible → re-encode fallback
 
+/** Thrown at depth 0 when a split is required but the user hasn't authorized it yet (no allowSplit).
+ *  Carries what the caller needs to build the confirmation prompt: { reason:'length'|'size', limitMs?, actualMs?, actualBytes? }. */
+export class SplitConfirmNeeded extends Error {
+  constructor(details) { super('split confirmation required'); this.name = 'SplitConfirmNeeded'; this.details = details; }
+}
+
 /** @returns {{chunks:Array<{index,source,path?,sourceUrl?,mediaSeq?,startMs?,endMs?}>, notice:string|null}} */
 export async function resolveChunks(prepared, spaceSeq, hooks = {}) {
   const log = hooks.log ?? (() => {});
   const notify = hooks.notify ?? (() => {}); // user-facing milestones (split start, etc.)
+  const allowSplit = hooks.allowSplit ?? false; // false → stop and ask before the first split (SplitConfirmNeeded)
   if (prepared.source === 'external') {
     return { chunks: [{ index: 0, source: 'external', sourceUrl: prepared.sourceUrl }], notice: null };
   }
 
   const localPath = prepared.localPath ?? prepared.path;
-  const leaves = await uploadOrSplit(localPath, spaceSeq, 0, 0, null, log, notify);
+  const leaves = await uploadOrSplit(localPath, spaceSeq, 0, 0, null, log, notify, allowSplit);
   // carry each leaf's absolute boundaries (startMs/endMs) on the chunk → on resume, re-cut only that segment from the original.
   // when split, number the title _01,_02… → in the Perso project list, distinguish pieces of the same original (a single piece keeps the original name).
   const baseTitle = (prepared.originalName ?? basename(localPath)).replace(/\.[^.]+$/, '');
@@ -43,12 +50,13 @@ export async function resolveChunks(prepared, spaceSeq, hooks = {}) {
  * startMs/spanMs are absolute positions relative to the original (an unsplit whole leaf has endMs=null).
  * Side optimization: a size overflow can be known in advance via local stat, so split a huge file directly instead of uploading it whole.
  */
-async function uploadOrSplit(localPath, spaceSeq, depth, startMs = 0, spanMs = null, log = () => {}, notify = () => {}) {
+async function uploadOrSplit(localPath, spaceSeq, depth, startMs = 0, spanMs = null, log = () => {}, notify = () => {}, allowSplit = true) {
   if (depth < MAX_DEPTH) {
     const { size } = await stat(localPath);
-    if (size > SIZE_CAP) { // size overflow → split before uploading
+    if (size > SIZE_CAP) { // size overflow → split before uploading (known locally, so no upload is wasted)
+      if (depth === 0 && !allowSplit) throw new SplitConfirmNeeded({ reason: 'size', actualBytes: size });
       log('The file is large, so the video is processed in parts. Cutting and merging takes a little while.');
-      return splitAndRecurse(localPath, spaceSeq, depth, startMs, Infinity, log, notify);
+      return splitAndRecurse(localPath, spaceSeq, depth, startMs, Infinity, log, notify, allowSplit);
     }
   }
   try {
@@ -59,14 +67,27 @@ async function uploadOrSplit(localPath, spaceSeq, depth, startMs = 0, spanMs = n
     const code = e instanceof PersoApiError ? e.code : null;
     if (code !== 'F4008' && code !== 'F4004') throw e; // errors other than length/size are rethrown as-is
     if (depth >= MAX_DEPTH) throw new Error(`Split limit exceeded (depth ${depth}) — cannot upload`);
+    if (depth === 0 && !allowSplit) throw await splitConfirmFor(code, e, localPath);
     log('The video exceeds the length/size limit, so it is processed in parts. Cutting and merging takes a little while.');
     const lengthCapMs = code === 'F4008' ? Number(e.data?.maxLengthMs) : Infinity;
-    return splitAndRecurse(localPath, spaceSeq, depth, startMs, lengthCapMs, log, notify);
+    return splitAndRecurse(localPath, spaceSeq, depth, startMs, lengthCapMs, log, notify, allowSplit);
   }
 }
 
+// Build the confirmation error for a length (F4008) or size (F4004) rejection, best-effort filling the actual value.
+async function splitConfirmFor(code, err, localPath) {
+  if (code === 'F4008') {
+    let actualMs = null;
+    try { ({ durationMs: actualMs } = await probe(localPath)); } catch { /* ffmpeg absent → omit the actual length */ }
+    return new SplitConfirmNeeded({ reason: 'length', limitMs: Number(err.data?.maxLengthMs) || null, actualMs });
+  }
+  let actualBytes = null;
+  try { ({ size: actualBytes } = await stat(localPath)); } catch { /* omit the actual size */ }
+  return new SplitConfirmNeeded({ reason: 'size', actualBytes });
+}
+
 /** Split localPath by the length/size limit and recursively upload each piece. baseStartMs is the absolute offset relative to the original. */
-async function splitAndRecurse(localPath, spaceSeq, depth, baseStartMs, lengthCapMs, log = () => {}, notify = () => {}) {
+async function splitAndRecurse(localPath, spaceSeq, depth, baseStartMs, lengthCapMs, log = () => {}, notify = () => {}, allowSplit = true) {
   ensureFfmpeg(); // install only when cutting is confirmed
   if (depth === 0) notify('Splitting — the video exceeds the length/size limit, so it is processed in parts.'); // user-facing
   const { durationMs, sizeBytes } = await probe(localPath);
@@ -79,7 +100,7 @@ async function splitAndRecurse(localPath, spaceSeq, depth, baseStartMs, lengthCa
   for (let i = 0; i < parts.length; i++) {
     log(`Uploading piece ${i + 1}/${parts.length}...`);
     const p = parts[i];
-    out.push(...(await uploadOrSplit(p.path, spaceSeq, depth + 1, baseStartMs + p.startMs, p.durationMs, log, notify)));
+    out.push(...(await uploadOrSplit(p.path, spaceSeq, depth + 1, baseStartMs + p.startMs, p.durationMs, log, notify, allowSplit)));
   }
   return out;
 }

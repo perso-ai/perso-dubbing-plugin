@@ -32,6 +32,8 @@ After the key gate, collect the input (local path or URL — re-ask if missing) 
 
 **Space selection** — with several workspaces the worker stops before uploading, prints `[space-select]` lines (**name | (plan) | remaining credits**) and exits (code 3). Show the user ONLY those options (no internal numbers), ask which one, and re-run with `--space "<space name>"`. One space → no question; `PERSO_SPACE_SEQ` pins it.
 
+**Split confirmation** — if the input exceeds the length or size limit and must be auto split & merged (dubbing, dub+lip-sync, or audio separation), the worker stops (exit 3) and prints `[split-confirm]` lines. Relay them and ask the user: it exceeds the length/size limit, so it needs **automatic split → process → merge**, which can come out **less polished than splitting it up themselves** — proceed automatically? On a yes, re-run the **same command with `--allow-split`** (nothing is billed until this point, so re-running is free). Batch runs: `--allow-split` authorizes every split in the run.
+
 While it runs (for explaining the wait):
 
 - **Split**: the whole file is uploaded first; only a plan-limit rejection installs ffmpeg and splits losslessly. External URLs (YouTube·TikTok·Drive·Vimeo) are handled server-side.
@@ -66,7 +68,7 @@ To split voice from background sound (no dubbing involved), run **in the backgro
 - Outputs per input, next to the source (`--out` is a folder here): `<name>.voice.wav` · `<name>.background.wav` · `<name>.sub_background.wav`.
 - Credits ≈ seconds ×0.5. No language options; cannot combine with lip-sync flags.
 - Auto-split/merge, key gate, `[space-select]` and `[progress]` rules apply unchanged.
-- **No resume for separation yet** — re-running an interrupted run re-bills (parts run one at a time, so at most one part is at risk). Don't kill a running separation casually.
+- **Resume** — separation saves the same `*.dubresume.json` state with a per-part checkpoint, so an interrupted run (credits, crash, killed shell) continues with `node scripts/dubbing.mjs --resume "<state-file>"` **without re-submitting already-paid parts**. Re-running the original command is blocked (`[resume-check]`, exit 3) — run the printed `--resume` instead.
 
 ## Interruption & resume
 
@@ -80,11 +82,42 @@ Completed parts are skipped automatically; the state file is deleted when everyt
 
 **Re-running the original command while a state file exists is blocked** — the worker prints `[resume-check]` lines (exit 3) instead of re-billing. Relay the printed `--resume` command and run that. Delete the state file **only** if the user explicitly chooses to pay for the completed parts again — never on your own.
 
-**On an insufficient-credits stop**: deliver the completed parts and relay the worker's upgrade/Get-credits URL and resume command **verbatim** — that URL is plain stdout (not `[progress]`), so don't drop it while summarizing.
+**On an insufficient-credits stop**: deliver the completed parts, then relay the worker's guidance and resume command **verbatim** — plain stdout (not `[progress]`), so don't drop it while summarizing. The guidance points to `scripts/billing.mjs` for a payment link — see **Plan upgrade & credits** below.
+
+## Plan upgrade & credits
+
+When the user runs out of credits (the stop above) **or** asks to upgrade / buy more credits, you can generate a Stripe payment link. **You only ever hand the link to the user — never open it or complete payment yourself**, even if the user asks you to pay.
+
+Run this first — it detects the plan and prints the fitting flow, the choices, and (with `--shortfall`) a recommendation:
+
+`node scripts/billing.mjs options [--shortfall <estimated remaining credits>] [--space "<space name>"]`
+
+It routes by the current plan tier — ask only the question for that branch, then generate the link:
+
+- **free → subscribe.** Ask which plan and **monthly or yearly** (starter is monthly-only). Currency defaults to USD; use KRW only if the user asks.
+  `node scripts/billing.mjs link --checkout --plan <starter|creator|pro> --period <monthly|yearly> [--currency usd|krw]`
+- **starter / creator → change plan.** Ask which plan; billing period and currency are locked to the existing subscription (handled automatically).
+  `node scripts/billing.mjs link --billing --plan <creator|pro>`
+- **pro / business → buy credits.** Ask how many packs (1 pack = 60 credits, USD). With `--shortfall`, `options` recommends a quantity.
+  `node scripts/billing.mjs link --credits --quantity <n>`
+- **enterprise → no self-serve.** Tell the user to contact their workspace administrator.
+
+**Recommending on a credit-out stop**: estimate the remaining work's credits (dubbing ≈ ×1/s · lip-sync ≈ ×2 · separation ≈ ×0.5, and ×3 for 4K on pro+), pass it as `--shortfall`, and relay the tool's recommendation. If even the top self-serve plan or a reasonable credit quantity can't cover it, point the user to their administrator (Enterprise) instead.
+
+Hand the returned link to the user to complete payment in their browser; after they top up, resume the interrupted job with the printed `--resume` command (no re-billing).
 
 ## Perso portal (answer only when asked)
 
 Every run is also a project in the user's Perso portal account. If the user wants more than the delivered files (subtitles, audio-only, other formats) or to browse/re-download earlier projects, point them to https://portal.perso.ai — projects live in the workspace used for the run; split parts are numbered `_01`, `_02`, …. Never add this to progress relays or final reports.
+
+## Version updates
+
+Once a day (first run after 00:00 UTC) the worker checks npm for a newer release and, **after the current job finishes** (never mid-run), may print a one-line `ℹ️  Update available: …` notice. When you see it, relay it and act by install method:
+
+- **Claude Code plugin (marketplace):** tell the user to run `/plugin update perso-dubbing` — a slash command you cannot run yourself.
+- **npx / manual install:** ask the user whether to update, and on yes run `npx perso-dubbing@latest`.
+
+The notice lists both commands; pick the one matching how it was installed. It never blocks a run and can be silenced with `PERSO_NO_UPDATE_CHECK=1`.
 
 ## Config (env)
 
@@ -97,6 +130,7 @@ Every run is also a project in the user's Perso portal account. If the user want
 - `PERSO_SIZE_CAP_BYTES` — upload size cap used for the split decision (default ≈1.9 GB, under the API's 2 GB limit).
 - `PERSO_QUEUE_WAIT_MS` — how long to wait between queue re-checks when all slots are occupied by other jobs (default 5 minutes).
 - `PERSO_LIPSYNC_IDLE_MS` — no-progress allowance for a lip-sync job whose video length is unknown (default 3 hours).
+- `PERSO_NO_UPDATE_CHECK` — skip the once-a-day npm version-update check (headless/CI, or to avoid the extra network call).
 
 ## Advanced (debug only — not part of the normal flow)
 
