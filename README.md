@@ -3,8 +3,10 @@
 [![Powered by Perso AI](https://img.shields.io/badge/Powered%20by-Perso%20AI-5A4FF3)](https://perso.ai)
 ![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A518-339933?logo=node.js&logoColor=white)
 ![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-1f6feb)
-![Platforms](https://img.shields.io/badge/platforms-Claude%20Code%20%C2%B7%20Antigravity%20%C2%B7%20Codex%20%C2%B7%20Cursor-555)
+![Platforms](https://img.shields.io/badge/platforms-Claude%20%C2%B7%20Antigravity%20%C2%B7%20Codex%20%C2%B7%20Cursor-555)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
+**English** ｜ [한국어](docs/ko/README.md) ｜ [Español](docs/es/README.md) ｜ [Português](docs/pt/README.md) ｜ [Русский](docs/ru/README.md) ｜ [Bahasa Indonesia](docs/id/README.md) ｜ [Deutsch](docs/de/README.md) ｜ [ไทย](docs/th/README.md) ｜ [日本語](docs/ja/README.md) ｜ [繁體中文](docs/zh-TW/README.md) ｜ [简体中文](docs/zh-CN/README.md) ｜ [Tiếng Việt](docs/vi/README.md) ｜ [Français](docs/fr/README.md)
 
 A coding-agent skill that brings [Perso AI](https://perso.ai)'s **Dubbing (AI dubbing)** to your agent. It **auto-dubs** videos into other languages — a single file or a whole folder, and even oversized or very long media is automatically split, processed, and merged back together. It can also **lip-sync** the dubbed video and **separate voice from background audio**.
 
@@ -14,19 +16,39 @@ Because every host uses the same **Agent Skills standard** (`SKILL.md`), it work
 
 ---
 
-## Quick start (first time)
+## 🖥️ Easiest way — the Claude desktop app (about 3 minutes)
 
-1. **Create an empty folder** and open your coding agent (Claude Code · Codex · Cursor · Antigravity) in it.
-2. **Tell the agent to install the plugin** — paste this repository's URL and say *"install this"* (or run `npx perso-dubbing` yourself).
-3. **Ask it to dub a video** — e.g. *"Dub this video into English — C:\videos\clip.mp4"* (a YouTube URL or a whole folder works too). On first run it will open a key file for your Perso API key. Unless you pass `--out`, results are saved next to the source video.
+> 📖 **Prefer pictures?** Follow the **[step-by-step visual guide →](https://est-perso-dubbing-agent.github.io/perso-dubbing-plugin/)** (English · 한국어)
+
+No terminal needed. In the <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude desktop app</a> (paid plan):
+
+1. **Open the Code tab** (top center) and pick any folder — choose the **Local** environment (plugins are not available in cloud sessions).
+2. **Paste each command** into the prompt box and press Enter, one at a time:
+
+   ```text
+   /plugin marketplace add est-perso-dubbing-agent/perso-dubbing-plugin
+   ```
+
+   ```text
+   /plugin install perso-dubbing@perso-ai
+   ```
+
+   *Prefer clicking? After the first command, press the **+** button next to the prompt box → **Plugins** → **Add plugin** → install **perso-dubbing**.*
+3. **Ask for a dub** — e.g. *"Dub this video into English — C:\videos\clip.mp4"* (a YouTube URL or a whole folder works too). On the first run a key file opens for your <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Perso API key</a> — paste the key into that file, **not into the chat**. Unless you pass `--out`, results are saved next to the source video.
+
+> 💡 The skill itself runs on **Node.js 18+**. If your PC doesn't have it, the agent will say `node` was not found — just reply *"install Node.js for me"* (or grab the LTS from <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>), then try again.
+
+The same two `/plugin` commands also work in the **Claude Code CLI**.
 
 ---
 
-## Install
+## Install on other hosts
+
+The shortcut that works everywhere: paste this repository's URL into your agent and say *"install this."*
 
 > **🤖 To the agent:** If you were given only this repository's URL, pick the path for your host:
 >
-> - **Claude Code:** do **not** run npx right away — even if the user said "install this". Show the user the two plugin-marketplace commands below and ask them to type the commands themselves (they are user-typed slash commands you cannot execute). Fall back to npx only if the user still wants you to handle the install after seeing them.
+> - **Claude Code (desktop app or CLI):** do **not** run npx right away — even if the user said "install this". Show the user the two `/plugin` commands from the *Claude desktop app* section above and ask them to type the commands themselves, one per message (they are user-typed slash commands you cannot execute). Also mention the desktop-app click path: after the first command, **+ button → Plugins → Add plugin**. If you need to tailor the wording, `CLAUDE_CODE_ENTRYPOINT=cli` in your shell env suggests a terminal session (undocumented signal — when unsure, present both paths). Fall back to npx only if the user still wants you to handle the install after seeing them.
 > - **Codex · Cursor · Antigravity, or the user delegated the install to you:** run this single command — it fetches the package, auto-detects every installed host, and installs the skill into each:
 >
 > ```bash
@@ -35,14 +57,8 @@ Because every host uses the same **Agent Skills standard** (`SKILL.md`), it work
 >
 > If the repo is already cloned, run `node scripts/install.mjs` from the repo root instead (no network needed).
 
-### Claude Code (plugin marketplace — recommended)
-
-```text
-/plugin marketplace add est-perso-dubbing-agent/perso-dubbing-plugin
-/plugin install perso-dubbing@perso-ai
-```
-
-### Codex
+<details>
+<summary><b>Codex</b></summary>
 
 Codex reads skills from the shared Agent Skills folder. Run `npx perso-dubbing --codex`, or copy manually:
 
@@ -54,7 +70,10 @@ Codex reads skills from the shared Agent Skills folder. Run `npx perso-dubbing -
 
 The repo also ships a Codex plugin manifest (`.codex-plugin/plugin.json`) for marketplace-based installs.
 
-### Cursor
+</details>
+
+<details>
+<summary><b>Cursor</b></summary>
 
 Run `npx perso-dubbing --cursor`, or copy into:
 
@@ -65,7 +84,10 @@ Run `npx perso-dubbing --cursor`, or copy into:
 
 The repo ships a Cursor plugin manifest (`.cursor-plugin/plugin.json`) for the Cursor plugin marketplace.
 
-### Antigravity
+</details>
+
+<details>
+<summary><b>Antigravity</b></summary>
 
 Run `npx perso-dubbing --antigravity`, or copy into either location:
 
@@ -74,7 +96,10 @@ Run `npx perso-dubbing --antigravity`, or copy into either location:
 ~/.agents/skills/dubbing/        # Antigravity 2.0+ (shared Agent Skills folder)
 ```
 
-### ⚡ One-line installer (any host)
+</details>
+
+<details>
+<summary><b>⚡ One-line installer (any host)</b></summary>
 
 Detects which hosts you use and installs to all of them — no clone needed:
 
@@ -87,7 +112,10 @@ npx perso-dubbing
 
 Already have the repo cloned? `node scripts/install.mjs` from the repo root does the same without any network.
 
-### 🔧 Manual install
+</details>
+
+<details>
+<summary><b>🔧 Manual install</b></summary>
 
 Copy the skill folder into your host's skills directory under the name **`dubbing`**. From the repo root:
 
@@ -97,6 +125,8 @@ mkdir -p <skills_folder>/dubbing && cp -r skills/dubbing/* <skills_folder>/dubbi
 ```
 
 > 💡 Windows (PowerShell): `New-Item -ItemType Directory -Force <skills_folder>\dubbing; Copy-Item .\skills\dubbing\* <skills_folder>\dubbing\ -Recurse`
+
+</details>
 
 After installing, type **`/dubbing`** in your agent or just say **"dub this video for me"** to run it.
 
@@ -133,12 +163,22 @@ npm run dub -- "clip.mp4" --separate
 
 ## Troubleshooting
 
+More questions? See the **[FAQ](FAQ.md)**.
+
 | Symptom | Fix |
 |---|---|
-| Install/run fails | Requires **Node.js 18+**. Check with `node -v`. |
+| Claude desktop app asks for Git (Windows) | The Code tab needs <a href="https://git-scm.com/downloads/win" target="_blank" rel="noopener noreferrer">Git for Windows</a> on first use. Install it, then restart the app. |
+| `/plugin` commands or the Plugins menu do nothing | You are in a **cloud session** — plugins only work in **Local** (and SSH) sessions. Switch the environment to Local and retry. |
+| `node` not found / install or run fails | The skill runs on **Node.js 18+** — check with `node -v`. If missing, install the LTS from <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>, or simply ask Claude in the session to install it for you, then restart the app. |
 | No API key yet | Just run any dubbing command — a key file opens automatically; paste your key and save (it's encrypted and the file is deleted). Manual check: `npm run key:check`. **Do not paste the key into the chat.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Get an API key</a> |
 | ffmpeg-related error | ffmpeg is normally installed automatically. If it fails, run `npm run doctor`. |
 | Stops midway (out of credits, crash, killed process) | Progress is saved to a `*.dubresume.json` state file throughout the run. Run the **`--resume "<state-file>"`** command shown in the notice to finish only the remaining parts (completed parts are skipped automatically). |
+
+---
+
+## Privacy & Telemetry
+
+`/dubbing` sends **anonymous** usage events to improve the skill — for example, which action ran (dub / lip-sync / separate), whether it succeeded, the language pair, app version, and OS. It is tagged only with a random per-install ID and never includes your API key, file names or media content, account/email, or workspace IDs.
 
 ---
 
@@ -148,6 +188,7 @@ npm run dub -- "clip.mp4" --separate
 .claude-plugin/    Claude Code plugin + marketplace manifests
 .codex-plugin/     Codex plugin manifest
 .cursor-plugin/    Cursor plugin manifest
+docs/              Step-by-step visual install guide (GitHub Pages)
 skills/dubbing/    The skill itself (SKILL.md · lib/ · scripts/) — self-contained
 scripts/           Repo-level installer (install.mjs)
 ```

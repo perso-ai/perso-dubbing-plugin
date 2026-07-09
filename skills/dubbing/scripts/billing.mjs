@@ -12,6 +12,7 @@ import {
   withCurrencyFallback, isCurrencyMismatch, CREDIT_PER_UNIT, DEFAULT_CURRENCY, CURRENCIES,
 } from '../lib/billing.mjs';
 import { withUtm, SUBSCRIPTION_URL } from '../lib/messages.mjs';
+import { track } from '../lib/telemetry.mjs';
 
 class UsageError extends Error { constructor(m) { super(m); this.name = 'UsageError'; } }
 class ExitCode extends Error { constructor(c) { super(`exit ${c}`); this.name = 'ExitCode'; this.code = c; } }
@@ -130,6 +131,7 @@ async function runOptions(args) {
 // ---- link: generate the Stripe URL for the confirmed choice ----
 async function runLink(args) {
   const spaceSeq = await resolveSpaceSeq(args.space);
+  const fromTier = (await getPlanStatus(spaceSeq).catch(() => null))?.planTier ?? null; // for billing_link_created telemetry
   const modes = [args.checkout && 'checkout', args.billing && 'billing', args.credits && 'credits'].filter(Boolean);
   if (modes.length !== 1) throw new UsageError('Pass exactly one of --checkout, --billing, --credits.');
   const mode = modes[0];
@@ -141,7 +143,7 @@ async function runLink(args) {
     const plans = await getRecurringPlans(spaceSeq, { billingPeriod: args.period, currency });
     const sel = findPriceOption(plans, args.plan, args.period);
     if (!sel?.opt?.priceId) throw new UsageError(`No ${args.plan} plan for ${args.period}/${currency} (starter has no yearly). Check the tier and period.`);
-    return printLink(await createCheckoutLink({ spaceSeq, priceId: sel.opt.priceId, planSeq: sel.planSeq }), `${args.plan} ${args.period} (${currency.toUpperCase()})`);
+    return printLink(await createCheckoutLink({ spaceSeq, priceId: sel.opt.priceId, planSeq: sel.planSeq }), `${args.plan} ${args.period} (${currency.toUpperCase()})`, { link_type: 'checkout', from_tier: fromTier, upgrade_plan: args.plan });
   }
 
   if (mode === 'billing') {
@@ -171,7 +173,7 @@ async function runLink(args) {
       console.log(`Ask the user to change their plan in the Perso portal: ${withUtm(SUBSCRIPTION_URL)}`);
       return;
     }
-    return printLink(link, `change to ${args.plan} (${currency.toUpperCase()})`);
+    return printLink(link, `change to ${args.plan} (${currency.toUpperCase()})`, { link_type: 'billing', from_tier: fromTier, upgrade_plan: args.plan, currency_fallback: currency !== preferred });
   }
 
   // credits
@@ -179,11 +181,12 @@ async function runLink(args) {
   if (!Number.isInteger(quantity) || quantity < 1) throw new UsageError('--credits needs --quantity <positive integer>.');
   const prod = await getCreditProduct(spaceSeq);
   if (!prod?.priceId) throw new Error('Credit product unavailable for this space.');
-  printLink(await createOneTimeLink({ spaceSeq, priceId: prod.priceId, planSeq: prod.planSeq, quantity }), `${quantity} credit pack(s) = ${quantity * CREDIT_PER_UNIT} credits`);
+  printLink(await createOneTimeLink({ spaceSeq, priceId: prod.priceId, planSeq: prod.planSeq, quantity }), `${quantity} credit pack(s) = ${quantity * CREDIT_PER_UNIT} credits`, { link_type: 'onetime', from_tier: fromTier, credit_amount: quantity * CREDIT_PER_UNIT });
 }
 
-function printLink(link, what) {
+function printLink(link, what, meta = {}) {
   if (!link) throw new Error('The payment service did not return a link. Please try again.');
+  track('billing_link_created', meta);
   console.log(`Payment link (${what}):`);
   console.log(`  ${link}`);
   console.log(HANDOFF);

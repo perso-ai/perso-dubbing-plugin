@@ -204,16 +204,22 @@ export async function runSchedule(chunks, spaceSeq, opts = {}, hooks = {}) {
             continue;
           }
           if (opts.lipsync && chunk.kind === 'audio') log(`${tag} is audio — lip-sync skipped, delivering the dubbed audio`);
-          const out = join(outDir, `dub_${chunk.inputId}_${String(chunk.index).padStart(3, '0')}_${chunk.target}.mp4`);
-          try {
-            const dl = await download(pid, spaceSeq, { kind: chunk.kind, outPath: out });
-            setResult(chunk, { status: 'OK', projectId: pid, path: out, name: dl.fileName });
-            log(`${tag} done`);
-          } catch {
-            // generation succeeded (has projectSeq) — only download failed. Don't re-dub; mark it as DLFAIL to
-            // preserve projectSeq → re-download on resume (no regeneration).
-            setResult(chunk, { status: 'DLFAIL', projectId: pid, reason: 'download_failed' });
-            log(`${tag} generated (download failed → re-download on resume)`);
+          if (chunk.noDownload) {
+            // --no-save (server-only): the result stays on the server; record the projectSeq and skip download/merge/save.
+            setResult(chunk, { status: 'OK', projectId: pid, serverOnly: true });
+            log(`${tag} done — kept on server (not downloaded)`);
+          } else {
+            const out = join(outDir, `dub_${chunk.inputId}_${String(chunk.index).padStart(3, '0')}_${chunk.target}.mp4`);
+            try {
+              const dl = await download(pid, spaceSeq, { kind: chunk.kind, outPath: out });
+              setResult(chunk, { status: 'OK', projectId: pid, path: out, name: dl.fileName });
+              log(`${tag} done`);
+            } catch {
+              // generation succeeded (has projectSeq) — only download failed. Don't re-dub; mark it as DLFAIL to
+              // preserve projectSeq → re-download on resume (no regeneration).
+              setResult(chunk, { status: 'DLFAIL', projectId: pid, reason: 'download_failed' });
+              log(`${tag} generated (download failed → re-download on resume)`);
+            }
           }
         } else if (st.noVoice) {
           // no voice detected. For a split chunk (has endMs), pass the original through → keep silent segments of a long video and dub·merge the rest.

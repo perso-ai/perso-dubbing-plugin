@@ -19,6 +19,7 @@ import { download, getStatus, upload, requestAudioSeparation, downloadSeparation
 import { mergeGroups } from '../lib/merge.mjs';
 import { messages, withUtm, SUBSCRIPTION_URL } from '../lib/messages.mjs';
 import { checkForUpdate } from '../lib/update_check.mjs';
+import { track, initTelemetry } from '../lib/telemetry.mjs';
 import { cleanupTempDirs, makeTempDir } from '../lib/tmp.mjs';
 import { probe } from '../lib/ffmpeg.mjs';
 import { AUDIO_EXT, CREDIT_RATE_DUB, CREDIT_RATE_LIPSYNC, UHD_CREDIT_MULT, UHD_BILLED_TIERS, POLL_INTERVAL_MS, MAX_IDLE_MS } from '../lib/config.mjs';
@@ -39,17 +40,51 @@ function friendlyError(e) {
   return e?.message ?? 'Unknown error';
 }
 
+// Coarse error bucket for telemetry — never the raw message/code.
+function errorClass(e) {
+  if (e?.name === 'MissingKeyError' || isAuthError(e)) return 'auth';
+  if (e?.name === 'UnsupportedMediaError') return 'unsupported';
+  if (e?.name === 'PersoApiError') return 'network';
+  return 'unknown';
+}
+
+// split-confirm telemetry props: real units + an ESTIMATED part count (the exact split isn't computed until the confirmed re-run).
+function splitConfirmProps(d = {}) {
+  const SIZE_CAP = 1.9 * 1024 ** 3; // mirrors split.mjs SIZE_CAP (estimate only)
+  if (d.reason === 'length') {
+    return {
+      reason: 'length',
+      duration_sec: Number.isFinite(d.actualMs) ? Math.round(d.actualMs / 1000) : null,
+      parts_est: (Number.isFinite(d.actualMs) && d.limitMs) ? Math.ceil(d.actualMs / d.limitMs) : null,
+    };
+  }
+  return {
+    reason: 'size',
+    size_mb: Number.isFinite(d.actualBytes) ? Math.round(d.actualBytes / 1024 ** 2) : null,
+    parts_est: Number.isFinite(d.actualBytes) ? Math.ceil(d.actualBytes / SIZE_CAP) : null,
+  };
+}
+
+// Sum of known chunk spans across inputs → seconds (null when no boundaries are known, e.g. an unsplit whole).
+function totalDurationSec(perInput) {
+  const ms = (perInput || []).reduce((s, p) => s + (p.chunks || []).reduce(
+    (a, c) => a + (Number.isFinite(c.startMs) && Number.isFinite(c.endMs) ? c.endMs - c.startMs : 0), 0), 0);
+  return ms > 0 ? Math.round(ms / 1000) : null;
+}
+
 // Key gate with self-healing: when no key is registered, hand off to `resolve_key.mjs --watch` in a child
 // process (creates the key file, opens it in the editor, encrypts on save, deletes the file) and continue
 // once registered. Runs in a child because Windows DPAPI work (powershell) must not run in this main process.
 // PERSO_NO_WATCH=1 restores the old fail-fast behavior (headless/CI).
 async function ensureKey() {
-  if (resolveKey()) return;
+  if (resolveKey()) { track('key_check', { has_key: true }); return; }
+  track('key_check', { has_key: false });
   if (process.env.PERSO_NO_WATCH) {
     console.error(onboardingHelp());
     throw new ExitCode(2);
   }
   notify('No API key registered — a key file will open; paste just your Perso API key and save it. (Get one: https://developers.perso.ai/api-keys)');
+  track('key_onboarding_started');
   const watcher = fileURLToPath(new URL('./resolve_key.mjs', import.meta.url));
   const code = await new Promise((res) => {
     const child = spawn(process.execPath, [watcher, '--watch'], { stdio: 'inherit' });
@@ -61,6 +96,7 @@ async function ensureKey() {
     console.error(onboardingHelp());
     throw new ExitCode(2);
   }
+  track('key_registered');
   notify('API key registered — continuing.');
 }
 
@@ -71,9 +107,9 @@ async function ensureKey() {
 // --space "<space name>".
 async function ensureSpace(args) {
   const wanted = args.space != null ? String(args.space).trim() : '';
-  if (/^\d+$/.test(wanted)) return Number(wanted); // raw seq — power users/scripts; not shown to end users
+  if (/^\d+$/.test(wanted)) { track('space_resolved'); return Number(wanted); } // raw seq — power users/scripts; not shown to end users
   const pinned = Number(process.env.PERSO_SPACE_SEQ);
-  if (!wanted && pinned) return pinned;
+  if (!wanted && pinned) { track('space_resolved'); return pinned; }
 
   const spaces = await dubbingSpaces();
   // Options shown to the user carry "name | (plan) | remaining credits" — never the internal seq.
@@ -84,7 +120,7 @@ async function ensureSpace(args) {
 
   if (wanted) {
     const hits = spaces.filter((s) => s.name.toLowerCase() === wanted.toLowerCase());
-    if (hits.length === 1) { console.log(`Space: ${brief(hits[0])}`); return hits[0].seq; }
+    if (hits.length === 1) { track('space_resolved', { plan_tier: hits[0].tier ?? null }); console.log(`Space: ${brief(hits[0])}`); return hits[0].seq; }
     if (hits.length > 1) {
       console.log(`[space-select] Several spaces share the name "${wanted}" — rename one in Perso, or pin PERSO_SPACE_SEQ:`);
       for (const s of await enrich(hits)) console.log(`  PERSO_SPACE_SEQ=${s.seq}  →  ${label(s)}`);
@@ -95,7 +131,7 @@ async function ensureSpace(args) {
     throw new ExitCode(3);
   }
 
-  if (spaces.length === 1) return spaces[0].seq;
+  if (spaces.length === 1) { track('space_resolved', { plan_tier: spaces[0].tier ?? null }); return spaces[0].seq; }
   const options = await enrich(spaces);
   if (process.stdin.isTTY && process.stdout.isTTY) {
     console.log('Several spaces are available. Which one should this dubbing run in?');
@@ -105,6 +141,7 @@ async function ensureSpace(args) {
     rl.close();
     const chosen = options[Number(answer) - 1] ?? options.find((s) => s.name.toLowerCase() === answer.toLowerCase());
     if (!chosen) { console.error('Invalid selection — run again.'); throw new ExitCode(1); }
+    track('space_resolved', { plan_tier: chosen.tier ?? null });
     console.log(`Space: ${brief(chosen)}`);
     return chosen.seq;
   }
@@ -114,7 +151,7 @@ async function ensureSpace(args) {
 }
 
 const USAGE = [
-  'Usage: node scripts/dubbing.mjs "<file|folder|URL>" ["<another input>" ...] [--source auto] [--target en,ja] [--space "space name"] [--out path|folder] [--recursive] [--lipsync] [--force]',
+  'Usage: node scripts/dubbing.mjs "<file|folder|URL>" ["<another input>" ...] [--source auto] [--target en,ja] [--space "space name"] [--out path|folder] [--recursive] [--lipsync] [--force] [--no-save]',
   '       node scripts/dubbing.mjs --lipsync-only "<project-ref JSON | projectSeq[,projectSeq...]>" [--space "space name"] [--out path|folder]',
   '       node scripts/dubbing.mjs --separate "<file|folder|URL>" ["<another input>" ...] [--space "space name"] [--out folder]',
   '       node scripts/dubbing.mjs --resume "<state-file>"',
@@ -123,6 +160,7 @@ const USAGE = [
   '  --lipsync-only  lip-sync an already-dubbed project (uses the [project-ref] line printed by a finished run; no re-dub charge)',
   '  --separate      split the source into voice / background / sub-background audio tracks (no dubbing; ~0.5 credit per second)',
   '  --force         skip the upfront credit-estimate gate of --lipsync',
+  '  --no-save       leave the result on the server without downloading it (single/unsplit input only; not with --lipsync)',
 ].join('\n');
 
 class UsageError extends Error {
@@ -147,6 +185,7 @@ function parseArgs(argv) {
     else if (t === '--lipsync') a.lipsync = true;
     else if (t === '--force') a.force = true;
     else if (t === '--allow-split') a.allowSplit = true; // user confirmed auto split→dub→merge (set on the re-run after [split-confirm])
+    else if (t === '--no-save') a.noSave = true; // server-only: skip downloading the result (single/unsplit input only)
     else if (t in VALUE_FLAGS) {
       const v = argv[++i];
       if (v === undefined || v.startsWith('--')) throw new UsageError(`Missing value for ${t}`);
@@ -168,6 +207,7 @@ async function validateLanguages(targets, source) {
   const fixed = targets.map((t) => {
     const hit = canon.get(t.toLowerCase());
     if (!hit) {
+      track('lang_invalid', { field: 'target' });
       console.error(`Unsupported target language code: "${t}"\nSupported: ${codes.join(', ')}`);
       throw new ExitCode(1);
     }
@@ -177,6 +217,7 @@ async function validateLanguages(targets, source) {
   if (source && source !== 'auto') {
     const hit = canon.get(source.toLowerCase());
     if (!hit) {
+      track('lang_invalid', { field: 'source' });
       console.error(`Unsupported source language code: "${source}" (use "auto" to detect)\nSupported: ${codes.join(', ')}`);
       throw new ExitCode(1);
     }
@@ -324,7 +365,7 @@ function buildManifest(ctx, perInput, results, prevDone = {}) {
   }
   return {
     version: 5, spaceSeq: ctx.spaceSeq, opts: { source: ctx.source }, targets: ctx.targets, out: ctx.out ?? null,
-    lipsync: !!ctx.lipsync,
+    lipsync: !!ctx.lipsync, stop_reason: ctx.stopReason ?? null,
     inputs: perInput.map((p) => ({
       inputId: p.inputId, ref: p.ref,
       chunks: p.chunks.map((c) => ({
@@ -420,6 +461,13 @@ async function finishPool(allResults, perInput, ctx) {
         failCount++;
         continue;
       }
+      if (mergeable.length && mergeable.every((r) => r.serverOnly)) {
+        // --no-save: the dubbed result was left on the server and never downloaded → report + reference, don't merge/save.
+        lines.push(`Kept on server, not saved: ${tlab} → project ${mergeable[0].projectId}`);
+        okCount++;
+        emitProjectRef(pin, tRes, target, ctx, { lipsync: false });
+        continue;
+      }
       const hasLs = mergeable.some((r) => r.lipsync);
       const lsFailed = mergeable.some((r) => r.lipsyncFailed);
       const lsPending = mergeable.some((r) => r.lipsyncPending);
@@ -454,12 +502,14 @@ async function finishPool(allResults, perInput, ctx) {
   const dlPending = allResults.some((r) => r.status === 'DLFAIL');
   const stopped = !!ctx.sched?.stopped;
   if (stopped || dlPending) {
+    ctx.stopReason = stopped ? 'quota' : 'download'; // recorded in the manifest → resume reports why it stopped
     if (ctx.multiInput && ctx.out) mkdirSync(ctx.out, { recursive: true });
     writeFileSync(ctx.file, JSON.stringify(buildManifest(ctx, perInput, allResults, ctx.prevDone ?? {})), 'utf8');
     if (stopped) {
       const plan = await getPlanStatus(ctx.spaceSeq);
       const min = remainingMinutes(ctx.sched.pendingLeft);
       const lsOwed = allResults.some((r) => r.lipsyncPending);
+      track('quota_exceeded', { plan_tier: plan?.planTier ?? null, remaining_min: min });
       console.log('\n' + messages.quotaExceeded({
         planTier: plan?.planTier,
         remainingQuota: plan?.remainingQuota,
@@ -473,10 +523,21 @@ async function finishPool(allResults, perInput, ctx) {
   } else {
     try { unlinkSync(ctx.file); } catch { /* done → clean up resume state-file (ignore if absent) */ }
   }
+  if (!ctx.lipsyncOnly) { // lipsync-only runs report via lipsync_only_started, not dubbing_completed
+    track('dubbing_completed', {
+      input_count: perInput.length, ok_count: okCount, fail_count: failCount,
+      had_split: perInput.some((p) => (p.chunks?.length ?? 0) > 1),
+      had_lipsync: allResults.some((r) => r.lipsync),
+      duration_sec: totalDurationSec(perInput),
+      source_lang: ctx.source, target_lang: (ctx.targets || []).join(','),
+      is_resume: !!ctx.isResume, recovered: !!ctx.isResume && ctx.resumedFrom === 'quota' && okCount > 0,
+    });
+  }
 }
 
 // New run: schedule all inputs as a single pool. Per-input split/upload happens once (secures mediaSeq) → reused per language.
 async function runPool(args) {
+  if (args.noSave && args.lipsync) throw new UsageError('--no-save cannot be combined with --lipsync (the lip-synced video must be downloaded).');
   await ensureKey();
   const wantedTargets = String(args.target).split(',').map((t) => t.trim()).filter(Boolean); // --target en,ja,ko
   if (!wantedTargets.length) throw new UsageError('No target language specified (--target en,ja,...)');
@@ -509,17 +570,20 @@ async function runPool(args) {
       ({ chunks } = await resolveChunks(inp, spaceSeq, { log, notify, allowSplit: args.allowSplit }));
     } catch (e) {
       if (e?.name === 'SplitConfirmNeeded') {
+        track('split_confirm_needed', splitConfirmProps(e.details));
         console.log(splitConfirmMessage(e.details, tag));
         // Nothing is billed yet at the split stage, so discard any partial state so the --allow-split re-run isn't blocked by the resume guard.
         try { if (existsSync(file)) unlinkSync(file); } catch { /* ignore */ }
         throw new ExitCode(3);
       }
-      if (isAuthError(e)) { console.log(`\n${friendlyError(e)}`); return; } // key issues abort everything
+      if (isAuthError(e)) { track('error', { error_class: 'auth' }); console.log(`\n${friendlyError(e)}`); return; } // key issues abort everything
       if (e?.name === 'UnsupportedMediaError') { notify(skipMsg(labelOf(inp), e)); continue; } // unsupported → skip
       console.log(`${tag} — split/upload failed: ${friendlyError(e)}`); continue;
     }
     if (chunks.length > 1) notify(`Split complete — ${labelOf(inp)} (${chunks.length} parts)`);
-    for (const c of chunks) pool.push({ ...c, inputId: id });
+    const noDownload = !!args.noSave && chunks.length === 1; // --no-save is single-input only; a split video's merged file needs a local download
+    if (args.noSave && chunks.length > 1) notify(`--no-save is not available for split videos (merging needs a local download) — ${labelOf(inp)} will be saved normally.`);
+    for (const c of chunks) pool.push({ ...c, inputId: id, noDownload });
     perInput.push({ inputId: id, inp, ref: refOf(inp), chunks });
     saver.writeNow(); // the chunk plan (boundaries) survives a crash from this point on
   }
@@ -527,6 +591,7 @@ async function runPool(args) {
 
   if (args.lipsync && !args.force) await creditPreflight(perInput, spaceSeq, targets.length);
 
+  track('dub_submitted', { input_count: perInput.length, parts: pool.length, target_count: targets.length, has_lipsync: !!args.lipsync });
   notify(`Translating${targets.length > 1 ? ` (${targets.join(', ')})` : ''}`);
   // Fill all inputs×parts×languages into one queue for concurrent processing. Submit as many as there are empty slots and add more every 5 minutes.
   const sched = await runSchedule(pool, spaceSeq, { source, targets, lipsync: !!args.lipsync }, { log, notify, onResult: saver.onResult, onSubmit: saver.onSubmit });
@@ -565,6 +630,7 @@ async function creditPreflight(perInput, spaceSeq, targetCount) {
     needed += Math.ceil(inputMs / 1000) * (CREDIT_RATE_DUB + CREDIT_RATE_LIPSYNC) * targetCount * mult;
   }
   if (!needed || remaining >= needed) return;
+  track('credit_check_blocked', { credits_needed: needed, credits_remaining: remaining, plan_tier: plan?.planTier ?? null });
   console.log(`[credit-check] Estimated credits for dubbing + lip-sync: ~${needed}${anyUhd ? ` (includes the ×${UHD_CREDIT_MULT} 4K surcharge)` : ''}. Credits left: ${remaining}.`);
   console.log('[credit-check] The run would stop part-way. Ask the user to top up first, or approve continuing anyway — then re-run the same command with --force (whatever completes is kept; the rest resumes later):');
   console.log(`  → ${withUtm(SUBSCRIPTION_URL)}`);
@@ -581,7 +647,8 @@ async function runResume(file) {
   const targets = m.targets ?? [m.opts?.target ?? 'en'];
   const multiInput = (m.inputs?.length ?? 0) > 1;
   const lipsync = !!m.lipsync;
-  const ctx = { spaceSeq: m.spaceSeq, source: m.opts?.source ?? 'auto', targets, out: m.out, multiInput, file, prevDone: m.done ?? {}, lipsync };
+  const ctx = { spaceSeq: m.spaceSeq, source: m.opts?.source ?? 'auto', targets, out: m.out, multiInput, file, prevDone: m.done ?? {}, lipsync, isResume: true, resumedFrom: m.stop_reason ?? 'manual' };
+  track('resume_started', { mode: 'resume', resumed_from: m.stop_reason ?? 'manual' });
   const outDir = await makeTempDir('dubbing-resume-');
   const matCache = new Map(); // `${inputId}|${index}` → re-cut path (once per part, shared across languages)
 
@@ -744,6 +811,8 @@ async function runLipsyncOnly(args) {
   }
   const parts = Array.isArray(ref.parts) ? ref.parts : [];
   if (!parts.some((p) => p?.seq != null)) throw new UsageError('No dubbed project found in the --lipsync-only reference.');
+  const lsMs = parts.reduce((s, p) => { const r = p?.ms ?? p?.pt; return s + (Array.isArray(r) && r.length === 2 ? Math.max(0, r[1] - r[0]) : 0); }, 0);
+  track('lipsync_only_started', { input_count: 1, parts: parts.length, duration_sec: lsMs > 0 ? Math.round(lsMs / 1000) : null });
 
   const target = ref.lang ?? 'out';
   const localPath = ref.input && !/^[a-z]+:\/\//i.test(ref.input) ? ref.input : null;
@@ -751,7 +820,7 @@ async function runLipsyncOnly(args) {
   const file = resumePath({ out: args.out, inputs: [inp], multiInput: false });
   guardExistingState(file); // an interrupted earlier run owns this state file — resume it instead of re-billing
   const spaceSeq = Number(ref.space) || await ensureSpace(args);
-  const ctx = { spaceSeq, source: 'auto', targets: [target], out: args.out, multiInput: false, file, prevDone: {}, lipsync: true };
+  const ctx = { spaceSeq, source: 'auto', targets: [target], out: args.out, multiInput: false, file, prevDone: {}, lipsync: true, lipsyncOnly: true };
 
   const chunks = parts.map((p, i) => ({
     index: i, source: 'local',
@@ -839,6 +908,7 @@ async function runSeparation(args) {
       ({ chunks } = await resolveChunks(inp, spaceSeq, { log, notify, allowSplit: args.allowSplit }));
     } catch (e) {
       if (e?.name === 'SplitConfirmNeeded') {
+        track('split_confirm_needed', splitConfirmProps(e.details));
         console.log(splitConfirmMessage(e.details, multiInput ? labelOf(inp) : null, 'separate'));
         try { if (existsSync(file)) unlinkSync(file); } catch { /* nothing billed yet → safe to discard */ }
         throw new ExitCode(3);
@@ -853,7 +923,7 @@ async function runSeparation(args) {
   if (!perInput.length) { notify('No inputs to separate.'); return; }
   notify('Separating voice/background');
   // Phase 2 — submit (checkpointed) → wait → download → merge → save.
-  const pending = await separationProcess(perInput, spaceSeq, ctx, saver, null);
+  const pending = await separationProcess(perInput, spaceSeq, ctx, saver, null, false);
   finishSepState(file, pending);
 }
 
@@ -886,13 +956,13 @@ async function runResumeSeparation(m, file) {
     if (!recutCache.has(mk)) recutCache.set(mk, await recutChunk(pin._localPath, c.startMs, c.endMs));
     return recutCache.get(mk);
   };
-  const pending = await separationProcess(perInput, spaceSeq, ctx, saver, materializeFor);
+  const pending = await separationProcess(perInput, spaceSeq, ctx, saver, materializeFor, true);
   finishSepState(file, pending);
 }
 
 // Per-input: separate every chunk (checkpointing each submission), merge tracks, save. Shared by run + resume.
 // Returns true when some paid part is still owed (undelivered) → the caller must keep the state file for resume.
-async function separationProcess(perInput, spaceSeq, ctx, saver, materializeFor) {
+async function separationProcess(perInput, spaceSeq, ctx, saver, materializeFor, isResume = false) {
   const usedByDir = new Map();
   const lines = [];
   let ok = 0, fail = 0;
@@ -919,6 +989,7 @@ async function separationProcess(perInput, spaceSeq, ctx, saver, materializeFor)
   }
   console.log('\n' + lines.join('\n'));
   if (perInput.length > 1) console.log(`\nSummary: ${ok} done · ${fail} failed`);
+  track('separation_completed', { input_count: perInput.length, ok_count: ok, fail_count: fail, duration_sec: totalDurationSec(perInput), is_resume: isResume });
   return flags.pending;
 }
 
@@ -1018,7 +1089,17 @@ async function main() {
   try {
     preloadKeyEnv(); // pre-inject the key into env before async (at a clean point) → avoid a synchronous powershell call/crash in the main process
     const args = parseArgs(process.argv.slice(2));
-    if (!args.help) updateNotice = checkForUpdate().catch(() => null); // non-blocking; never fails the run
+    if (!args.help) {
+      updateNotice = checkForUpdate().catch(() => null); // non-blocking; never fails the run
+      initTelemetry(); // emits first_run once per install
+      track('run_started', {
+        mode: args.resume ? 'resume' : args.separate ? 'separate' : args.lipsyncOnly ? 'lipsync-only' : args.lipsync ? 'lipsync' : 'dub',
+        input_count: args.inputs.length || null,
+        target_count: String(args.target).split(',').map((s) => s.trim()).filter(Boolean).length || null,
+        has_lipsync: !!(args.lipsync || args.lipsyncOnly),
+        source_lang: args.source,
+      });
+    }
     if (args.help) console.log(USAGE);
     else if (args.resume) await runResume(args.resume);
     else if (args.separate) {
@@ -1036,7 +1117,7 @@ async function main() {
   } catch (e) {
     if (e?.name === 'ExitCode') exitCode = e.code; // message already printed at the throw site
     else if (e?.name === 'UsageError') { console.error(`${e.message}\n${USAGE}`); exitCode = 1; }
-    else { console.error(friendlyError(e)); exitCode = 1; }
+    else { track('error', { error_class: errorClass(e) }); console.error(friendlyError(e)); exitCode = 1; }
   } finally {
     await cleanupTempDirs(); // bulk-clean the cut/schedule/merge/download temp folders
   }

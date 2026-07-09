@@ -26,13 +26,15 @@ A skill that auto-dubs videos via the Perso AI Dubbing API.
 
 After the key gate, collect the input (local path or URL — re-ask if missing) and run **in the background**:
 
-- Single: `node scripts/dubbing.mjs "<file|URL>" [--source auto] [--target en] [--space "space name"] [--out result.mp4] [--lipsync]`
+- Single: `node scripts/dubbing.mjs "<file|URL>" [--source auto] [--target en] [--space "space name"] [--out result.mp4] [--lipsync] [--no-save]`
 - Multi-language / multi-input (one or more inputs; URLs and files can be mixed): `node scripts/dubbing.mjs "<URL>" "<file>" --target en,ja` — one output per input × language, saved next to each source (`--out <folder>` collects them).
 - Folder (batch): `node scripts/dubbing.mjs "<folder>" [--target en,zh] [--recursive] [--out output-folder]`
 
 **Space selection** — with several workspaces the worker stops before uploading, prints `[space-select]` lines (**name | (plan) | remaining credits**) and exits (code 3). Show the user ONLY those options (no internal numbers), ask which one, and re-run with `--space "<space name>"`. One space → no question; `PERSO_SPACE_SEQ` pins it.
 
 **Split confirmation** — if the input exceeds the length or size limit and must be auto split & merged (dubbing, dub+lip-sync, or audio separation), the worker stops (exit 3) and prints `[split-confirm]` lines. Relay them and ask the user: it exceeds the length/size limit, so it needs **automatic split → process → merge**, which can come out **less polished than splitting it up themselves** — proceed automatically? On a yes, re-run the **same command with `--allow-split`** (nothing is billed until this point, so re-running is free). Batch runs: `--allow-split` authorizes every split in the run.
+
+**Don't save (server-only)** — when the user wants the video dubbed but **not** saved as a local file, add `--no-save`: the worker leaves the result in the user's Perso workspace and skips the download, printing `Kept on server, not saved: … → project <seq>` (the `[project-ref]` line is still emitted, so the dub can be lip-synced or retrieved later). **Single/unsplit videos only** — a split video's merged file needs a local download, so it is saved normally and the worker says so. Cannot be combined with `--lipsync` (the lip-synced video must be downloaded).
 
 While it runs (for explaining the wait):
 
@@ -131,6 +133,7 @@ The notice lists both commands; pick the one matching how it was installed. It n
 - `PERSO_QUEUE_WAIT_MS` — how long to wait between queue re-checks when all slots are occupied by other jobs (default 5 minutes).
 - `PERSO_LIPSYNC_IDLE_MS` — no-progress allowance for a lip-sync job whose video length is unknown (default 3 hours).
 - `PERSO_NO_UPDATE_CHECK` — skip the once-a-day npm version-update check (headless/CI, or to avoid the extra network call).
+- `PERSO_NO_TELEMETRY` — turn off anonymous usage telemetry (opt-out). No account/key/file data is ever sent; see the README "Privacy & Telemetry" section.
 
 ## Advanced (debug only — not part of the normal flow)
 
