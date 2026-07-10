@@ -1,6 +1,6 @@
-# 🎬 /dubbing — Perso AI Video Auto-Dubbing
+# 🎬 /dubbing — Perso Dubbing Video Translation
 
-[![Powered by Perso AI](https://img.shields.io/badge/Powered%20by-Perso%20AI-5A4FF3)](https://perso.ai)
+[![Powered by Perso Dubbing](https://img.shields.io/badge/Powered%20by-Perso%20AI-5A4FF3)](https://perso.ai/dubbing)
 ![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A518-339933?logo=node.js&logoColor=white)
 ![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-1f6feb)
 ![Platforms](https://img.shields.io/badge/platforms-Claude%20%C2%B7%20Antigravity%20%C2%B7%20Codex%20%C2%B7%20Cursor-555)
@@ -8,7 +8,7 @@
 
 **English** ｜ [한국어](docs/ko/README.md) ｜ [Español](docs/es/README.md) ｜ [Português](docs/pt/README.md) ｜ [Русский](docs/ru/README.md) ｜ [Bahasa Indonesia](docs/id/README.md) ｜ [Deutsch](docs/de/README.md) ｜ [ไทย](docs/th/README.md) ｜ [日本語](docs/ja/README.md) ｜ [繁體中文](docs/zh-TW/README.md) ｜ [简体中文](docs/zh-CN/README.md) ｜ [Tiếng Việt](docs/vi/README.md) ｜ [Français](docs/fr/README.md)
 
-A coding-agent skill that brings [Perso AI](https://perso.ai)'s **Dubbing (AI dubbing)** to your agent. It **auto-dubs** videos into other languages — a single file or a whole folder, and even oversized or very long media is automatically split, processed, and merged back together. It can also **lip-sync** the dubbed video and **separate voice from background audio**.
+A coding-agent skill that brings [Perso Dubbing](https://perso.ai/dubbing)'s **Dubbing (AI dubbing)** to your agent. It **auto-dubs** videos into other languages — a single file or a whole folder, and even oversized or very long media is automatically split, processed, and merged back together. It can also **lip-sync** the dubbed video and **separate voice from background audio**.
 
 It calls the Perso Dubbing API under the hood, so **a Perso Dubbing API key is required.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Get an API key</a>
 
