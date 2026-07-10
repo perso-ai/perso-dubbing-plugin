@@ -42,11 +42,10 @@ export async function upload(prepared, spaceSeq) {
   return uploadLocal(prepared.localPath, prepared.originalName, spaceSeq);
 }
 
-async function uploadLocal(localPath, fileName, spaceSeq) {
-  const name = fileName || basename(localPath);
-
+/** SAS token → stream the file straight to Azure Blob. Returns { fileUrl, blobPath }; registration is the caller's job. */
+async function putBlob(localPath, fileName) {
   // 1) SAS token (fileName is encoded by URLSearchParams)
-  const sas = await get('/file/api/upload/sas-token', { query: { fileName: name } });
+  const sas = await get('/file/api/upload/sas-token', { query: { fileName } });
   const blobSasUrl = sas?.blobSasUrl;
   if (!blobSasUrl) throw new Error('Failed to get an upload token — check your API key and permissions.');
 
@@ -61,10 +60,23 @@ async function uploadLocal(localPath, fileName, spaceSeq) {
   });
   if (!blobRes.ok) throw new Error(`Azure upload failed (${blobRes.status})`);
 
+  const fileUrl = blobSasUrl.split('?')[0];
+  return { fileUrl, blobPath: new URL(fileUrl).pathname };
+}
+
+/** Upload a glossary CSV; the returned blob path is what requestTranslation takes as customDictionaryBlobPath. */
+export async function uploadCustomDictionary(localPath, fileName) {
+  const { blobPath } = await putBlob(localPath, fileName || basename(localPath));
+  return blobPath;
+}
+
+async function uploadLocal(localPath, fileName, spaceSeq) {
+  const name = fileName || basename(localPath);
+  const { fileUrl } = await putBlob(localPath, name);
+
   // 3) Register — decide by extension first: for an audio extension, go straight to the audio endpoint (skip the unnecessary video attempt).
   //    Otherwise (video/unknown), register as video, and if there's no video stream (F4007), fall back to audio → safe even if the extension is wrong.
   //    If both video and audio are rejected, it's an unsupported format (UnsupportedMediaError) → the caller suggests conversion.
-  const fileUrl = blobSasUrl.split('?')[0];
   const reg = async (k) => {
     const r = await put(`/file/api/upload/${k}`, { body: { spaceSeq, fileUrl, fileName: name } });
     return { seq: r.seq, kind: k };
@@ -117,6 +129,7 @@ export async function requestTranslation(spaceSeq, mediaSeq, opts = {}) {
     speed = 'GREEN',
     title,
     kind = 'video', // 'audio' means isVideoProject=false
+    customDictionaryBlobPath, // glossary blob path from uploadCustomDictionary() — pins how terms are translated
   } = opts;
 
   // Initialize the queue — once per space (not on every chunk → halves the request count, eases rate limiting)
@@ -133,6 +146,7 @@ export async function requestTranslation(spaceSeq, mediaSeq, opts = {}) {
     numberOfSpeakers,
     preferredSpeedType: speed,
     ...(title ? { title } : {}),
+    ...(customDictionaryBlobPath ? { customDictionaryBlobPath } : {}),
   };
   const res = await post(`${VT}/projects/spaces/${spaceSeq}/translate`, { body });
   return res?.result?.startGenerateProjectIdList ?? [];

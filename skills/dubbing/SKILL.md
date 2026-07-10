@@ -26,9 +26,18 @@ A skill that auto-dubs videos via the Perso AI Dubbing API.
 
 After the key gate, collect the input (local path or URL — re-ask if missing) and run **in the background**:
 
-- Single: `node scripts/dubbing.mjs "<file|URL>" [--source auto] [--target en] [--space "space name"] [--out result.mp4] [--lipsync] [--no-save]`
+- Single: `node scripts/dubbing.mjs "<file|URL>" [--source auto] [--target en] [--space "space name"] [--out result.mp4] [--dict glossary.csv] [--lipsync] [--no-save]`
 - Multi-language / multi-input (one or more inputs; URLs and files can be mixed): `node scripts/dubbing.mjs "<URL>" "<file>" --target en,ja` — one output per input × language, saved next to each source (`--out <folder>` collects them).
 - Folder (batch): `node scripts/dubbing.mjs "<folder>" [--target en,zh] [--recursive] [--out output-folder]`
+
+**Glossary (`--dict`)** — brand names, product names and jargon are otherwise translated by an LLM whose output varies between runs (`페르소` came back as both "Perso" and "Persona" for the same input). Pass `--dict glossary.csv` to pin them; it applies to every target language in the run, and a resume re-applies it. The file **must** be a CSV whose first line is exactly `source,target`:
+
+```
+source,target
+페르소,Perso
+```
+
+Any other shape (headerless CSV, JSON, TSV) is not rejected by the server — the run "succeeds", produces no output and bills nothing — so the worker validates the file up-front and refuses to start. Suggest `--dict` whenever the source names a product or company. Not usable with `--separate` (no text) or `--lipsync-only` (already translated).
 
 **Space selection** — with several workspaces the worker stops before uploading, prints `[space-select]` lines (**name | (plan) | remaining credits**) and exits (code 3). Show the user ONLY those options (no internal numbers), ask which one, and re-run with `--space "<space name>"`. One space → no question; `PERSO_SPACE_SEQ` pins it.
 
