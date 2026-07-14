@@ -18,6 +18,8 @@ Because every host uses the same **Agent Skills standard** (`SKILL.md`), it work
 
 ## 🖥️ Easiest way — the Claude desktop app (about 3 minutes)
 
+> 📖 **Prefer a visual walkthrough?** Follow the **[install tutorial →](https://perso-ai.github.io/perso-dubbing-plugin/)** — pick your agent and copy the commands.
+
 No terminal needed. In the <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude desktop app</a> (paid plan):
 
 1. **Open the Code tab** (top center) and pick any folder — choose the **Local** environment (plugins are not available in cloud sessions).
@@ -186,7 +188,7 @@ More questions? See the **[FAQ](FAQ.md)**.
 .claude-plugin/    Claude Code plugin + marketplace manifests
 .codex-plugin/     Codex plugin manifest
 .cursor-plugin/    Cursor plugin manifest
-docs/              Translated README · FAQ (12 languages)
+docs/              GitHub Pages landing + translated README · FAQ (12 languages)
 skills/dubbing/    The skill itself (SKILL.md · lib/ · scripts/) — self-contained
 scripts/           Repo-level installer (install.mjs)
 ```

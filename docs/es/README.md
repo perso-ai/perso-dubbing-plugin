@@ -18,6 +18,8 @@ Como todos los hosts usan el mismo estándar de **Agent Skills** (`SKILL.md`), f
 
 ## 🖥️ La forma más fácil — la app de escritorio de Claude (unos 3 minutos)
 
+> 📖 **¿Prefieres una guía visual?** Sigue el **[tutorial de instalación →](https://perso-ai.github.io/perso-dubbing-plugin/)**: elige tu agente y copia los comandos.
+
 No hace falta terminal. En la <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">app de escritorio de Claude</a> (plan de pago):
 
 1. **Abre la pestaña Code** (arriba en el centro) y elige cualquier carpeta; selecciona el entorno **Local** (los plugins no están disponibles en sesiones en la nube).
@@ -180,7 +182,7 @@ npm run dub -- "clip.mp4" --separate
 .claude-plugin/    Manifiestos de plugin y marketplace de Claude Code
 .codex-plugin/     Manifiesto de plugin de Codex
 .cursor-plugin/    Manifiesto de plugin de Cursor
-docs/              README y FAQ traducidos (12 idiomas)
+docs/              Landing de GitHub Pages + README y FAQ traducidos (12 idiomas)
 skills/dubbing/    La skill en sí (SKILL.md · lib/ · scripts/) — autónoma
 scripts/           Instalador a nivel de repositorio (install.mjs)
 ```

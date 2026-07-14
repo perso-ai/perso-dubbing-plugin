@@ -18,6 +18,8 @@
 
 ## 🖥️ Проще всего — приложение Claude для компьютера (около 3 минут)
 
+> 📖 **Предпочитаете наглядную инструкцию?** Откройте **[учебник по установке →](https://perso-ai.github.io/perso-dubbing-plugin/)** — выберите агента и скопируйте команды.
+
 Терминал не нужен. В <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">приложении Claude для компьютера</a> (платный план):
 
 1. **Откройте вкладку Code** (по центру сверху) и выберите любую папку — укажите окружение **Local** (плагины недоступны в облачных сессиях).
@@ -186,7 +188,7 @@ npm run dub -- "clip.mp4" --separate
 .claude-plugin/    Манифесты плагина и маркетплейса Claude Code
 .codex-plugin/     Манифест плагина Codex
 .cursor-plugin/    Манифест плагина Cursor
-docs/              Переведённые README и FAQ (12 языков)
+docs/              Лендинг GitHub Pages + переведённые README и FAQ (12 языков)
 skills/dubbing/    Сам навык (SKILL.md · lib/ · scripts/) — автономный
 scripts/           Установщик уровня репозитория (install.mjs)
 ```

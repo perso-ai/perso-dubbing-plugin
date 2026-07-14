@@ -18,6 +18,8 @@
 
 ## 🖥️ 最简单的方式 —— Claude 桌面应用（约 3 分钟）
 
+> 📖 **想要图文教程？**在**[安装教程 →](https://perso-ai.github.io/perso-dubbing-plugin/)**中选择你使用的智能体并复制命令。
+
 无需终端。在 <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude 桌面应用</a>中（付费版）：
 
 1. **打开 Code 标签页**（顶部居中位置），选择任意文件夹——选择 **Local**（本地）环境（插件在云端会话中不可用）。
@@ -186,7 +188,7 @@ npm run dub -- "clip.mp4" --separate
 .claude-plugin/    Claude Code 插件与市场清单文件
 .codex-plugin/     Codex 插件清单文件
 .cursor-plugin/    Cursor 插件清单文件
-docs/              多语言 README·FAQ（12 种语言）
+docs/              GitHub Pages 落地页 + 多语言 README·FAQ（12 种语言）
 skills/dubbing/    技能本体（SKILL.md · lib/ · scripts/）—— 自包含
 scripts/           仓库级安装脚本（install.mjs）
 ```
