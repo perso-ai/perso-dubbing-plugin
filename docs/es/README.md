@@ -24,11 +24,11 @@ No hace falta terminal. En la <a href="https://claude.ai/download" target="_blan
 2. **Pega cada comando** en el cuadro de texto y pulsa Enter, uno por uno:
 
    ```text
-   /plugin marketplace add perso-ai/perso-dubbing-plugin
+   claude marketplace add perso-ai/perso-dubbing-plugin
    ```
 
    ```text
-   /plugin install perso-dubbing@perso-ai
+   claude install perso-dubbing@perso-ai
    ```
 
    *¿Prefieres hacer clic? Tras el primer comando, pulsa el botón **+** junto al cuadro de texto → **Plugins** → **Add plugin** → instala **perso-dubbing**.*
@@ -36,7 +36,7 @@ No hace falta terminal. En la <a href="https://claude.ai/download" target="_blan
 
 > 💡 La skill se ejecuta con **Node.js 18+**. Si tu PC no lo tiene, el agente dirá que no encuentra `node`: responde simplemente *«instálame Node.js»* (o descarga la LTS desde <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>) y vuelve a intentarlo.
 
-Los mismos dos comandos `/plugin` también funcionan en la **CLI de Claude Code**.
+En la **CLI de Claude Code**, usa en su lugar `/plugin marketplace add perso-ai/perso-dubbing-plugin` y `/plugin install perso-dubbing@perso-ai`.
 
 ---
 
@@ -46,7 +46,7 @@ El atajo que funciona en todas partes: pega la URL de este repositorio en tu age
 
 > **🤖 Para el agente:** Si solo te han dado la URL de este repositorio, elige la ruta según tu host:
 >
-> - **Claude Code (app de escritorio o CLI):** **no** ejecutes npx de inmediato, aunque el usuario diga «instala esto». Muéstrale los dos comandos `/plugin` de la sección *app de escritorio de Claude* de arriba y pídele que los escriba él mismo, uno por mensaje (son comandos de barra que escribe el usuario y que tú no puedes ejecutar). Menciona también la ruta con clics en la app de escritorio: tras el primer comando, **botón + → Plugins → Add plugin**. Si necesitas ajustar el texto, `CLAUDE_CODE_ENTRYPOINT=cli` en tu entorno de shell sugiere una sesión de terminal (señal no documentada; cuando dudes, presenta ambas rutas). Recurre a npx solo si el usuario, tras verlo, aún quiere que te encargues de la instalación.
+> - **Claude Code (app de escritorio o CLI):** **no** ejecutes npx de inmediato, aunque el usuario diga «instala esto». Muéstrale los dos comandos de la sección *app de escritorio de Claude* de arriba y pídele que los escriba él mismo, uno por mensaje (son comandos de barra que escribe el usuario y que tú no puedes ejecutar). Menciona también la ruta con clics en la app de escritorio: tras el primer comando, **botón + → Plugins → Add plugin**. Si necesitas ajustar el texto, `CLAUDE_CODE_ENTRYPOINT=cli` en tu entorno de shell sugiere una sesión de terminal (señal no documentada; cuando dudes, presenta ambas rutas). Recurre a npx solo si el usuario, tras verlo, aún quiere que te encargues de la instalación.
 > - **Codex · Cursor · Antigravity, o el usuario te delegó la instalación:** ejecuta este único comando; descarga el paquete, detecta automáticamente todos los hosts instalados e instala la skill en cada uno:
 >
 > ```bash
@@ -166,7 +166,7 @@ npm run dub -- "clip.mp4" --separate
 | Síntoma | Solución |
 |---|---|
 | La app de escritorio de Claude pide Git (Windows) | La pestaña Code necesita <a href="https://git-scm.com/downloads/win" target="_blank" rel="noopener noreferrer">Git para Windows</a> en el primer uso. Instálalo y reinicia la app. |
-| Los comandos `/plugin` o el menú Plugins no hacen nada | Estás en una **sesión en la nube**: los plugins solo funcionan en sesiones **Local** (y SSH). Cambia el entorno a Local y reinténtalo. |
+| Los comandos `claude` o el menú Plugins no hacen nada | Estás en una **sesión en la nube**: los plugins solo funcionan en sesiones **Local** (y SSH). Cambia el entorno a Local y reinténtalo. |
 | `node` no encontrado / falla la instalación o la ejecución | La skill se ejecuta con **Node.js 18+** — compruébalo con `node -v`. Si falta, instala la LTS desde <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>, o pídele a Claude en la sesión que lo instale por ti y reinicia la app. |
 | Aún no tienes clave de API | Simplemente ejecuta cualquier comando de doblaje: se abre un archivo de clave automáticamente; pega tu clave y guarda (se cifra y el archivo se elimina). Comprobación manual: `npm run key:check`. **No pegues la clave en el chat.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Consigue una clave de API</a> |
 | Error relacionado con ffmpeg | ffmpeg normalmente se instala solo. Si falla, ejecuta `npm run doctor`. |

@@ -24,11 +24,11 @@ No terminal needed. In the <a href="https://claude.ai/download" target="_blank" 
 2. **Paste each command** into the prompt box and press Enter, one at a time:
 
    ```text
-   /plugin marketplace add perso-ai/perso-dubbing-plugin
+   claude marketplace add perso-ai/perso-dubbing-plugin
    ```
 
    ```text
-   /plugin install perso-dubbing@perso-ai
+   claude install perso-dubbing@perso-ai
    ```
 
    *Prefer clicking? After the first command, press the **+** button next to the prompt box → **Plugins** → **Add plugin** → install **perso-dubbing**.*
@@ -36,7 +36,7 @@ No terminal needed. In the <a href="https://claude.ai/download" target="_blank" 
 
 > 💡 The skill itself runs on **Node.js 18+**. If your PC doesn't have it, the agent will say `node` was not found — just reply *"install Node.js for me"* (or grab the LTS from <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>), then try again.
 
-The same two `/plugin` commands also work in the **Claude Code CLI**.
+In the **Claude Code CLI**, use `/plugin marketplace add perso-ai/perso-dubbing-plugin` and `/plugin install perso-dubbing@perso-ai` instead.
 
 ---
 
@@ -46,7 +46,7 @@ The shortcut that works everywhere: paste this repository's URL into your agent 
 
 > **🤖 To the agent:** If you were given only this repository's URL, pick the path for your host:
 >
-> - **Claude Code (desktop app or CLI):** do **not** run npx right away — even if the user said "install this". Show the user the two `/plugin` commands from the *Claude desktop app* section above and ask them to type the commands themselves, one per message (they are user-typed slash commands you cannot execute). Also mention the desktop-app click path: after the first command, **+ button → Plugins → Add plugin**. If you need to tailor the wording, `CLAUDE_CODE_ENTRYPOINT=cli` in your shell env suggests a terminal session (undocumented signal — when unsure, present both paths). Fall back to npx only if the user still wants you to handle the install after seeing them.
+> - **Claude Code (desktop app or CLI):** do **not** run npx right away — even if the user said "install this". Show the user the two commands from the *Claude desktop app* section above and ask them to type the commands themselves, one per message (they are user-typed slash commands you cannot execute). Also mention the desktop-app click path: after the first command, **+ button → Plugins → Add plugin**. If you need to tailor the wording, `CLAUDE_CODE_ENTRYPOINT=cli` in your shell env suggests a terminal session (undocumented signal — when unsure, present both paths). Fall back to npx only if the user still wants you to handle the install after seeing them.
 > - **Codex · Cursor · Antigravity, or the user delegated the install to you:** run this single command — it fetches the package, auto-detects every installed host, and installs the skill into each:
 >
 > ```bash
@@ -166,7 +166,7 @@ More questions? See the **[FAQ](FAQ.md)**.
 | Symptom | Fix |
 |---|---|
 | Claude desktop app asks for Git (Windows) | The Code tab needs <a href="https://git-scm.com/downloads/win" target="_blank" rel="noopener noreferrer">Git for Windows</a> on first use. Install it, then restart the app. |
-| `/plugin` commands or the Plugins menu do nothing | You are in a **cloud session** — plugins only work in **Local** (and SSH) sessions. Switch the environment to Local and retry. |
+| `claude` commands or the Plugins menu do nothing | You are in a **cloud session** — plugins only work in **Local** (and SSH) sessions. Switch the environment to Local and retry. |
 | `node` not found / install or run fails | The skill runs on **Node.js 18+** — check with `node -v`. If missing, install the LTS from <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>, or simply ask Claude in the session to install it for you, then restart the app. |
 | No API key yet | Just run any dubbing command — a key file opens automatically; paste your key and save (it's encrypted and the file is deleted). Manual check: `npm run key:check`. **Do not paste the key into the chat.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Get an API key</a> |
 | ffmpeg-related error | ffmpeg is normally installed automatically. If it fails, run `npm run doctor`. |

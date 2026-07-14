@@ -24,11 +24,11 @@
 2. **各コマンドをプロンプト欄に貼り付け**て、一つずつ Enter を押します。
 
    ```text
-   /plugin marketplace add perso-ai/perso-dubbing-plugin
+   claude marketplace add perso-ai/perso-dubbing-plugin
    ```
 
    ```text
-   /plugin install perso-dubbing@perso-ai
+   claude install perso-dubbing@perso-ai
    ```
 
    *クリック操作がお好みですか？ 最初のコマンドの後、プロンプト欄の横にある **+** ボタンを押す → **Plugins** → **Add plugin** → **perso-dubbing** をインストールしてください。*
@@ -36,7 +36,7 @@
 
 > 💡 このスキル自体は **Node.js 18以上** で動作します。お使いのPCに入っていない場合、エージェントは `node` が見つからないと表示します — 「Node.jsをインストールして」と返信するだけで構いません（または <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a> からLTS版を入手してください）。その後もう一度お試しください。
 
-同じ2つの `/plugin` コマンドは **Claude Code CLI** でも使用できます。
+**Claude Code CLI**（ターミナル）では、代わりに `/plugin marketplace add perso-ai/perso-dubbing-plugin` と `/plugin install perso-dubbing@perso-ai` を使ってください。
 
 ---
 
@@ -46,7 +46,7 @@
 
 > **🤖 エージェントへ:** このリポジトリのURLのみを渡された場合は、ホストに応じたパスを選んでください。
 >
-> - **Claude Code（デスクトップアプリまたはCLI）:** ユーザーが「これをインストールして」と言った場合でも、すぐに npx を実行しては**いけません**。上記「Claude デスクトップアプリ」セクションにある2つの `/plugin` コマンドをユーザーに提示し、1メッセージにつき1コマンドずつ、ユーザー自身に入力してもらってください（これらはユーザーが入力するスラッシュコマンドであり、あなたが実行することはできません）。デスクトップアプリでのクリック操作によるパスも案内してください: 最初のコマンドの後、**+ ボタン → Plugins → Add plugin**。文言を調整する必要がある場合、シェル環境の `CLAUDE_CODE_ENTRYPOINT=cli` はターミナルセッションであることを示唆します（非公式なシグナルのため、判断に迷う場合は両方のパスを提示してください）。npx にフォールバックするのは、これらを見せたうえでユーザーがそれでもインストール作業をあなたに任せたい場合のみです。
+> - **Claude Code（デスクトップアプリまたはCLI）:** ユーザーが「これをインストールして」と言った場合でも、すぐに npx を実行しては**いけません**。上記「Claude デスクトップアプリ」セクションにある2つの コマンドをユーザーに提示し、1メッセージにつき1コマンドずつ、ユーザー自身に入力してもらってください（これらはユーザーが入力するスラッシュコマンドであり、あなたが実行することはできません）。デスクトップアプリでのクリック操作によるパスも案内してください: 最初のコマンドの後、**+ ボタン → Plugins → Add plugin**。文言を調整する必要がある場合、シェル環境の `CLAUDE_CODE_ENTRYPOINT=cli` はターミナルセッションであることを示唆します（非公式なシグナルのため、判断に迷う場合は両方のパスを提示してください）。npx にフォールバックするのは、これらを見せたうえでユーザーがそれでもインストール作業をあなたに任せたい場合のみです。
 > - **Codex・Cursor・Antigravity、またはユーザーがインストールをあなたに委任した場合:** 次の単一コマンドを実行してください — パッケージを取得し、インストール済みのすべてのホストを自動検出して、それぞれにスキルをインストールします。
 >
 > ```bash
@@ -166,7 +166,7 @@ npm run dub -- "clip.mp4" --separate
 | 症状 | 対処法 |
 |---|---|
 | Claude デスクトップアプリがGitを要求する（Windows） | Code タブは初回利用時に <a href="https://git-scm.com/downloads/win" target="_blank" rel="noopener noreferrer">Git for Windows</a> を必要とします。インストール後、アプリを再起動してください。 |
-| `/plugin` コマンドやPluginsメニューが反応しない | **クラウドセッション**にいます — プラグインは **Local**（およびSSH）セッションでのみ動作します。環境をLocalに切り替えて再試行してください。 |
+| `claude` コマンドやPluginsメニューが反応しない | **クラウドセッション**にいます — プラグインは **Local**（およびSSH）セッションでのみ動作します。環境をLocalに切り替えて再試行してください。 |
 | `node` が見つからない／インストールや実行が失敗する | このスキルは **Node.js 18以上** で動作します — `node -v` で確認してください。入っていない場合は <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a> からLTS版をインストールするか、セッション内のClaudeにインストールを依頼してから、アプリを再起動してください。 |
 | APIキーがまだない | 吹き替えコマンドを実行するだけで、キーファイルが自動的に開きます。キーを貼り付けて保存してください（暗号化され、ファイルは削除されます）。手動確認: `npm run key:check`。**キーをチャットに貼り付けないでください。** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">APIキーを取得</a> |
 | ffmpeg関連のエラー | ffmpegは通常自動的にインストールされます。失敗する場合は `npm run doctor` を実行してください。 |

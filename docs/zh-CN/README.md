@@ -24,11 +24,11 @@
 2. **依次粘贴以下每条命令**到提示框中并按回车，一次一条：
 
    ```text
-   /plugin marketplace add perso-ai/perso-dubbing-plugin
+   claude marketplace add perso-ai/perso-dubbing-plugin
    ```
 
    ```text
-   /plugin install perso-dubbing@perso-ai
+   claude install perso-dubbing@perso-ai
    ```
 
    *更喜欢点击操作？在执行第一条命令后，点击提示框旁的 **+** 按钮 → **Plugins** → **Add plugin** → 安装 **perso-dubbing**。*
@@ -36,7 +36,7 @@
 
 > 💡 该技能本身运行在 **Node.js 18+** 上。如果你的电脑没有安装，智能体会提示找不到 `node`——只需回复*“帮我安装 Node.js”*即可（或从 <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a> 下载 LTS 版本），然后重试。
 
-同样的两条 `/plugin` 命令在 **Claude Code CLI** 中也同样适用。
+在 **Claude Code CLI** 中，请改用 `/plugin marketplace add perso-ai/perso-dubbing-plugin` 和 `/plugin install perso-dubbing@perso-ai`。
 
 ---
 
@@ -46,7 +46,7 @@
 
 > **🤖 致智能体：**如果你只拿到了本仓库的 URL，请根据所在宿主环境选择对应路径：
 >
-> - **Claude Code（桌面应用或 CLI）：**即使用户说了“安装这个”，也**不要**立即运行 npx。请向用户展示上文*Claude 桌面应用*小节中的两条 `/plugin` 命令，并请他们自行逐条输入（每条消息一条），因为这些是需要用户自己输入的斜杠命令，你无法代为执行。同时也可以提及桌面应用中的点击路径：执行第一条命令后，**+ 按钮 → Plugins → Add plugin**。如需调整措辞：shell 环境变量中的 `CLAUDE_CODE_ENTRYPOINT=cli` 暗示这是一个终端会话（这是一个非官方文档记录的信号——不确定时，两种路径都展示出来）。只有当用户看过上述方式后仍希望你代为处理安装时，才退回使用 npx。
+> - **Claude Code（桌面应用或 CLI）：**即使用户说了“安装这个”，也**不要**立即运行 npx。请向用户展示上文*Claude 桌面应用*小节中的两条 命令，并请他们自行逐条输入（每条消息一条），因为这些是需要用户自己输入的斜杠命令，你无法代为执行。同时也可以提及桌面应用中的点击路径：执行第一条命令后，**+ 按钮 → Plugins → Add plugin**。如需调整措辞：shell 环境变量中的 `CLAUDE_CODE_ENTRYPOINT=cli` 暗示这是一个终端会话（这是一个非官方文档记录的信号——不确定时，两种路径都展示出来）。只有当用户看过上述方式后仍希望你代为处理安装时，才退回使用 npx。
 > - **Codex · Cursor · Antigravity，或用户已将安装工作交给你处理：**运行以下这一条命令即可——它会拉取安装包，自动检测已安装的所有宿主环境，并将该技能安装到每一个宿主中：
 >
 > ```bash
@@ -166,7 +166,7 @@ npm run dub -- "clip.mp4" --separate
 | 现象 | 解决方法 |
 |---|---|
 | Claude 桌面应用要求安装 Git（Windows） | Code 标签页首次使用时需要 <a href="https://git-scm.com/downloads/win" target="_blank" rel="noopener noreferrer">Git for Windows</a>。安装后重启应用即可。 |
-| `/plugin` 命令或 Plugins 菜单没有反应 | 你当前处于**云端会话**——插件仅在 **Local**（本地）会话（以及 SSH 会话）中可用。请将环境切换为 Local 后重试。 |
+| `claude` 命令或 Plugins 菜单没有反应 | 你当前处于**云端会话**——插件仅在 **Local**（本地）会话（以及 SSH 会话）中可用。请将环境切换为 Local 后重试。 |
 | 找不到 `node` / 安装或运行失败 | 该技能运行在 **Node.js 18+** 上——可通过 `node -v` 检查。如未安装，请从 <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a> 安装 LTS 版本，或者直接在会话中请 Claude 帮你安装，然后重启应用。 |
 | 还没有 API 密钥 | 只需运行任意配音命令——密钥文件会自动打开；粘贴你的密钥并保存即可（该文件会被加密并随后删除）。手动检查：`npm run key:check`。**请勿将密钥粘贴到聊天窗口中。** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">获取 API 密钥</a> |
 | ffmpeg 相关报错 | ffmpeg 通常会自动安装。如果失败，运行 `npm run doctor`。 |
