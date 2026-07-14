@@ -19,7 +19,17 @@ export async function dubbingSpaces() {
     seq: s.spaceSeq,
     name: s.spaceName ?? s.name ?? `space ${s.spaceSeq}`,
     tier: s.tier ?? null,
+    planName: s.planName ?? null,
   }));
+}
+
+/** Telemetry props { plan_tier, plan_name } of a space, from the (cached) spaces list — plan/status has
+ *  no name field. Fail-silent: null fields on any failure (track() drops nulls). */
+export async function spacePlanProps(spaceSeq) {
+  try {
+    const s = (await listSpaces()).find((x) => x.spaceSeq === Number(spaceSeq));
+    return { plan_tier: s?.tier ?? null, plan_name: s?.planName ?? null };
+  } catch { return { plan_tier: null, plan_name: null }; }
 }
 
 /** Non-interactive spaceSeq resolution: env pin → the only space. With several spaces the user must choose

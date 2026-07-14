@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { createInterface } from 'node:readline/promises';
 import { resolveKey, onboardingHelp, preloadKeyEnv } from './resolve_key.mjs';
 import { expandInputs, prepareInput } from '../lib/input.mjs';
-import { dubbingSpaces, getPlanStatus } from '../lib/space.mjs';
+import { dubbingSpaces, getPlanStatus, spacePlanProps } from '../lib/space.mjs';
 import { getLanguages } from '../lib/languages.mjs';
 import { resolveChunks, recutChunk, SplitConfirmNeeded } from '../lib/split.mjs';
 import { runSchedule } from '../lib/scheduler.mjs';
@@ -120,7 +120,7 @@ async function ensureSpace(args) {
 
   if (wanted) {
     const hits = spaces.filter((s) => s.name.toLowerCase() === wanted.toLowerCase());
-    if (hits.length === 1) { track('space_resolved', { plan_tier: hits[0].tier ?? null }); console.log(`Space: ${brief(hits[0])}`); return hits[0].seq; }
+    if (hits.length === 1) { track('space_resolved', { plan_tier: hits[0].tier ?? null, plan_name: hits[0].planName ?? null }); console.log(`Space: ${brief(hits[0])}`); return hits[0].seq; }
     if (hits.length > 1) {
       console.log(`[space-select] Several spaces share the name "${wanted}" — rename one in Perso, or pin PERSO_SPACE_SEQ:`);
       for (const s of await enrich(hits)) console.log(`  PERSO_SPACE_SEQ=${s.seq}  →  ${label(s)}`);
@@ -131,7 +131,7 @@ async function ensureSpace(args) {
     throw new ExitCode(3);
   }
 
-  if (spaces.length === 1) { track('space_resolved', { plan_tier: spaces[0].tier ?? null }); return spaces[0].seq; }
+  if (spaces.length === 1) { track('space_resolved', { plan_tier: spaces[0].tier ?? null, plan_name: spaces[0].planName ?? null }); return spaces[0].seq; }
   const options = await enrich(spaces);
   if (process.stdin.isTTY && process.stdout.isTTY) {
     console.log('Several spaces are available. Which one should this dubbing run in?');
@@ -141,7 +141,7 @@ async function ensureSpace(args) {
     rl.close();
     const chosen = options[Number(answer) - 1] ?? options.find((s) => s.name.toLowerCase() === answer.toLowerCase());
     if (!chosen) { console.error('Invalid selection — run again.'); throw new ExitCode(1); }
-    track('space_resolved', { plan_tier: chosen.tier ?? null });
+    track('space_resolved', { plan_tier: chosen.tier ?? null, plan_name: chosen.planName ?? null });
     console.log(`Space: ${brief(chosen)}`);
     return chosen.seq;
   }
@@ -509,7 +509,7 @@ async function finishPool(allResults, perInput, ctx) {
       const plan = await getPlanStatus(ctx.spaceSeq);
       const min = remainingMinutes(ctx.sched.pendingLeft);
       const lsOwed = allResults.some((r) => r.lipsyncPending);
-      track('quota_exceeded', { plan_tier: plan?.planTier ?? null, remaining_min: min });
+      track('quota_exceeded', { ...await spacePlanProps(ctx.spaceSeq), remaining_min: min });
       console.log('\n' + messages.quotaExceeded({
         planTier: plan?.planTier,
         remainingQuota: plan?.remainingQuota,
@@ -525,6 +525,7 @@ async function finishPool(allResults, perInput, ctx) {
   }
   if (!ctx.lipsyncOnly) { // lipsync-only runs report via lipsync_only_started, not dubbing_completed
     track('dubbing_completed', {
+      ...await spacePlanProps(ctx.spaceSeq),
       input_count: perInput.length, ok_count: okCount, fail_count: failCount,
       had_split: perInput.some((p) => (p.chunks?.length ?? 0) > 1),
       had_lipsync: allResults.some((r) => r.lipsync),
@@ -591,7 +592,7 @@ async function runPool(args) {
 
   if (args.lipsync && !args.force) await creditPreflight(perInput, spaceSeq, targets.length);
 
-  track('dub_submitted', { input_count: perInput.length, parts: pool.length, target_count: targets.length, has_lipsync: !!args.lipsync });
+  track('dub_submitted', { ...await spacePlanProps(spaceSeq), input_count: perInput.length, parts: pool.length, target_count: targets.length, has_lipsync: !!args.lipsync });
   notify(`Translating${targets.length > 1 ? ` (${targets.join(', ')})` : ''}`);
   // Fill all inputs×parts×languages into one queue for concurrent processing. Submit as many as there are empty slots and add more every 5 minutes.
   const sched = await runSchedule(pool, spaceSeq, { source, targets, lipsync: !!args.lipsync }, { log, notify, onResult: saver.onResult, onSubmit: saver.onSubmit });
@@ -630,7 +631,7 @@ async function creditPreflight(perInput, spaceSeq, targetCount) {
     needed += Math.ceil(inputMs / 1000) * (CREDIT_RATE_DUB + CREDIT_RATE_LIPSYNC) * targetCount * mult;
   }
   if (!needed || remaining >= needed) return;
-  track('credit_check_blocked', { credits_needed: needed, credits_remaining: remaining, plan_tier: plan?.planTier ?? null });
+  track('credit_check_blocked', { credits_needed: needed, credits_remaining: remaining, ...await spacePlanProps(spaceSeq) });
   console.log(`[credit-check] Estimated credits for dubbing + lip-sync: ~${needed}${anyUhd ? ` (includes the ×${UHD_CREDIT_MULT} 4K surcharge)` : ''}. Credits left: ${remaining}.`);
   console.log('[credit-check] The run would stop part-way. Ask the user to top up first, or approve continuing anyway — then re-run the same command with --force (whatever completes is kept; the rest resumes later):');
   console.log(`  → ${withUtm(SUBSCRIPTION_URL)}`);
@@ -812,7 +813,6 @@ async function runLipsyncOnly(args) {
   const parts = Array.isArray(ref.parts) ? ref.parts : [];
   if (!parts.some((p) => p?.seq != null)) throw new UsageError('No dubbed project found in the --lipsync-only reference.');
   const lsMs = parts.reduce((s, p) => { const r = p?.ms ?? p?.pt; return s + (Array.isArray(r) && r.length === 2 ? Math.max(0, r[1] - r[0]) : 0); }, 0);
-  track('lipsync_only_started', { input_count: 1, parts: parts.length, duration_sec: lsMs > 0 ? Math.round(lsMs / 1000) : null });
 
   const target = ref.lang ?? 'out';
   const localPath = ref.input && !/^[a-z]+:\/\//i.test(ref.input) ? ref.input : null;
@@ -821,6 +821,7 @@ async function runLipsyncOnly(args) {
   guardExistingState(file); // an interrupted earlier run owns this state file — resume it instead of re-billing
   const spaceSeq = Number(ref.space) || await ensureSpace(args);
   const ctx = { spaceSeq, source: 'auto', targets: [target], out: args.out, multiInput: false, file, prevDone: {}, lipsync: true, lipsyncOnly: true };
+  track('lipsync_only_started', { ...await spacePlanProps(spaceSeq), input_count: 1, parts: parts.length, duration_sec: lsMs > 0 ? Math.round(lsMs / 1000) : null });
 
   const chunks = parts.map((p, i) => ({
     index: i, source: 'local',
@@ -989,7 +990,7 @@ async function separationProcess(perInput, spaceSeq, ctx, saver, materializeFor,
   }
   console.log('\n' + lines.join('\n'));
   if (perInput.length > 1) console.log(`\nSummary: ${ok} done · ${fail} failed`);
-  track('separation_completed', { input_count: perInput.length, ok_count: ok, fail_count: fail, duration_sec: totalDurationSec(perInput), is_resume: isResume });
+  track('separation_completed', { ...await spacePlanProps(spaceSeq), input_count: perInput.length, ok_count: ok, fail_count: fail, duration_sec: totalDurationSec(perInput), is_resume: isResume });
   return flags.pending;
 }
 
