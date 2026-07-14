@@ -47,21 +47,23 @@ The first run opens a browser window to log in. Wait until they confirm they see
 
 > If `npm` isn't recognized, Node didn't install correctly — go back to Step 1 (usually fixed by reopening the terminal).
 
-## Step 3 — Install the Perso Dubbing skill
+## Step 3 — Hand off to Codex
+
+Once Codex is running, **your coaching is done — Codex takes over from here.** Codex runs on the user's computer and can execute everything itself.
+
+Have the user paste this into the Codex prompt (translate the sentence to their language; keep the URL as is):
 
 ```
-npx perso-dubbing --codex
+https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/agent-setup.md
+Set up Perso Dubbing following this guide, then dub the videos in my folder into English.
 ```
 
-This downloads the skill and installs it into Codex's skills folder (`~/.agents/skills/dubbing/`). It prints a success message listing where it installed.
+Codex will install the skill (`npx perso-dubbing --codex`), run the first dub, and walk the user through the API key. Two things worth telling the user before you say goodbye:
 
-## Step 4 — First dub
+- On the first dub, a key file opens automatically — they get a free API key at https://developers.perso.ai/api-keys and paste it **into that file, not into any chat**.
+- The dubbed video is saved next to the original.
 
-1. Have them move to (or create) a folder containing a test video, e.g. `cd Desktop` — or just pick any short video file they have.
-2. Start Codex there: `codex`
-3. Tell Codex, in plain words: *"Dub this video into English — ./myvideo.mp4"* (a whole folder or a YouTube URL also works).
-4. **API key:** on the first run, a key file opens automatically. The user needs a Perso API key from https://developers.perso.ai/api-keys (free to issue — sign in / sign up, click issue, copy). They must paste the key **into that file and save it — not into the chat**. Then re-run the dub request.
-5. The dubbed video is saved next to the original.
+Do not walk through the skill installation or the dub yourself — that is Codex's job, locally.
 
 ## Good to know (tell the user at the end)
 
