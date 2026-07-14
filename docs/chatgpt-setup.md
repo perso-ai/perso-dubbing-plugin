@@ -10,21 +10,31 @@
 
 The finish line: the user types *"dub this video into English"* in Codex and it works.
 
-## Step 0 — Find out where you are, and pick the right path
+There are two ways to get Codex running locally — **prefer Path A (the Codex app, no terminal)** and only use Path B (CLI) for users comfortable in a terminal.
 
-Ask the user two questions before anything else:
+## Step 0 — Pick the path
 
-1. **Windows or Mac?**
-2. **Have they ever used a terminal?**
+Ask: **Windows or Mac?** (If Mac: Apple Silicon or Intel? Apple menu → About This Mac.)
 
-**If the terminal sounds scary or unfamiliar to them, do not push them through it.** Offer the easier path instead: install **Antigravity** (a free visual app — download at https://antigravity.google/download, sign in with a Google account), then paste this line into Antigravity's chat — its agent handles the terminal work itself:
+## Path A (recommended) — the Codex app, no terminal
+
+Works on Windows and Apple Silicon Macs, with a paid ChatGPT plan (Plus or higher):
+
+1. Download the **Codex app** from https://chatgpt.com/codex and sign in with the ChatGPT account.
+2. In the app, open (or create) a folder for videos, then paste this into Codex's chat — translate the sentence to the user's language, keep the URL as is:
 
 ```
 https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/agent-setup.md
 Set up Perso Dubbing following this guide, then dub the videos in my folder into English.
 ```
 
-Only continue with the steps below if the user is okay opening a terminal (this path ends in **Codex**, which lives in the terminal). Tell them exactly how to open it: Windows = right-click Start button → "Terminal" or search "PowerShell"; Mac = Cmd+Space → type "Terminal".
+Codex has a built-in terminal and installs everything itself (Node.js included, with the user's approval). Your job ends here — just tell the user two things: a free API key comes from https://developers.perso.ai/api-keys and gets pasted **into the file that opens automatically, not into any chat**; and the dubbed video lands next to the original.
+
+**Can't use the app** (Intel Mac, or they want a free option)? Same two steps, but with **Antigravity** — free with a Google account, download at https://antigravity.google/download, then paste the same message into its chat.
+
+## Path B — Codex CLI, for terminal users only
+
+Only take this path if the user is comfortable opening a terminal (Windows = right-click Start button → "Terminal" or search "PowerShell"; Mac = Cmd+Space → type "Terminal"). Go one step at a time.
 
 ## Step 1 — Node.js 18+
 
