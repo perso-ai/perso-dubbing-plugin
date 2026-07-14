@@ -18,7 +18,7 @@ Comme tous les hôtes utilisent le même standard **Agent Skills** (`SKILL.md`),
 
 ## 🖥️ Le plus simple — l'application de bureau Claude (environ 3 minutes)
 
-> 📖 **Vous préférez les images ?** Suivez le **[guide visuel étape par étape →](https://est-perso-dubbing-agent.github.io/perso-dubbing-plugin/)** (English · 한국어)
+> 📖 **Vous préférez un guide visuel ?** Suivez le **[tutoriel d'installation →](https://perso-ai.github.io/perso-dubbing-plugin/)** — choisissez votre agent et copiez les commandes.
 
 Aucun terminal nécessaire. Dans l'<a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">application de bureau Claude</a> (offre payante) :
 
@@ -26,11 +26,11 @@ Aucun terminal nécessaire. Dans l'<a href="https://claude.ai/download" target="
 2. **Collez chaque commande** dans la zone de saisie et appuyez sur Entrée, une à la fois :
 
    ```text
-   /plugin marketplace add est-perso-dubbing-agent/perso-dubbing-plugin
+   claude marketplace add perso-ai/perso-dubbing-plugin
    ```
 
    ```text
-   /plugin install perso-dubbing@perso-ai
+   claude install perso-dubbing@perso-ai
    ```
 
    *Vous préférez cliquer ? Après la première commande, appuyez sur le bouton **+** à côté de la zone de saisie → **Plugins** → **Add plugin** → installez **perso-dubbing**.*
@@ -38,7 +38,7 @@ Aucun terminal nécessaire. Dans l'<a href="https://claude.ai/download" target="
 
 > 💡 La skill elle-même s'exécute avec **Node.js 18+**. Si votre PC ne l'a pas, l'agent indiquera que `node` est introuvable — répondez simplement *« installe Node.js pour moi »* (ou téléchargez la LTS depuis <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>), puis réessayez.
 
-Les deux mêmes commandes `/plugin` fonctionnent aussi dans la **CLI Claude Code**.
+Dans la **CLI Claude Code**, utilisez plutôt `/plugin marketplace add perso-ai/perso-dubbing-plugin` et `/plugin install perso-dubbing@perso-ai`.
 
 ---
 
@@ -48,7 +48,7 @@ Le raccourci qui fonctionne partout : collez l'URL de ce dépôt dans votre agen
 
 > **🤖 À l'attention de l'agent :** Si seule l'URL de ce dépôt vous a été fournie, choisissez le chemin adapté à votre hôte :
 >
-> - **Claude Code (application de bureau ou CLI) :** **n'exécutez pas** npx tout de suite — même si l'utilisateur a dit « installe ça ». Montrez-lui les deux commandes `/plugin` de la section *application de bureau Claude* ci-dessus et demandez-lui de les taper lui-même, une par message (ce sont des commandes slash à saisir par l'utilisateur, que vous ne pouvez pas exécuter). Mentionnez aussi le chemin par clic dans l'application de bureau : après la première commande, **bouton + → Plugins → Add plugin**. Si vous devez adapter le message, `CLAUDE_CODE_ENTRYPOINT=cli` dans votre environnement shell suggère une session terminal (signal non documenté — en cas de doute, présentez les deux chemins). Ne recourez à npx que si l'utilisateur, après les avoir vues, souhaite toujours que vous vous chargiez de l'installation.
+> - **Claude Code (application de bureau ou CLI) :** **n'exécutez pas** npx tout de suite — même si l'utilisateur a dit « installe ça ». Montrez-lui les deux commandes de la section *application de bureau Claude* ci-dessus et demandez-lui de les taper lui-même, une par message (ce sont des commandes slash à saisir par l'utilisateur, que vous ne pouvez pas exécuter). Mentionnez aussi le chemin par clic dans l'application de bureau : après la première commande, **bouton + → Plugins → Add plugin**. Si vous devez adapter le message, `CLAUDE_CODE_ENTRYPOINT=cli` dans votre environnement shell suggère une session terminal (signal non documenté — en cas de doute, présentez les deux chemins). Ne recourez à npx que si l'utilisateur, après les avoir vues, souhaite toujours que vous vous chargiez de l'installation.
 > - **Codex · Cursor · Antigravity, ou si l'utilisateur vous a délégué l'installation :** exécutez cette commande unique — elle récupère le paquet, détecte automatiquement chaque hôte installé et installe la skill dans chacun d'eux :
 >
 > ```bash
@@ -168,7 +168,7 @@ D'autres questions ? Consultez la **[FAQ](FAQ.md)**.
 | Symptôme | Solution |
 |---|---|
 | L'application de bureau Claude demande Git (Windows) | L'onglet Code nécessite <a href="https://git-scm.com/downloads/win" target="_blank" rel="noopener noreferrer">Git pour Windows</a> lors de la première utilisation. Installez-le, puis redémarrez l'application. |
-| Les commandes `/plugin` ou le menu Plugins ne font rien | Vous êtes dans une **session cloud** — les plugins ne fonctionnent que dans les sessions **Local** (et SSH). Passez l'environnement en Local et réessayez. |
+| Les commandes `claude` ou le menu Plugins ne font rien | Vous êtes dans une **session cloud** — les plugins ne fonctionnent que dans les sessions **Local** (et SSH). Passez l'environnement en Local et réessayez. |
 | `node` introuvable / l'installation ou l'exécution échoue | La skill s'exécute avec **Node.js 18+** — vérifiez avec `node -v`. S'il manque, installez la LTS depuis <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>, ou demandez simplement à Claude dans la session de l'installer pour vous, puis redémarrez l'application. |
 | Pas encore de clé API | Exécutez simplement une commande de doublage — un fichier de clé s'ouvre automatiquement ; collez votre clé et enregistrez (elle est chiffrée et le fichier est supprimé). Vérification manuelle : `npm run key:check`. **Ne collez jamais la clé dans le chat.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Obtenir une clé API</a> |
 | Erreur liée à ffmpeg | ffmpeg s'installe normalement automatiquement. En cas d'échec, exécutez `npm run doctor`. |
@@ -188,7 +188,7 @@ D'autres questions ? Consultez la **[FAQ](FAQ.md)**.
 .claude-plugin/    Manifestes de plugin et de marketplace Claude Code
 .codex-plugin/     Manifeste de plugin Codex
 .cursor-plugin/    Manifeste de plugin Cursor
-docs/              Guide visuel d'installation étape par étape (GitHub Pages)
+docs/              Landing GitHub Pages + README et FAQ traduits (12 langues)
 skills/dubbing/    La skill elle-même (SKILL.md · lib/ · scripts/) — autonome
 scripts/           Installateur au niveau du dépôt (install.mjs)
 ```

@@ -18,7 +18,7 @@
 
 ## 🖥️ 가장 쉬운 방법 — Claude 데스크톱 앱 (약 3분)
 
-> 📖 **그림으로 보고 싶으신가요?** **[단계별 시각 가이드 →](https://est-perso-dubbing-agent.github.io/perso-dubbing-plugin/)** 를 따라 해보세요 (English · 한국어)
+> 📖 **따라 하기 쉬운 화면이 필요하신가요?** **[설치 튜토리얼 →](https://perso-ai.github.io/perso-dubbing-plugin/)** 에서 에이전트별 설치 명령을 복사할 수 있습니다.
 
 터미널이 필요 없습니다. <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude 데스크톱 앱</a>(유료 플랜)에서:
 
@@ -26,11 +26,11 @@
 2. **아래 명령을 하나씩** 프롬프트 입력창에 붙여넣고 Enter를 누르세요:
 
    ```text
-   /plugin marketplace add est-perso-dubbing-agent/perso-dubbing-plugin
+   claude marketplace add perso-ai/perso-dubbing-plugin
    ```
 
    ```text
-   /plugin install perso-dubbing@perso-ai
+   claude install perso-dubbing@perso-ai
    ```
 
    *클릭이 편하다면? 첫 명령 실행 후 프롬프트 입력창 옆 **+** 버튼 → **Plugins** → **Add plugin** → **perso-dubbing** 설치.*
@@ -38,7 +38,7 @@
 
 > 💡 스킬 자체는 **Node.js 18+** 에서 동작합니다. PC에 없으면 에이전트가 `node`를 찾을 수 없다고 알려줄 텐데 — *"Node.js 설치해줘"* 라고 답하거나 <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>에서 LTS를 받은 뒤 다시 시도하면 됩니다.
 
-같은 두 개의 `/plugin` 명령은 **Claude Code CLI** 에서도 그대로 동작합니다.
+**Claude Code CLI**(터미널)에서는 대신 `/plugin marketplace add perso-ai/perso-dubbing-plugin` 과 `/plugin install perso-dubbing@perso-ai` 를 사용하세요.
 
 ---
 
@@ -48,7 +48,7 @@
 
 > **🤖 에이전트에게:** 이 저장소 URL만 전달받았다면, 호스트에 맞는 경로를 고르세요:
 >
-> - **Claude Code (데스크톱 앱 또는 CLI):** 사용자가 "이거 설치해줘"라고 해도 **바로 npx를 실행하지 마세요**. 위 *Claude 데스크톱 앱* 섹션의 `/plugin` 명령 두 개를 사용자에게 보여주고, 한 메시지에 하나씩 직접 입력하도록 안내하세요(사용자가 입력하는 슬래시 명령이라 에이전트가 대신 실행할 수 없습니다). 데스크톱 앱 클릭 경로도 함께 안내하세요: 첫 명령 후 **+ 버튼 → Plugins → Add plugin**. 문구를 조정해야 한다면, 셸 환경변수 `CLAUDE_CODE_ENTRYPOINT=cli`는 터미널 세션을 시사합니다(문서화되지 않은 신호 — 불확실하면 두 경로를 모두 제시). 사용자가 이를 보고도 설치를 맡기려 할 때만 npx로 넘어가세요.
+> - **Claude Code (데스크톱 앱 또는 CLI):** 사용자가 "이거 설치해줘"라고 해도 **바로 npx를 실행하지 마세요**. 위 *Claude 데스크톱 앱* 섹션의 명령 두 개를 사용자에게 보여주고, 한 메시지에 하나씩 직접 입력하도록 안내하세요(사용자가 입력하는 슬래시 명령이라 에이전트가 대신 실행할 수 없습니다). 데스크톱 앱 클릭 경로도 함께 안내하세요: 첫 명령 후 **+ 버튼 → Plugins → Add plugin**. 문구를 조정해야 한다면, 셸 환경변수 `CLAUDE_CODE_ENTRYPOINT=cli`는 터미널 세션을 시사합니다(문서화되지 않은 신호 — 불확실하면 두 경로를 모두 제시). 사용자가 이를 보고도 설치를 맡기려 할 때만 npx로 넘어가세요.
 > - **Codex · Cursor · Antigravity, 또는 사용자가 설치를 위임한 경우:** 이 한 줄 명령을 실행하세요 — 패키지를 받아, 설치된 모든 호스트를 자동 감지해 각각에 스킬을 설치합니다:
 >
 > ```bash
@@ -168,7 +168,7 @@ npm run dub -- "clip.mp4" --separate
 | 증상 | 해결 |
 |---|---|
 | Claude 데스크톱 앱이 Git을 요구함 (Windows) | Code 탭은 최초 사용 시 <a href="https://git-scm.com/downloads/win" target="_blank" rel="noopener noreferrer">Git for Windows</a>가 필요합니다. 설치 후 앱을 재시작하세요. |
-| `/plugin` 명령이나 Plugins 메뉴가 반응 없음 | **클라우드 세션**에 있는 것입니다 — 플러그인은 **Local**(및 SSH) 세션에서만 동작합니다. 환경을 Local로 바꾸고 다시 시도하세요. |
+| `claude` 명령이나 Plugins 메뉴가 반응 없음 | **클라우드 세션**에 있는 것입니다 — 플러그인은 **Local**(및 SSH) 세션에서만 동작합니다. 환경을 Local로 바꾸고 다시 시도하세요. |
 | `node`를 찾을 수 없음 / 설치·실행 실패 | 스킬은 **Node.js 18+** 에서 동작합니다 — `node -v`로 확인하세요. 없으면 <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>에서 LTS를 설치하거나, 세션에서 Claude에게 설치를 요청한 뒤 앱을 재시작하세요. |
 | 아직 API 키가 없음 | 아무 더빙 명령이나 실행하면 키 파일이 자동으로 열립니다; 키를 붙여넣고 저장하세요(암호화되고 파일은 삭제됩니다). 수동 확인: `npm run key:check`. **키를 채팅에 붙여넣지 마세요.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">API 키 발급</a> |
 | ffmpeg 관련 오류 | ffmpeg는 보통 자동으로 설치됩니다. 실패하면 `npm run doctor`를 실행하세요. |
@@ -182,7 +182,7 @@ npm run dub -- "clip.mp4" --separate
 .claude-plugin/    Claude Code 플러그인 + 마켓플레이스 매니페스트
 .codex-plugin/     Codex 플러그인 매니페스트
 .cursor-plugin/    Cursor 플러그인 매니페스트
-docs/              단계별 시각 설치 가이드 (GitHub Pages) · 언어별 문서
+docs/              GitHub Pages 랜딩 + 번역된 README · FAQ (12개 언어)
 skills/dubbing/    스킬 본체 (SKILL.md · lib/ · scripts/) — 자체 완결형
 scripts/           저장소 레벨 설치 스크립트 (install.mjs)
 ```

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // One-click install: copy the dubbing skill into the skills folder of every detected host.
-//   npx github:est-perso-dubbing-agent/perso-dubbing-plugin        → auto-install to hosts that have a config folder
+//   npx github:perso-ai/perso-dubbing-plugin        → auto-install to hosts that have a config folder
 //   node scripts/install.mjs --all                                 → all hosts
 //   ... --claude | --antigravity | --codex | --cursor              → specific hosts only
 //   ... --project                                                  → install into the current folder (./.claude etc.)

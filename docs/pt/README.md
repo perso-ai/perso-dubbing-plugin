@@ -18,7 +18,7 @@ Como todo host usa o mesmo padrão de **Agent Skills** (`SKILL.md`), ela funcion
 
 ## 🖥️ Forma mais fácil — o app de desktop do Claude (cerca de 3 minutos)
 
-> 📖 **Prefere imagens?** Siga o **[guia visual passo a passo →](https://est-perso-dubbing-agent.github.io/perso-dubbing-plugin/)** (English · 한국어)
+> 📖 **Prefere um passo a passo visual?** Siga o **[tutorial de instalação →](https://perso-ai.github.io/perso-dubbing-plugin/)** — escolha seu agente e copie os comandos.
 
 Não é preciso terminal. No <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">app de desktop do Claude</a> (plano pago):
 
@@ -26,11 +26,11 @@ Não é preciso terminal. No <a href="https://claude.ai/download" target="_blank
 2. **Cole cada comando** na caixa de prompt e pressione Enter, um de cada vez:
 
    ```text
-   /plugin marketplace add est-perso-dubbing-agent/perso-dubbing-plugin
+   claude marketplace add perso-ai/perso-dubbing-plugin
    ```
 
    ```text
-   /plugin install perso-dubbing@perso-ai
+   claude install perso-dubbing@perso-ai
    ```
 
    *Prefere clicar? Depois do primeiro comando, pressione o botão **+** ao lado da caixa de prompt → **Plugins** → **Add plugin** → instale **perso-dubbing**.*
@@ -38,7 +38,7 @@ Não é preciso terminal. No <a href="https://claude.ai/download" target="_blank
 
 > 💡 A skill em si roda em **Node.js 18+**. Se o seu PC não tiver o Node.js, o agente dirá que não encontrou o `node` — basta responder *"instale o Node.js para mim"* (ou baixar a versão LTS em <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>) e tentar novamente.
 
-Os mesmos dois comandos `/plugin` também funcionam na **CLI do Claude Code**.
+Na **CLI do Claude Code**, use `/plugin marketplace add perso-ai/perso-dubbing-plugin` e `/plugin install perso-dubbing@perso-ai` no lugar.
 
 ---
 
@@ -48,7 +48,7 @@ O atalho que funciona em qualquer lugar: cole a URL deste repositório no seu ag
 
 > **🤖 Para o agente:** Se você recebeu apenas a URL deste repositório, escolha o caminho para o seu host:
 >
-> - **Claude Code (app de desktop ou CLI):** **não** execute o npx imediatamente — mesmo que o usuário diga "instale isto". Mostre ao usuário os dois comandos `/plugin` da seção *app de desktop do Claude* acima e peça que ele mesmo digite os comandos, um por mensagem (são comandos de barra digitados pelo usuário que você não pode executar). Mencione também o caminho por cliques no app de desktop: depois do primeiro comando, **botão + → Plugins → Add plugin**. Se precisar ajustar o texto, `CLAUDE_CODE_ENTRYPOINT=cli` no ambiente do seu shell sugere uma sessão de terminal (sinal não documentado — na dúvida, apresente os dois caminhos). Recorra ao npx somente se o usuário, depois de ver as opções, ainda quiser que você cuide da instalação.
+> - **Claude Code (app de desktop ou CLI):** **não** execute o npx imediatamente — mesmo que o usuário diga "instale isto". Mostre ao usuário os dois comandos da seção *app de desktop do Claude* acima e peça que ele mesmo digite os comandos, um por mensagem (são comandos de barra digitados pelo usuário que você não pode executar). Mencione também o caminho por cliques no app de desktop: depois do primeiro comando, **botão + → Plugins → Add plugin**. Se precisar ajustar o texto, `CLAUDE_CODE_ENTRYPOINT=cli` no ambiente do seu shell sugere uma sessão de terminal (sinal não documentado — na dúvida, apresente os dois caminhos). Recorra ao npx somente se o usuário, depois de ver as opções, ainda quiser que você cuide da instalação.
 > - **Codex · Cursor · Antigravity, ou o usuário delegou a instalação a você:** execute este único comando — ele baixa o pacote, detecta automaticamente todos os hosts instalados e instala a skill em cada um deles:
 >
 > ```bash
@@ -168,7 +168,7 @@ Mais dúvidas? Consulte o **[FAQ](FAQ.md)**.
 | Sintoma | Solução |
 |---|---|
 | O app de desktop do Claude pede o Git (Windows) | A aba Code precisa do <a href="https://git-scm.com/downloads/win" target="_blank" rel="noopener noreferrer">Git para Windows</a> no primeiro uso. Instale-o e reinicie o app. |
-| Os comandos `/plugin` ou o menu Plugins não fazem nada | Você está em uma **sessão na nuvem** — os plugins só funcionam em sessões **Local** (e SSH). Mude o ambiente para Local e tente novamente. |
+| Os comandos `claude` ou o menu Plugins não fazem nada | Você está em uma **sessão na nuvem** — os plugins só funcionam em sessões **Local** (e SSH). Mude o ambiente para Local e tente novamente. |
 | `node` não encontrado / instalação ou execução falha | A skill roda em **Node.js 18+** — verifique com `node -v`. Se estiver faltando, instale a versão LTS em <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>, ou simplesmente peça ao Claude na sessão para instalá-lo para você e reinicie o app. |
 | Ainda não tem uma chave de API | Basta executar qualquer comando de dublagem — um arquivo de chave abre automaticamente; cole sua chave e salve (ele é criptografado e o arquivo é excluído). Verificação manual: `npm run key:check`. **Não cole a chave no chat.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Obtenha uma chave de API</a> |
 | Erro relacionado ao ffmpeg | O ffmpeg normalmente é instalado automaticamente. Se falhar, execute `npm run doctor`. |
@@ -188,7 +188,7 @@ Mais dúvidas? Consulte o **[FAQ](FAQ.md)**.
 .claude-plugin/    Manifestos de plugin e marketplace do Claude Code
 .codex-plugin/     Manifesto de plugin do Codex
 .cursor-plugin/    Manifesto de plugin do Cursor
-docs/              Guia visual de instalação passo a passo (GitHub Pages)
+docs/              Landing do GitHub Pages + README e FAQ traduzidos (12 idiomas)
 skills/dubbing/    A skill em si (SKILL.md · lib/ · scripts/) — autônoma
 scripts/           Instalador em nível de repositório (install.mjs)
 ```

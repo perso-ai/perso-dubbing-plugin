@@ -18,7 +18,7 @@ Karena setiap host menggunakan standar **Agent Skills** yang sama (`SKILL.md`), 
 
 ## 🖥️ Cara termudah — aplikasi desktop Claude (sekitar 3 menit)
 
-> 📖 **Lebih suka gambar?** Ikuti **[panduan visual langkah demi langkah →](https://est-perso-dubbing-agent.github.io/perso-dubbing-plugin/)** (English · 한국어)
+> 📖 **Lebih suka panduan visual?** Ikuti **[tutorial instalasi →](https://perso-ai.github.io/perso-dubbing-plugin/)** — pilih agen Anda dan salin perintahnya.
 
 Tidak perlu terminal. Di <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">aplikasi desktop Claude</a> (paket berbayar):
 
@@ -26,11 +26,11 @@ Tidak perlu terminal. Di <a href="https://claude.ai/download" target="_blank" re
 2. **Tempelkan setiap perintah** ke kotak prompt dan tekan Enter, satu per satu:
 
    ```text
-   /plugin marketplace add est-perso-dubbing-agent/perso-dubbing-plugin
+   claude marketplace add perso-ai/perso-dubbing-plugin
    ```
 
    ```text
-   /plugin install perso-dubbing@perso-ai
+   claude install perso-dubbing@perso-ai
    ```
 
    *Lebih suka mengeklik? Setelah perintah pertama, tekan tombol **+** di samping kotak prompt → **Plugins** → **Add plugin** → instal **perso-dubbing**.*
@@ -38,7 +38,7 @@ Tidak perlu terminal. Di <a href="https://claude.ai/download" target="_blank" re
 
 > 💡 Skill ini berjalan di atas **Node.js 18+**. Jika PC Anda belum memilikinya, agen akan mengatakan `node` tidak ditemukan — cukup balas *"instalkan Node.js untuk saya"* (atau unduh versi LTS dari <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>), lalu coba lagi.
 
-Kedua perintah `/plugin` yang sama juga berfungsi di **Claude Code CLI**.
+Di **Claude Code CLI**, gunakan `/plugin marketplace add perso-ai/perso-dubbing-plugin` dan `/plugin install perso-dubbing@perso-ai` sebagai gantinya.
 
 ---
 
@@ -48,7 +48,7 @@ Cara tercepat yang berlaku di mana saja: tempelkan URL repositori ini ke agen An
 
 > **🤖 Untuk agen:** Jika Anda hanya diberi URL repositori ini, pilih jalur sesuai host Anda:
 >
-> - **Claude Code (aplikasi desktop atau CLI):** **jangan** langsung menjalankan npx — meskipun pengguna berkata "instal ini". Tunjukkan kepada pengguna kedua perintah `/plugin` dari bagian *aplikasi desktop Claude* di atas dan minta mereka mengetikkan perintah tersebut sendiri, satu per pesan (perintah tersebut adalah slash command yang diketik pengguna dan tidak bisa Anda jalankan). Sebutkan juga jalur klik di aplikasi desktop: setelah perintah pertama, **tombol + → Plugins → Add plugin**. Jika Anda perlu menyesuaikan kata-katanya, `CLAUDE_CODE_ENTRYPOINT=cli` pada environment shell Anda mengindikasikan sesi terminal (sinyal tidak terdokumentasi — jika ragu, tampilkan kedua jalur). Gunakan npx hanya jika pengguna, setelah melihat opsi tersebut, tetap ingin Anda yang menangani instalasinya.
+> - **Claude Code (aplikasi desktop atau CLI):** **jangan** langsung menjalankan npx — meskipun pengguna berkata "instal ini". Tunjukkan kepada pengguna kedua perintah dari bagian *aplikasi desktop Claude* di atas dan minta mereka mengetikkan perintah tersebut sendiri, satu per pesan (perintah tersebut adalah slash command yang diketik pengguna dan tidak bisa Anda jalankan). Sebutkan juga jalur klik di aplikasi desktop: setelah perintah pertama, **tombol + → Plugins → Add plugin**. Jika Anda perlu menyesuaikan kata-katanya, `CLAUDE_CODE_ENTRYPOINT=cli` pada environment shell Anda mengindikasikan sesi terminal (sinyal tidak terdokumentasi — jika ragu, tampilkan kedua jalur). Gunakan npx hanya jika pengguna, setelah melihat opsi tersebut, tetap ingin Anda yang menangani instalasinya.
 > - **Codex · Cursor · Antigravity, atau pengguna mendelegasikan instalasi kepada Anda:** jalankan satu perintah ini — perintah ini mengambil paket, mendeteksi otomatis setiap host yang terinstal, dan menginstal skill ke masing-masing host:
 >
 > ```bash
@@ -168,7 +168,7 @@ Punya pertanyaan lain? Lihat **[FAQ](FAQ.md)**.
 | Gejala | Solusi |
 |---|---|
 | Aplikasi desktop Claude meminta Git (Windows) | Tab Code membutuhkan <a href="https://git-scm.com/downloads/win" target="_blank" rel="noopener noreferrer">Git for Windows</a> saat pertama kali digunakan. Instal, lalu mulai ulang aplikasi. |
-| Perintah `/plugin` atau menu Plugins tidak merespons | Anda berada dalam **sesi cloud** — plugin hanya berfungsi di sesi **Local** (dan SSH). Ubah environment ke Local lalu coba lagi. |
+| Perintah `claude` atau menu Plugins tidak merespons | Anda berada dalam **sesi cloud** — plugin hanya berfungsi di sesi **Local** (dan SSH). Ubah environment ke Local lalu coba lagi. |
 | `node` tidak ditemukan / instalasi atau eksekusi gagal | Skill ini berjalan di atas **Node.js 18+** — periksa dengan `node -v`. Jika belum ada, instal versi LTS dari <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>, atau cukup minta Claude dalam sesi tersebut untuk menginstalnya, lalu mulai ulang aplikasi. |
 | Belum punya kunci API | Cukup jalankan perintah dubbing apa pun — file kunci akan terbuka otomatis; tempelkan kunci Anda dan simpan (file tersebut dienkripsi lalu dihapus). Pemeriksaan manual: `npm run key:check`. **Jangan tempelkan kunci ke dalam chat.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Dapatkan kunci API</a> |
 | Error terkait ffmpeg | ffmpeg biasanya terinstal otomatis. Jika gagal, jalankan `npm run doctor`. |
@@ -188,7 +188,7 @@ Punya pertanyaan lain? Lihat **[FAQ](FAQ.md)**.
 .claude-plugin/    Manifes plugin Claude Code + marketplace
 .codex-plugin/     Manifes plugin Codex
 .cursor-plugin/    Manifes plugin Cursor
-docs/              Panduan visual instalasi langkah demi langkah (GitHub Pages)
+docs/              Landing GitHub Pages + README dan FAQ terjemahan (12 bahasa)
 skills/dubbing/    Skill itu sendiri (SKILL.md · lib/ · scripts/) — mandiri
 scripts/           Installer tingkat repositori (install.mjs)
 ```

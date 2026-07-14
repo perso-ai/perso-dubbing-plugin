@@ -18,7 +18,7 @@
 
 ## 🖥️ 最簡單的方式 — Claude 桌面應用程式（約 3 分鐘）
 
-> 📖 **偏好圖文教學？** 請參考**[圖文步驟指南 →](https://est-perso-dubbing-agent.github.io/perso-dubbing-plugin/)**（English · 한국어）
+> 📖 **想要圖文教學？**請在**[安裝教學 →](https://perso-ai.github.io/perso-dubbing-plugin/)**中選擇你使用的工具並複製指令。
 
 不需要終端機。在 <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude 桌面應用程式</a>（付費方案）中：
 
@@ -26,11 +26,11 @@
 2. **依序貼上以下每個指令**至提示輸入框並按下 Enter：
 
    ```text
-   /plugin marketplace add est-perso-dubbing-agent/perso-dubbing-plugin
+   claude marketplace add perso-ai/perso-dubbing-plugin
    ```
 
    ```text
-   /plugin install perso-dubbing@perso-ai
+   claude install perso-dubbing@perso-ai
    ```
 
    *偏好點選操作？在輸入第一個指令後，按下提示輸入框旁的 **+** 按鈕 → **Plugins** → **Add plugin** → 安裝 **perso-dubbing**。*
@@ -38,7 +38,7 @@
 
 > 💡 此技能本身需要 **Node.js 18+** 才能執行。如果你的電腦尚未安裝，代理程式會提示找不到 `node`——只要回覆「幫我安裝 Node.js」即可（或至 <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a> 下載 LTS 版本），然後再試一次。
 
-同樣的兩個 `/plugin` 指令，在 **Claude Code CLI** 中也同樣適用。
+在 **Claude Code CLI** 中，請改用 `/plugin marketplace add perso-ai/perso-dubbing-plugin` 與 `/plugin install perso-dubbing@perso-ai`。
 
 ---
 
@@ -48,7 +48,7 @@
 
 > **🤖 給代理程式的提示：** 若你只拿到本儲存庫的網址，請依照你所在的宿主環境選擇對應路徑：
 >
-> - **Claude Code（桌面應用程式或 CLI）：** 即使使用者說「安裝這個」，也**不要**立即執行 npx。請將上方 *Claude 桌面應用程式* 段落中的兩個 `/plugin` 指令展示給使用者，並請他們自行逐一輸入（這些是使用者需要親自輸入的斜線指令，你無法代為執行）。同時也可提及桌面應用程式的點選操作路徑：輸入第一個指令後，**+ 按鈕 → Plugins → Add plugin**。若需要調整措辭，shell 環境變數中的 `CLAUDE_CODE_ENTRYPOINT=cli` 暗示這是終端機工作階段（此為非官方文件記載的訊號——不確定時，請兩種路徑都呈現）。只有在使用者看過上述說明後仍要求你代為安裝時，才退回改用 npx。
+> - **Claude Code（桌面應用程式或 CLI）：** 即使使用者說「安裝這個」，也**不要**立即執行 npx。請將上方 *Claude 桌面應用程式* 段落中的兩個 指令展示給使用者，並請他們自行逐一輸入（這些是使用者需要親自輸入的斜線指令，你無法代為執行）。同時也可提及桌面應用程式的點選操作路徑：輸入第一個指令後，**+ 按鈕 → Plugins → Add plugin**。若需要調整措辭，shell 環境變數中的 `CLAUDE_CODE_ENTRYPOINT=cli` 暗示這是終端機工作階段（此為非官方文件記載的訊號——不確定時，請兩種路徑都呈現）。只有在使用者看過上述說明後仍要求你代為安裝時，才退回改用 npx。
 > - **Codex、Cursor、Antigravity，或使用者已將安裝工作委託給你：** 執行以下這一個指令即可——它會取得套件、自動偵測所有已安裝的宿主環境，並將技能安裝到每一個環境中：
 >
 > ```bash
@@ -168,7 +168,7 @@ npm run dub -- "clip.mp4" --separate
 | 症狀 | 解決方式 |
 |---|---|
 | Claude 桌面應用程式要求安裝 Git（Windows） | Code 分頁首次使用時需要 <a href="https://git-scm.com/downloads/win" target="_blank" rel="noopener noreferrer">Git for Windows</a>。安裝後請重新啟動應用程式。 |
-| `/plugin` 指令或 Plugins 選單沒有反應 | 你目前處於**雲端工作階段**——外掛程式僅能在 **Local**（及 SSH）工作階段中使用。請將環境切換為 Local 後再試一次。 |
+| `claude` 指令或 Plugins 選單沒有反應 | 你目前處於**雲端工作階段**——外掛程式僅能在 **Local**（及 SSH）工作階段中使用。請將環境切換為 Local 後再試一次。 |
 | 找不到 `node`／安裝或執行失敗 | 此技能需要 **Node.js 18+** 才能執行——可用 `node -v` 確認版本。若尚未安裝，請至 <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a> 下載 LTS 版本，或直接在工作階段中請 Claude 幫你安裝，再重新啟動應用程式。 |
 | 尚未設定 API 金鑰 | 只要執行任一配音指令，就會自動開啟金鑰檔案；貼上你的金鑰並儲存即可（會自動加密，且檔案隨後會被刪除）。手動檢查方式：`npm run key:check`。**請勿將金鑰貼到聊天視窗中。** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">取得 API 金鑰</a> |
 | ffmpeg 相關錯誤 | ffmpeg 通常會自動安裝。若安裝失敗，請執行 `npm run doctor`。 |
@@ -188,7 +188,7 @@ npm run dub -- "clip.mp4" --separate
 .claude-plugin/    Claude Code 外掛程式與市集清單
 .codex-plugin/     Codex 外掛程式清單
 .cursor-plugin/    Cursor 外掛程式清單
-docs/              圖文步驟安裝指南（GitHub Pages）
+docs/              GitHub Pages 到達頁 + 多語言 README·FAQ（12 種語言）
 skills/dubbing/    技能本體（SKILL.md · lib/ · scripts/）— 自成一體
 scripts/           儲存庫層級的安裝程式（install.mjs）
 ```

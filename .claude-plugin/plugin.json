@@ -5,8 +5,8 @@
   "author": {
     "name": "Perso Dubbing"
   },
-  "homepage": "https://github.com/est-perso-dubbing-agent/perso-dubbing-plugin#readme",
-  "repository": "https://github.com/est-perso-dubbing-agent/perso-dubbing-plugin",
+  "homepage": "https://github.com/perso-ai/perso-dubbing-plugin#readme",
+  "repository": "https://github.com/perso-ai/perso-dubbing-plugin",
   "license": "MIT",
   "keywords": ["dubbing", "video-translation", "lip-sync", "perso-ai", "media"]
 }
