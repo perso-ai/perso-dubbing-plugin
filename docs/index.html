@@ -134,6 +134,7 @@
   .bene{padding-top:64px; padding-bottom:48px;}
   .blist{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 32px; margin-top:28px; padding:0;}
   .blist li{list-style:none; display:flex; gap:10px; align-items:flex-start; font-size:14.5px; color:var(--body); word-break:keep-all;}
+  .blist li .bt{flex:1; min-width:0;}
   .blist li::before{content:"✓"; width:20px; height:20px; border-radius:50%; background:var(--accent-soft); color:var(--accent);
     font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;}
   .blist b{color:var(--ink);}
@@ -274,12 +275,12 @@
 <section class="shell bene" id="bene">
   <h2 class="reveal" data-i="be_h2">이런 작업이 자동이 됩니다</h2>
   <ul class="blist reveal" data-d="60">
-    <li data-i="b1"><b>폴더째, 유튜브 URL도</b> — 파일·폴더·링크를 섞어 맡겨도 됩니다</li>
-    <li data-i="b2"><b>긴 영상 자동 분할 · 병합</b> — 플랜의 월 처리 한도 내에서</li>
-    <li data-i="b3"><b>여러 언어를 한 번에</b> — 업로드는 1회, 언어별로 재사용</li>
-    <li data-i="b4"><b>립싱크 · 음성/배경음 분리</b> — 문장으로 요청하면 끝</li>
-    <li data-i="b5"><b>중단돼도 이어서</b> — 저장된 지점부터 재개</li>
-    <li data-i="b6"><b>결과는 원본 옆에</b> — 언어별로 정리되어 저장</li>
+    <li><span class="bt" data-i="b1"><b>폴더째, 유튜브 URL도</b> — 파일·폴더·링크를 섞어 맡겨도 됩니다</span></li>
+    <li><span class="bt" data-i="b2"><b>긴 영상 자동 분할 · 병합</b> — 플랜의 월 처리 한도 내에서</span></li>
+    <li><span class="bt" data-i="b3"><b>여러 언어를 한 번에</b> — 업로드는 1회, 언어별로 재사용</span></li>
+    <li><span class="bt" data-i="b4"><b>립싱크 · 음성/배경음 분리</b> — 문장으로 요청하면 끝</span></li>
+    <li><span class="bt" data-i="b5"><b>중단돼도 이어서</b> — 저장된 지점부터 재개</span></li>
+    <li><span class="bt" data-i="b6"><b>결과는 원본 옆에</b> — 언어별로 정리되어 저장</span></li>
   </ul>
 </section>
 
