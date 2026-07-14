@@ -18,8 +18,6 @@ Karena setiap host menggunakan standar **Agent Skills** yang sama (`SKILL.md`), 
 
 ## 🖥️ Cara termudah — aplikasi desktop Claude (sekitar 3 menit)
 
-> 📖 **Lebih suka gambar?** Ikuti **[panduan visual langkah demi langkah →](https://perso-ai.github.io/perso-dubbing-plugin/)** (English · 한국어)
-
 Tidak perlu terminal. Di <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">aplikasi desktop Claude</a> (paket berbayar):
 
 1. **Buka tab Code** (di tengah atas) dan pilih folder apa pun — pilih lingkungan **Local** (plugin tidak tersedia dalam sesi cloud).
@@ -188,7 +186,7 @@ Punya pertanyaan lain? Lihat **[FAQ](FAQ.md)**.
 .claude-plugin/    Manifes plugin Claude Code + marketplace
 .codex-plugin/     Manifes plugin Codex
 .cursor-plugin/    Manifes plugin Cursor
-docs/              Panduan visual instalasi langkah demi langkah (GitHub Pages)
+docs/              README dan FAQ terjemahan (12 bahasa)
 skills/dubbing/    Skill itu sendiri (SKILL.md · lib/ · scripts/) — mandiri
 scripts/           Installer tingkat repositori (install.mjs)
 ```

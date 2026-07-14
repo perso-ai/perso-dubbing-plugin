@@ -18,8 +18,6 @@ Vì mọi host đều sử dụng chung **chuẩn Agent Skills** (`SKILL.md`), s
 
 ## 🖥️ Cách dễ nhất — ứng dụng desktop Claude (khoảng 3 phút)
 
-> 📖 **Thích xem hình ảnh hơn?** Hãy theo **[hướng dẫn trực quan từng bước →](https://perso-ai.github.io/perso-dubbing-plugin/)** (English · 한국어)
-
 Không cần terminal. Trong <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">ứng dụng desktop Claude</a> (gói trả phí):
 
 1. **Mở tab Code** (ở giữa phía trên) và chọn một thư mục bất kỳ — chọn môi trường **Local** (plugin không khả dụng trong phiên cloud).
@@ -188,7 +186,7 @@ Còn thắc mắc khác? Xem **[FAQ](FAQ.md)**.
 .claude-plugin/    Manifest plugin và marketplace của Claude Code
 .codex-plugin/     Manifest plugin Codex
 .cursor-plugin/    Manifest plugin Cursor
-docs/              Hướng dẫn cài đặt trực quan từng bước (GitHub Pages)
+docs/              README và FAQ đã dịch (12 ngôn ngữ)
 skills/dubbing/    Bản thân skill (SKILL.md · lib/ · scripts/) — độc lập
 scripts/           Trình cài đặt cấp repo (install.mjs)
 ```

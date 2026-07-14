@@ -18,8 +18,6 @@
 
 ## 🖥️ 最簡單的方式 — Claude 桌面應用程式（約 3 分鐘）
 
-> 📖 **偏好圖文教學？** 請參考**[圖文步驟指南 →](https://perso-ai.github.io/perso-dubbing-plugin/)**（English · 한국어）
-
 不需要終端機。在 <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude 桌面應用程式</a>（付費方案）中：
 
 1. **開啟 Code 分頁**（畫面上方中央），選擇任一資料夾——請選擇 **Local** 環境（雲端工作階段無法使用外掛程式）。
@@ -188,7 +186,7 @@ npm run dub -- "clip.mp4" --separate
 .claude-plugin/    Claude Code 外掛程式與市集清單
 .codex-plugin/     Codex 外掛程式清單
 .cursor-plugin/    Cursor 外掛程式清單
-docs/              圖文步驟安裝指南（GitHub Pages）
+docs/              多語言 README·FAQ（12 種語言）
 skills/dubbing/    技能本體（SKILL.md · lib/ · scripts/）— 自成一體
 scripts/           儲存庫層級的安裝程式（install.mjs）
 ```

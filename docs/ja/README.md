@@ -18,8 +18,6 @@
 
 ## 🖥️ 最も簡単な方法 — Claude デスクトップアプリ（約3分）
 
-> 📖 **画像で確認したい方は？** **[ステップバイステップの視覚ガイド →](https://perso-ai.github.io/perso-dubbing-plugin/)**（English・한국어）をご覧ください。
-
 ターミナルは不要です。<a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude デスクトップアプリ</a>（有料プラン）で:
 
 1. **Code タブを開き**（画面上部中央）、任意のフォルダを選びます — **Local** 環境を選択してください（プラグインはクラウドセッションでは利用できません）。
@@ -188,7 +186,7 @@ npm run dub -- "clip.mp4" --separate
 .claude-plugin/    Claude Code プラグイン + マーケットプレイスマニフェスト
 .codex-plugin/     Codex プラグインマニフェスト
 .cursor-plugin/    Cursor プラグインマニフェスト
-docs/              ステップバイステップの視覚的インストールガイド（GitHub Pages）
+docs/              翻訳版 README・FAQ（12言語）
 skills/dubbing/    スキル本体（SKILL.md・lib/・scripts/） — 自己完結型
 scripts/           リポジトリレベルのインストーラー（install.mjs）
 ```
