@@ -18,7 +18,7 @@
 
 ## 🖥️ 最簡單的方式 — Claude 桌面應用程式（約 3 分鐘）
 
-> 📖 **偏好圖文教學？** 請參考**[圖文步驟指南 →](https://est-perso-dubbing-agent.github.io/perso-dubbing-plugin/)**（English · 한국어）
+> 📖 **偏好圖文教學？** 請參考**[圖文步驟指南 →](https://perso-ai.github.io/perso-dubbing-plugin/)**（English · 한국어）
 
 不需要終端機。在 <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude 桌面應用程式</a>（付費方案）中：
 
@@ -26,7 +26,7 @@
 2. **依序貼上以下每個指令**至提示輸入框並按下 Enter：
 
    ```text
-   /plugin marketplace add est-perso-dubbing-agent/perso-dubbing-plugin
+   /plugin marketplace add perso-ai/perso-dubbing-plugin
    ```
 
    ```text

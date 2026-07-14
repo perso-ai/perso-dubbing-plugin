@@ -18,7 +18,7 @@ Vì mọi host đều sử dụng chung **chuẩn Agent Skills** (`SKILL.md`), s
 
 ## 🖥️ Cách dễ nhất — ứng dụng desktop Claude (khoảng 3 phút)
 
-> 📖 **Thích xem hình ảnh hơn?** Hãy theo **[hướng dẫn trực quan từng bước →](https://est-perso-dubbing-agent.github.io/perso-dubbing-plugin/)** (English · 한국어)
+> 📖 **Thích xem hình ảnh hơn?** Hãy theo **[hướng dẫn trực quan từng bước →](https://perso-ai.github.io/perso-dubbing-plugin/)** (English · 한국어)
 
 Không cần terminal. Trong <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">ứng dụng desktop Claude</a> (gói trả phí):
 
@@ -26,7 +26,7 @@ Không cần terminal. Trong <a href="https://claude.ai/download" target="_blank
 2. **Dán từng lệnh** vào ô nhập lệnh rồi nhấn Enter, từng lệnh một:
 
    ```text
-   /plugin marketplace add est-perso-dubbing-agent/perso-dubbing-plugin
+   /plugin marketplace add perso-ai/perso-dubbing-plugin
    ```
 
    ```text

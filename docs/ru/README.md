@@ -18,7 +18,7 @@
 
 ## 🖥️ Проще всего — приложение Claude для компьютера (около 3 минут)
 
-> 📖 **Предпочитаете картинки?** Следуйте **[пошаговому визуальному руководству →](https://est-perso-dubbing-agent.github.io/perso-dubbing-plugin/)** (English · 한국어)
+> 📖 **Предпочитаете картинки?** Следуйте **[пошаговому визуальному руководству →](https://perso-ai.github.io/perso-dubbing-plugin/)** (English · 한국어)
 
 Терминал не нужен. В <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">приложении Claude для компьютера</a> (платный план):
 
@@ -26,7 +26,7 @@
 2. **Вставляйте команды по очереди** в поле ввода и нажимайте Enter:
 
    ```text
-   /plugin marketplace add est-perso-dubbing-agent/perso-dubbing-plugin
+   /plugin marketplace add perso-ai/perso-dubbing-plugin
    ```
 
    ```text

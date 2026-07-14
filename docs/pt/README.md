@@ -18,7 +18,7 @@ Como todo host usa o mesmo padrão de **Agent Skills** (`SKILL.md`), ela funcion
 
 ## 🖥️ Forma mais fácil — o app de desktop do Claude (cerca de 3 minutos)
 
-> 📖 **Prefere imagens?** Siga o **[guia visual passo a passo →](https://est-perso-dubbing-agent.github.io/perso-dubbing-plugin/)** (English · 한국어)
+> 📖 **Prefere imagens?** Siga o **[guia visual passo a passo →](https://perso-ai.github.io/perso-dubbing-plugin/)** (English · 한국어)
 
 Não é preciso terminal. No <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">app de desktop do Claude</a> (plano pago):
 
@@ -26,7 +26,7 @@ Não é preciso terminal. No <a href="https://claude.ai/download" target="_blank
 2. **Cole cada comando** na caixa de prompt e pressione Enter, um de cada vez:
 
    ```text
-   /plugin marketplace add est-perso-dubbing-agent/perso-dubbing-plugin
+   /plugin marketplace add perso-ai/perso-dubbing-plugin
    ```
 
    ```text

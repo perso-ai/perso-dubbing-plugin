@@ -18,7 +18,7 @@
 
 ## 🖥️ 最も簡単な方法 — Claude デスクトップアプリ（約3分）
 
-> 📖 **画像で確認したい方は？** **[ステップバイステップの視覚ガイド →](https://est-perso-dubbing-agent.github.io/perso-dubbing-plugin/)**（English・한국어）をご覧ください。
+> 📖 **画像で確認したい方は？** **[ステップバイステップの視覚ガイド →](https://perso-ai.github.io/perso-dubbing-plugin/)**（English・한국어）をご覧ください。
 
 ターミナルは不要です。<a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude デスクトップアプリ</a>（有料プラン）で:
 
@@ -26,7 +26,7 @@
 2. **各コマンドをプロンプト欄に貼り付け**て、一つずつ Enter を押します。
 
    ```text
-   /plugin marketplace add est-perso-dubbing-agent/perso-dubbing-plugin
+   /plugin marketplace add perso-ai/perso-dubbing-plugin
    ```
 
    ```text

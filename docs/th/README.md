@@ -18,7 +18,7 @@
 
 ## 🖥️ วิธีที่ง่ายที่สุด — แอปเดสก์ท็อป Claude (ประมาณ 3 นาที)
 
-> 📖 **ชอบดูรูปภาพมากกว่า?** ทำตาม **[คู่มือภาพประกอบทีละขั้นตอน →](https://est-perso-dubbing-agent.github.io/perso-dubbing-plugin/)** (English · 한국어)
+> 📖 **ชอบดูรูปภาพมากกว่า?** ทำตาม **[คู่มือภาพประกอบทีละขั้นตอน →](https://perso-ai.github.io/perso-dubbing-plugin/)** (English · 한국어)
 
 ไม่ต้องใช้เทอร์มินัล ใน<a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">แอปเดสก์ท็อป Claude</a> (แผนแบบชำระเงิน):
 
@@ -26,7 +26,7 @@
 2. **วางคำสั่งแต่ละคำสั่ง** ลงในกล่องพรอมป์แล้วกด Enter ทีละคำสั่ง:
 
    ```text
-   /plugin marketplace add est-perso-dubbing-agent/perso-dubbing-plugin
+   /plugin marketplace add perso-ai/perso-dubbing-plugin
    ```
 
    ```text
