@@ -466,6 +466,7 @@
       b.classList.toggle("cur", b.getAttribute("data-lang") === lang);
     });
     try { localStorage.setItem("pd-lang", lang); } catch(e) {}
+    try { history.replaceState(null, "", lang === "ko" ? location.pathname : "?lang=" + lang); } catch(e) {}
   }
   var langbtn = document.getElementById("langbtn"), langmenu = document.getElementById("langmenu");
   langbtn.addEventListener("click", function(e){
@@ -479,10 +480,13 @@
   document.querySelectorAll(".langmenu button").forEach(function(b){
     b.addEventListener("click", function(){ applyLang(b.getAttribute("data-lang")); });
   });
+  var urlLang = null;
+  try { urlLang = new URLSearchParams(location.search).get("lang"); } catch(e) {}
   var saved = null;
   try { saved = localStorage.getItem("pd-lang"); } catch(e) {}
-  if (saved && S[saved]) applyLang(saved);
-  else if (saved !== "ko") {
+  if (urlLang && (S[urlLang] || urlLang === "ko")) applyLang(urlLang === "ko" ? "ko" : urlLang);
+  else if (saved && (S[saved] || saved === "ko")) { if (saved !== "ko") applyLang(saved); }
+  else {
     var nav = (navigator.language || "ko").slice(0, 2);
     if (nav !== "ko" && S[nav]) applyLang(nav);
   }
