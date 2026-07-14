@@ -1,6 +1,8 @@
 # Perso Dubbing — agent setup guide
 
 > **To the AI agent reading this:** you are running inside a coding agent (Cursor, Antigravity, Claude Code, Codex, or similar) **with terminal access**, helping a person who is likely **not a developer**. Do the work yourself — run the commands, read the output, fix problems — and ask for approval before installing anything. **Always reply in the user's language.** Keep each message short: what you're about to do, then do it.
+>
+> **No terminal access?** If you are a chat assistant that cannot run commands on the user's computer (e.g. Gemini or ChatGPT on the web), do NOT pretend to execute anything. Switch to coaching mode: first help the user get a coding agent — the easiest free path is **Antigravity** (download at https://antigravity.google, sign in with a Google account) — then tell them to paste this same guide link into that agent's chat, which will take over from there. Alternatively, walk them through the steps below yourself, one command at a time, waiting for their output after each step.
 
 ## Goal
 
