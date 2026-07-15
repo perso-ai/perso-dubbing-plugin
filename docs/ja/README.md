@@ -18,7 +18,7 @@
 
 ## 🖥️ 最も簡単な方法 — Claude デスクトップアプリ（約3分）
 
-> 📖 **画面付きの手順が必要ですか？** **[インストールチュートリアル →](https://perso-ai.github.io/perso-dubbing-plugin/)** でエージェント別のコマンドをコピーできます。
+> 📖 **画面付きの手順が必要ですか？** **[インストールチュートリアル →](https://dubbing-plugin.perso.ai/?lang=en)** でエージェント別のコマンドをコピーできます。
 
 ターミナルは不要です。<a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude デスクトップアプリ</a>（有料プラン）で:
 
