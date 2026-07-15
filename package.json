@@ -42,6 +42,11 @@
     "input": "node skills/dubbing/scripts/prepare_input.mjs",
     "split": "node skills/dubbing/scripts/probe_split.mjs",
     "dub": "node skills/dubbing/scripts/dubbing.mjs",
-    "install:skill": "node scripts/install.mjs"
+    "install:skill": "node scripts/install.mjs",
+    "deploy": "wrangler deploy",
+    "preview": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^4.110.0"
   }
 }
