@@ -18,7 +18,7 @@
 
 ## 🖥️ 가장 쉬운 방법 — Claude 데스크톱 앱 (약 3분)
 
-> 📖 **따라 하기 쉬운 화면이 필요하신가요?** **[설치 튜토리얼 →](https://perso-ai.github.io/perso-dubbing-plugin/)** 에서 에이전트별 설치 명령을 복사할 수 있습니다.
+> 📖 **따라 하기 쉬운 화면이 필요하신가요?** **[설치 튜토리얼 →](https://dubbing-plugin.perso.ai/)** 에서 에이전트별 설치 명령을 복사할 수 있습니다.
 
 터미널이 필요 없습니다. <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude 데스크톱 앱</a>(유료 플랜)에서:
 
