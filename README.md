@@ -16,6 +16,8 @@ It calls the Perso Dubbing API under the hood, so **a Perso Dubbing API key is r
 
 Because every host uses the same **Agent Skills standard** (`SKILL.md`), it works identically wherever you install it — just run `/dubbing` or say *"dub this video for me"* (or `/srt` — *"make me an English SRT for this video"*).
 
+![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
+
 ---
 
 ## 🖥️ Easiest way — the Claude desktop app (about 3 minutes)

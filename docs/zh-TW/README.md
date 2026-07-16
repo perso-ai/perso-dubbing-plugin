@@ -16,6 +16,8 @@
 
 由於每個宿主環境都採用相同的 **Agent Skills 標準**（`SKILL.md`），無論安裝在哪裡，使用方式都一樣——只要執行 `/dubbing`，或直接說「幫我配音這個影片」即可（或執行 `/srt`——說「幫我做一份這個影片的英文 SRT 字幕」）。
 
+![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
+
 ---
 
 ## 🖥️ 最簡單的方式 — Claude 桌面應用程式（約 3 分鐘）

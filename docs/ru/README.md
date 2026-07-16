@@ -16,6 +16,8 @@
 
 Поскольку каждый хост использует единый стандарт **Agent Skills** (`SKILL.md`), навык работает одинаково независимо от того, куда вы его установили — просто выполните `/dubbing` или скажите «продублируй это видео» (или `/srt` — «сделай мне английские субтитры SRT для этого видео»).
 
+![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
+
 ---
 
 ## 🖥️ Проще всего — приложение Claude для компьютера (около 3 минут)

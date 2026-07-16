@@ -16,6 +16,8 @@ En coulisses, elle appelle l'API de Doublage Perso ; **une clé API Perso Dubbin
 
 Comme tous les hôtes utilisent le même standard **Agent Skills** (`SKILL.md`), elle fonctionne de la même manière partout où vous l'installez : exécutez simplement `/dubbing` ou dites *« double cette vidéo »* (ou `/srt` — *« fais-moi un SRT en anglais pour cette vidéo »*).
 
+![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
+
 ---
 
 ## 🖥️ Le plus simple — l'application de bureau Claude (environ 3 minutes)

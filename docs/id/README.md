@@ -16,6 +16,8 @@ Di balik layar, skill ini memanggil API Dubbing Perso, sehingga **diperlukan kun
 
 Karena setiap host menggunakan standar **Agent Skills** yang sama (`SKILL.md`), skill ini bekerja dengan cara yang sama di mana pun Anda menginstalnya — cukup jalankan `/dubbing` atau katakan *"dubbing video ini untuk saya"* (atau `/srt` — *"buatkan saya SRT bahasa Inggris untuk video ini"*).
 
+![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
+
 ---
 
 ## 🖥️ Cara termudah — aplikasi desktop Claude (sekitar 3 menit)
