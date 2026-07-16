@@ -18,7 +18,7 @@ Karena setiap host menggunakan standar **Agent Skills** yang sama (`SKILL.md`), 
 
 ## 🖥️ Cara termudah — aplikasi desktop Claude (sekitar 3 menit)
 
-> 📖 **Lebih suka panduan visual?** Ikuti **[tutorial instalasi →](https://dubbing-plugin.perso.ai/?lang=en)** — pilih agen Anda dan salin perintahnya.
+> 📖 **Lebih suka panduan visual?** Ikuti **[tutorial instalasi →](https://dubbing-plugin.perso.ai/en/)** — pilih agen Anda dan salin perintahnya.
 
 Tidak perlu terminal. Di <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">aplikasi desktop Claude</a> (paket berbayar):
 
