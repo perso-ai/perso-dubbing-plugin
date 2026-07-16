@@ -150,6 +150,9 @@ npm run dub -- "clip.mp4" --target en,ja,zh
 # Several inputs at once (URLs, files, and folders can be mixed)
 npm run dub -- "https://youtu.be/..." "clip2.mp4" "C:\videos" --target en
 
+# Keep brand names, product names and jargon fixed across every language
+npm run dub -- "clip.mp4" --target en,pt,es --dict glossary.csv
+
 # Dub + lip-sync (mouth matched to the dubbed audio; extra credits)
 npm run dub -- "clip.mp4" --target en --lipsync
 

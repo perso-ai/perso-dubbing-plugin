@@ -28,6 +28,19 @@ Yes. Put multiple languages in one command (`--target en,ja,zh`) — the source 
 
 Next to the source video by default, or in the folder you pass with `--out`. Every run is also a project in your Perso portal (<https://portal.perso.ai>), where you can re-download it or get other formats.
 
+### My brand name comes out translated or misspelled. Can I fix it?
+
+Yes — pass a glossary with `--dict glossary.csv`. The translation model treats an unfamiliar brand name as a word to translate or correct, and it does not always decide the same way twice, so the same source can yield "Perso" on one run and "Persona" on the next. A glossary pins the term for every target language in the run.
+
+The file must be a CSV whose first line is exactly `source,target`:
+
+```csv
+source,target
+페르소,Perso
+```
+
+A file in any other shape is ignored by the server without an error — the run finishes with no output and no charge — so the plugin checks the file before it starts.
+
 ### What is lip-sync?
 
 It matches the mouth movements to the dubbed audio. It runs after dubbing, works on video only, takes considerably longer, and costs extra credits. Add `--lipsync`.

@@ -15,7 +15,8 @@ import { dubbingSpaces, getPlanStatus, spacePlanProps } from '../lib/space.mjs';
 import { getLanguages } from '../lib/languages.mjs';
 import { resolveChunks, recutChunk, SplitConfirmNeeded } from '../lib/split.mjs';
 import { runSchedule } from '../lib/scheduler.mjs';
-import { download, getStatus, upload, requestAudioSeparation, downloadSeparation } from '../lib/api_adapter.mjs';
+import { download, getStatus, upload, requestAudioSeparation, downloadSeparation, uploadCustomDictionary } from '../lib/api_adapter.mjs';
+import { readDictionary, DictionaryError } from '../lib/dictionary.mjs';
 import { mergeGroups } from '../lib/merge.mjs';
 import { messages, withUtm, SUBSCRIPTION_URL } from '../lib/messages.mjs';
 import { checkForUpdate } from '../lib/update_check.mjs';
@@ -151,11 +152,12 @@ async function ensureSpace(args) {
 }
 
 const USAGE = [
-  'Usage: node scripts/dubbing.mjs "<file|folder|URL>" ["<another input>" ...] [--source auto] [--target en,ja] [--space "space name"] [--out path|folder] [--recursive] [--lipsync] [--force] [--no-save]',
+  'Usage: node scripts/dubbing.mjs "<file|folder|URL>" ["<another input>" ...] [--source auto] [--target en,ja] [--space "space name"] [--out path|folder] [--dict glossary.csv] [--recursive] [--lipsync] [--force] [--no-save]',
   '       node scripts/dubbing.mjs --lipsync-only "<project-ref JSON | projectSeq[,projectSeq...]>" [--space "space name"] [--out path|folder]',
   '       node scripts/dubbing.mjs --separate "<file|folder|URL>" ["<another input>" ...] [--space "space name"] [--out folder]',
   '       node scripts/dubbing.mjs --resume "<state-file>"',
   '',
+  '  --dict          glossary CSV pinning how terms are translated (first line must be "source,target"); applies to every language',
   '  --lipsync       dub, then generate the lip-synced video (extra credits; takes much longer than dubbing)',
   '  --lipsync-only  lip-sync an already-dubbed project (uses the [project-ref] line printed by a finished run; no re-dub charge)',
   '  --separate      split the source into voice / background / sub-background audio tracks (no dubbing; ~0.5 credit per second)',
@@ -176,7 +178,7 @@ class ExitCode extends Error {
 
 function parseArgs(argv) {
   const a = { source: 'auto', target: 'en', inputs: [] };
-  const VALUE_FLAGS = { '--resume': 'resume', '--source': 'source', '--target': 'target', '--space': 'space', '--out': 'out', '--lipsync-only': 'lipsyncOnly' };
+  const VALUE_FLAGS = { '--resume': 'resume', '--source': 'source', '--target': 'target', '--space': 'space', '--out': 'out', '--lipsync-only': 'lipsyncOnly', '--dict': 'dict' };
   for (let i = 0; i < argv.length; i++) {
     const t = argv[i];
     if (t === '--help' || t === '-h') a.help = true;
@@ -364,7 +366,9 @@ function buildManifest(ctx, perInput, results, prevDone = {}) {
     if (e) done[`${r.inputId}|${r.index}|${r.target}`] = e;
   }
   return {
-    version: 5, spaceSeq: ctx.spaceSeq, opts: { source: ctx.source }, targets: ctx.targets, out: ctx.out ?? null,
+    // The glossary rides in opts as an already-uploaded blob path: a resume must re-apply it, or the
+    // remaining parts come back with different terminology than the parts that already finished.
+    version: 5, spaceSeq: ctx.spaceSeq, opts: { source: ctx.source, customDictionaryBlobPath: ctx.dict ?? null }, targets: ctx.targets, out: ctx.out ?? null,
     lipsync: !!ctx.lipsync, stop_reason: ctx.stopReason ?? null,
     inputs: perInput.map((p) => ({
       inputId: p.inputId, ref: p.ref,
@@ -556,8 +560,11 @@ async function runPool(args) {
   const file = resumePath({ out: args.out, inputs, multiInput });
   guardExistingState(file); // before validate/space/upload — never silently restart (and re-bill) an interrupted run
   const { targets, source } = await validateLanguages(wantedTargets, args.source); // typo-fail before asking anything
+  const terms = args.dict ? readDictionary(args.dict) : null; // a malformed glossary fails here, not silently on the server
   const spaceSeq = await ensureSpace(args); // ask before any download/upload work (cheap to re-run with --space)
-  const ctx = { spaceSeq, source, targets, out: args.out, multiInput, file, prevDone: {}, lipsync: !!args.lipsync };
+  const dict = args.dict ? await uploadCustomDictionary(args.dict) : undefined;
+  if (dict) notify(`Glossary: ${terms.length} term${terms.length > 1 ? 's' : ''} from ${basename(args.dict)}`);
+  const ctx = { spaceSeq, source, targets, out: args.out, multiInput, file, prevDone: {}, lipsync: !!args.lipsync, dict };
 
   // Per-input split/upload → tag every part with inputId into a single pool.
   const pool = [];
@@ -595,7 +602,7 @@ async function runPool(args) {
   track('dub_submitted', { ...await spacePlanProps(spaceSeq), input_count: perInput.length, parts: pool.length, target_count: targets.length, has_lipsync: !!args.lipsync });
   notify(`Translating${targets.length > 1 ? ` (${targets.join(', ')})` : ''}`);
   // Fill all inputs×parts×languages into one queue for concurrent processing. Submit as many as there are empty slots and add more every 5 minutes.
-  const sched = await runSchedule(pool, spaceSeq, { source, targets, lipsync: !!args.lipsync }, { log, notify, onResult: saver.onResult, onSubmit: saver.onSubmit });
+  const sched = await runSchedule(pool, spaceSeq, { source, targets, lipsync: !!args.lipsync, customDictionaryBlobPath: dict }, { log, notify, onResult: saver.onResult, onSubmit: saver.onSubmit });
 
   await finishPool([...sched.results.values()], perInput, { ...ctx, sched });
 }
@@ -648,7 +655,7 @@ async function runResume(file) {
   const targets = m.targets ?? [m.opts?.target ?? 'en'];
   const multiInput = (m.inputs?.length ?? 0) > 1;
   const lipsync = !!m.lipsync;
-  const ctx = { spaceSeq: m.spaceSeq, source: m.opts?.source ?? 'auto', targets, out: m.out, multiInput, file, prevDone: m.done ?? {}, lipsync, isResume: true, resumedFrom: m.stop_reason ?? 'manual' };
+  const ctx = { spaceSeq: m.spaceSeq, source: m.opts?.source ?? 'auto', targets, out: m.out, multiInput, file, prevDone: m.done ?? {}, lipsync, isResume: true, resumedFrom: m.stop_reason ?? 'manual', dict: m.opts?.customDictionaryBlobPath ?? undefined };
   track('resume_started', { mode: 'resume', resumed_from: m.stop_reason ?? 'manual' });
   const outDir = await makeTempDir('dubbing-resume-');
   const matCache = new Map(); // `${inputId}|${index}` → re-cut path (once per part, shared across languages)
@@ -790,7 +797,7 @@ async function runResume(file) {
 
   if (pool.length) notify('Translating (resume)');
   const sched = pool.length
-    ? await runSchedule(pool, m.spaceSeq, { source: m.opts?.source ?? 'auto', targets, done: skip, lipsync }, { log, notify, onResult: saver.onResult, onSubmit: saver.onSubmit })
+    ? await runSchedule(pool, m.spaceSeq, { source: m.opts?.source ?? 'auto', targets, done: skip, lipsync, customDictionaryBlobPath: ctx.dict }, { log, notify, onResult: saver.onResult, onSubmit: saver.onSubmit })
     : { results: new Map(), stopped: false, pendingLeft: [] };
 
   await finishPool([...downloaded, ...sched.results.values()], perInput, { ...ctx, sched });
@@ -1105,11 +1112,13 @@ async function main() {
     else if (args.resume) await runResume(args.resume);
     else if (args.separate) {
       if (args.lipsync || args.lipsyncOnly) throw new UsageError('Use --separate on its own — it cannot be combined with lip-sync options.');
+      if (args.dict) throw new UsageError('--dict applies to translation only — audio separation has no text to translate.');
       if (!args.inputs.length) { console.error(USAGE); exitCode = 1; }
       else await runSeparation(args);
     } else if (args.lipsyncOnly) {
       if (args.inputs.length) throw new UsageError('--lipsync-only takes no input files (the project reference identifies them).');
       if (args.lipsync) throw new UsageError('Use either --lipsync (dub + lip-sync) or --lipsync-only, not both.');
+      if (args.dict) throw new UsageError('--dict applies at translation time — the project referenced by --lipsync-only is already translated.');
       await runLipsyncOnly(args);
     } else if (!args.inputs.length) {
       console.error(USAGE);
@@ -1118,6 +1127,7 @@ async function main() {
   } catch (e) {
     if (e?.name === 'ExitCode') exitCode = e.code; // message already printed at the throw site
     else if (e?.name === 'UsageError') { console.error(`${e.message}\n${USAGE}`); exitCode = 1; }
+    else if (e?.name === 'DictionaryError') { console.error(e.message); exitCode = 1; } // already actionable — the usage block would bury it
     else { track('error', { error_class: errorClass(e) }); console.error(friendlyError(e)); exitCode = 1; }
   } finally {
     await cleanupTempDirs(); // bulk-clean the cut/schedule/merge/download temp folders
