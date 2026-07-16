@@ -22,7 +22,7 @@ Because every host uses the same **Agent Skills standard** (`SKILL.md`), it work
 
 ## 🖥️ Easiest way — the Claude desktop app (about 3 minutes)
 
-> 📖 **Prefer a visual walkthrough?** Follow the **[install tutorial →](https://dubbing-plugin.perso.ai/?lang=en)** — pick your agent and copy the commands.
+> 📖 **Prefer a visual walkthrough?** Follow the **[install tutorial →](https://dubbing-plugin.perso.ai/en/)** — pick your agent and copy the commands.
 
 No terminal needed. In the <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude desktop app</a> (paid plan):
 
