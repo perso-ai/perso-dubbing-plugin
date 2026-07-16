@@ -22,7 +22,7 @@
 
 ## 🖥️ 最簡單的方式 — Claude 桌面應用程式（約 3 分鐘）
 
-> 📖 **想要圖文教學？**請在**[安裝教學 →](https://dubbing-plugin.perso.ai/?lang=en)**中選擇你使用的工具並複製指令。
+> 📖 **想要圖文教學？**請在**[安裝教學 →](https://dubbing-plugin.perso.ai/en/)**中選擇你使用的工具並複製指令。
 
 不需要終端機。在 <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude 桌面應用程式</a>（付費方案）中：
 
