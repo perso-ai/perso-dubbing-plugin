@@ -10,9 +10,11 @@
 
 Skill agen coding yang menghadirkan **Dubbing (dubbing AI)** dari [Perso AI](https://perso.ai) ke agen Anda. Skill ini **men-dubbing otomatis** video ke bahasa lain — satu file atau seluruh folder — dan bahkan media yang berukuran terlalu besar atau sangat panjang pun otomatis dipecah, diproses, dan digabungkan kembali. Skill ini juga dapat **menyinkronkan gerakan bibir (lip-sync)** pada video hasil dubbing dan **memisahkan suara dari audio latar**.
 
-Di balik layar, skill ini memanggil API Dubbing Perso, sehingga **diperlukan kunci API Perso Dubbing.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Dapatkan kunci API</a>
+Paket ini juga menyertakan **`/srt`** — skill kedua yang mengekstrak **subtitle SRT** dari video/audio/URL melalui speech-to-text Perso, lalu meminta agen Anda menerjemahkannya ke bahasa apa pun yang Anda minta (atau memberikan transkrip bahasa asli apa adanya).
 
-Karena setiap host menggunakan standar **Agent Skills** yang sama (`SKILL.md`), skill ini bekerja dengan cara yang sama di mana pun Anda menginstalnya — cukup jalankan `/dubbing` atau katakan *"dubbing video ini untuk saya."*
+Di balik layar, skill ini memanggil API Dubbing Perso, sehingga **diperlukan kunci API Perso Dubbing** (satu kunci berlaku untuk kedua skill). → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Dapatkan kunci API</a>
+
+Karena setiap host menggunakan standar **Agent Skills** yang sama (`SKILL.md`), skill ini bekerja dengan cara yang sama di mana pun Anda menginstalnya — cukup jalankan `/dubbing` atau katakan *"dubbing video ini untuk saya"* (atau `/srt` — *"buatkan saya SRT bahasa Inggris untuk video ini"*).
 
 ---
 
@@ -117,18 +119,18 @@ Repositorinya sudah ter-clone? `node scripts/install.mjs` dari root repositori m
 <details>
 <summary><b>🔧 Instalasi manual</b></summary>
 
-Salin folder skill ke direktori skills host Anda dengan nama **`dubbing`**. Dari root repositori:
+Salin **kedua** folder skill ke direktori skills host Anda, berdampingan (skill `srt` mengimpor library skill `dubbing` dari folder tetangganya). Dari root repositori:
 
 ```bash
 # macOS / Linux
-mkdir -p <skills_folder>/dubbing && cp -r skills/dubbing/* <skills_folder>/dubbing/
+mkdir -p <skills_folder> && cp -r skills/dubbing skills/srt <skills_folder>/
 ```
 
-> 💡 Windows (PowerShell): `New-Item -ItemType Directory -Force <skills_folder>\dubbing; Copy-Item .\skills\dubbing\* <skills_folder>\dubbing\ -Recurse`
+> 💡 Windows (PowerShell): `New-Item -ItemType Directory -Force <skills_folder>; Copy-Item .\skills\dubbing,.\skills\srt <skills_folder>\ -Recurse`
 
 </details>
 
-Setelah instalasi, ketik **`/dubbing`** di agen Anda atau cukup katakan **"dubbing video ini untuk saya"** untuk menjalankannya.
+Setelah instalasi, ketik **`/dubbing`** di agen Anda atau cukup katakan **"dubbing video ini untuk saya"** untuk menjalankannya — atau **`/srt`** / **"buatkan saya SRT bahasa Inggris untuk video ini"** untuk subtitle. (Setiap metode instalasi di atas menginstal kedua skill.)
 
 ---
 
@@ -155,6 +157,12 @@ npm run dub -- "clip.mp4" --target en --lipsync
 
 # Pisahkan trek suara / audio latar (tanpa dubbing)
 npm run dub -- "clip.mp4" --separate
+
+# Ekstrak subtitle dan minta agen menerjemahkannya (skill /srt)
+npm run srt -- "clip.mp4" --target en,ja
+
+# Hanya transkrip — SRT bahasa asli, tanpa terjemahan
+npm run srt -- "clip.mp4" --transcribe-only
 ```
 
 *(Panggilan langsung yang setara: `node skills/dubbing/scripts/dubbing.mjs …` — atau `node scripts/dubbing.mjs …` dari dalam folder skill yang terinstal.)*
@@ -172,13 +180,13 @@ Punya pertanyaan lain? Lihat **[FAQ](FAQ.md)**.
 | `node` tidak ditemukan / instalasi atau eksekusi gagal | Skill ini berjalan di atas **Node.js 18+** — periksa dengan `node -v`. Jika belum ada, instal versi LTS dari <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>, atau cukup minta Claude dalam sesi tersebut untuk menginstalnya, lalu mulai ulang aplikasi. |
 | Belum punya kunci API | Cukup jalankan perintah dubbing apa pun — file kunci akan terbuka otomatis; tempelkan kunci Anda dan simpan (file tersebut dienkripsi lalu dihapus). Pemeriksaan manual: `npm run key:check`. **Jangan tempelkan kunci ke dalam chat.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Dapatkan kunci API</a> |
 | Error terkait ffmpeg | ffmpeg biasanya terinstal otomatis. Jika gagal, jalankan `npm run doctor`. |
-| Berhenti di tengah jalan (kredit habis, crash, proses dihentikan) | Progres disimpan ke file status `*.dubresume.json` sepanjang proses berjalan. Jalankan perintah **`--resume "<state-file>"`** yang ditampilkan pada notifikasi untuk menyelesaikan hanya bagian yang tersisa (bagian yang sudah selesai otomatis dilewati). |
+| Berhenti di tengah jalan (kredit habis, crash, proses dihentikan) | Progres disimpan ke file status sepanjang proses berjalan (`*.dubresume.json` untuk `/dubbing`, `*.srtresume.json` untuk `/srt`). Jalankan perintah **`--resume "<state-file>"`** yang ditampilkan pada notifikasi untuk menyelesaikan hanya bagian yang tersisa (bagian yang sudah selesai otomatis dilewati). |
 
 ---
 
 ## Privasi & Telemetri
 
-`/dubbing` mengirimkan event penggunaan **anonim** untuk meningkatkan kualitas skill ini — misalnya, aksi apa yang dijalankan (dubbing / lip-sync / pemisahan), apakah berhasil, pasangan bahasa, versi aplikasi, dan OS. Data ini hanya ditandai dengan ID acak per instalasi dan tidak pernah menyertakan kunci API, nama file atau konten media, akun/email, maupun ID workspace Anda.
+`/dubbing` dan `/srt` mengirimkan event penggunaan **anonim** untuk meningkatkan kualitas kedua skill ini — misalnya, aksi apa yang dijalankan (dubbing / lip-sync / pemisahan / ekstraksi subtitle), apakah berhasil, pasangan bahasa, durasi media, versi aplikasi, dan OS. Data ini hanya ditandai dengan ID acak per instalasi dan tidak pernah menyertakan kunci API, nama file atau konten media, akun/email, maupun ID workspace Anda. Nonaktifkan kapan saja melalui variabel lingkungan `PERSO_NO_TELEMETRY`.
 
 ---
 
@@ -189,7 +197,8 @@ Punya pertanyaan lain? Lihat **[FAQ](FAQ.md)**.
 .codex-plugin/     Manifes plugin Codex
 .cursor-plugin/    Manifes plugin Cursor
 docs/              Landing GitHub Pages + README dan FAQ terjemahan (12 bahasa)
-skills/dubbing/    Skill itu sendiri (SKILL.md · lib/ · scripts/) — mandiri
+skills/dubbing/    Skill dubbing (SKILL.md · lib/ · scripts/) — mandiri
+skills/srt/        Skill subtitle SRT (SKILL.md · scripts/) — menggunakan lib/ skill dubbing
 scripts/           Installer tingkat repositori (install.mjs)
 ```
 

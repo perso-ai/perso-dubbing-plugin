@@ -2,7 +2,7 @@
 
 [English](../../FAQ.md) ｜ [한국어](../ko/FAQ.md) ｜ [Español](../es/FAQ.md) ｜ [Português](../pt/FAQ.md) ｜ [Русский](../ru/FAQ.md) ｜ [Bahasa Indonesia](../id/FAQ.md) ｜ [Deutsch](../de/FAQ.md) ｜ [ไทย](../th/FAQ.md) ｜ [日本語](../ja/FAQ.md) ｜ [繁體中文](../zh-TW/FAQ.md) ｜ [简体中文](../zh-CN/FAQ.md) ｜ [Tiếng Việt](../vi/FAQ.md) ｜ **Français**
 
-Foire aux questions sur la skill `/dubbing`. Pour l'installation et l'utilisation, consultez le [README](README.md).
+Foire aux questions sur les skills `/dubbing` et `/srt`. Pour l'installation et l'utilisation, consultez le [README](README.md).
 
 ### De quoi ai-je besoin pour l'utiliser ?
 
@@ -36,9 +36,13 @@ Elle ajuste les mouvements des lèvres à l'audio doublé. Elle s'exécute aprè
 
 Elle divise la source en pistes voix / fond / fond secondaire — sans doublage. Ajoutez `--separate`.
 
+### Peut-elle créer des sous-titres (SRT) au lieu de doubler ?
+
+Oui — le paquet installe aussi la skill **`/srt`**. Elle extrait les sous-titres dans la langue d'origine à partir d'une vidéo/d'un audio/d'une URL via la reconnaissance vocale de Perso, puis votre agent les traduit dans les langues que vous demandez (enregistrés sous `<name>_<lang>_Subtitle.srt` à côté de l'original). Vous voulez juste la transcription ? Dites-le, et elle s'exécute avec `--transcribe-only` — sans traduction. Chaque extraction de sous-titres consomme des crédits proportionnellement à la durée du média (par langue).
+
 ### Le processus s'est arrêté en cours de route (crédits épuisés, plantage, ou shell interrompu). Que faire ?
 
-La progression est enregistrée en continu dans un fichier d'état `*.dubresume.json`. Relancez la commande `--resume "<state-file>"` affichée pour ne terminer que les parties restantes — les parties déjà terminées sont ignorées et jamais refacturées.
+La progression est enregistrée en continu dans un fichier d'état (`*.dubresume.json` pour `/dubbing`, `*.srtresume.json` pour `/srt`). Relancez la commande `--resume "<state-file>"` affichée pour ne terminer que les parties restantes — les parties déjà terminées sont ignorées et jamais refacturées.
 
 ### Je n'ai plus de crédits. Comment recharger ?
 

@@ -10,9 +10,11 @@
 
 Một skill dành cho agent lập trình, mang tính năng **Dubbing (lồng tiếng AI)** của [Perso AI](https://perso.ai) đến agent của bạn. Skill này **tự động lồng tiếng** video sang ngôn ngữ khác — một tệp đơn lẻ hoặc cả một thư mục, và ngay cả những tệp media quá lớn hoặc quá dài cũng được tự động chia nhỏ, xử lý rồi ghép lại. Skill cũng có thể **đồng bộ khẩu hình (lip-sync)** cho video đã lồng tiếng và **tách giọng nói khỏi âm thanh nền**.
 
-Bên dưới, skill gọi Perso Dubbing API, vì vậy **cần có API key của Perso Dubbing.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Lấy API key</a>
+Gói này cũng đi kèm **`/srt`** — skill thứ hai giúp trích xuất **phụ đề SRT** từ video/audio/URL thông qua công nghệ speech-to-text của Perso, sau đó agent của bạn sẽ dịch chúng sang bất kỳ ngôn ngữ nào bạn yêu cầu (hoặc đưa cho bạn bản ghi ở ngôn ngữ gốc, giữ nguyên không dịch).
 
-Vì mọi host đều sử dụng chung **chuẩn Agent Skills** (`SKILL.md`), skill này hoạt động giống hệt nhau dù bạn cài đặt ở đâu — chỉ cần chạy `/dubbing` hoặc nói *"lồng tiếng video này giúp tôi."*
+Bên dưới, skill gọi Perso Dubbing API, vì vậy **cần có API key của Perso Dubbing** (một key dùng chung cho cả hai skill). → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Lấy API key</a>
+
+Vì mọi host đều sử dụng chung **chuẩn Agent Skills** (`SKILL.md`), skill này hoạt động giống hệt nhau dù bạn cài đặt ở đâu — chỉ cần chạy `/dubbing` hoặc nói *"lồng tiếng video này giúp tôi"* (hoặc `/srt` — *"tạo phụ đề SRT tiếng Anh cho video này giúp tôi"*).
 
 ---
 
@@ -117,18 +119,18 @@ npx perso-dubbing
 <details>
 <summary><b>🔧 Cài đặt thủ công</b></summary>
 
-Sao chép thư mục skill vào thư mục skills của host với tên **`dubbing`**. Từ thư mục gốc của repo:
+Sao chép **cả hai** thư mục skill vào thư mục skills của host, đặt cạnh nhau (skill `srt` import các thư viện của skill `dubbing` từ thư mục liền kề). Từ thư mục gốc của repo:
 
 ```bash
 # macOS / Linux
-mkdir -p <skills_folder>/dubbing && cp -r skills/dubbing/* <skills_folder>/dubbing/
+mkdir -p <skills_folder> && cp -r skills/dubbing skills/srt <skills_folder>/
 ```
 
-> 💡 Windows (PowerShell): `New-Item -ItemType Directory -Force <skills_folder>\dubbing; Copy-Item .\skills\dubbing\* <skills_folder>\dubbing\ -Recurse`
+> 💡 Windows (PowerShell): `New-Item -ItemType Directory -Force <skills_folder>; Copy-Item .\skills\dubbing,.\skills\srt <skills_folder>\ -Recurse`
 
 </details>
 
-Sau khi cài đặt, gõ **`/dubbing`** trong agent của bạn hoặc chỉ cần nói **"lồng tiếng video này giúp tôi"** để chạy.
+Sau khi cài đặt, gõ **`/dubbing`** trong agent của bạn hoặc chỉ cần nói **"lồng tiếng video này giúp tôi"** để chạy — hoặc **`/srt`** / **"tạo phụ đề SRT tiếng Anh cho video này giúp tôi"** để lấy phụ đề. (Mọi phương thức cài đặt ở trên đều cài cả hai skill.)
 
 ---
 
@@ -155,6 +157,12 @@ npm run dub -- "clip.mp4" --target en --lipsync
 
 # Tách giọng nói / âm thanh nền (không lồng tiếng)
 npm run dub -- "clip.mp4" --separate
+
+# Trích xuất phụ đề và để agent dịch chúng (skill /srt)
+npm run srt -- "clip.mp4" --target en,ja
+
+# Chỉ lấy bản ghi — phụ đề ở ngôn ngữ gốc, không dịch
+npm run srt -- "clip.mp4" --transcribe-only
 ```
 
 *(Lệnh gọi trực tiếp tương đương: `node skills/dubbing/scripts/dubbing.mjs …` — hoặc `node scripts/dubbing.mjs …` từ bên trong một thư mục skill đã cài đặt.)*
@@ -172,13 +180,13 @@ Còn thắc mắc khác? Xem **[FAQ](FAQ.md)**.
 | Không tìm thấy `node` / cài đặt hoặc chạy thất bại | Skill chạy trên **Node.js 18+** — kiểm tra bằng `node -v`. Nếu chưa có, hãy cài bản LTS từ <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>, hoặc đơn giản là nhờ Claude trong phiên làm việc cài đặt giúp bạn, rồi khởi động lại ứng dụng. |
 | Chưa có API key | Chỉ cần chạy bất kỳ lệnh lồng tiếng nào — một tệp key sẽ tự động mở ra; dán key của bạn vào rồi lưu (tệp được mã hóa và sẽ bị xóa sau đó). Kiểm tra thủ công: `npm run key:check`. **Không dán key vào khung chat.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Lấy API key</a> |
 | Lỗi liên quan đến ffmpeg | ffmpeg thường được tự động cài đặt. Nếu thất bại, hãy chạy `npm run doctor`. |
-| Dừng giữa chừng (hết credit, gặp lỗi, tiến trình bị kill) | Tiến trình được lưu vào tệp trạng thái `*.dubresume.json` trong suốt quá trình chạy. Chạy lệnh **`--resume "<state-file>"`** được hiển thị trong thông báo để chỉ hoàn tất các phần còn lại (các phần đã xong sẽ tự động được bỏ qua). |
+| Dừng giữa chừng (hết credit, gặp lỗi, tiến trình bị kill) | Tiến trình được lưu vào một tệp trạng thái trong suốt quá trình chạy (`*.dubresume.json` cho `/dubbing`, `*.srtresume.json` cho `/srt`). Chạy lệnh **`--resume "<state-file>"`** được hiển thị trong thông báo để chỉ hoàn tất các phần còn lại (các phần đã xong sẽ tự động được bỏ qua). |
 
 ---
 
 ## Quyền riêng tư & Telemetry
 
-`/dubbing` gửi các sự kiện sử dụng **ẩn danh** để cải thiện skill — ví dụ như hành động nào đã chạy (dub / lip-sync / separate), có thành công hay không, cặp ngôn ngữ, phiên bản ứng dụng, và hệ điều hành. Dữ liệu chỉ được gắn nhãn bằng một ID ngẫu nhiên theo từng lượt cài đặt và không bao giờ bao gồm API key, tên tệp hay nội dung media, tài khoản/email, hoặc workspace ID của bạn.
+`/dubbing` và `/srt` gửi các sự kiện sử dụng **ẩn danh** để cải thiện các skill — ví dụ như hành động nào đã chạy (dub / lip-sync / separate / trích xuất phụ đề), có thành công hay không, cặp ngôn ngữ, thời lượng media, phiên bản ứng dụng, và hệ điều hành. Dữ liệu chỉ được gắn nhãn bằng một ID ngẫu nhiên theo từng lượt cài đặt và không bao giờ bao gồm API key, tên tệp hay nội dung media, tài khoản/email, hoặc workspace ID của bạn. Bạn có thể tắt tính năng này bất cứ lúc nào bằng biến môi trường `PERSO_NO_TELEMETRY`.
 
 ---
 
@@ -189,7 +197,8 @@ Còn thắc mắc khác? Xem **[FAQ](FAQ.md)**.
 .codex-plugin/     Manifest plugin Codex
 .cursor-plugin/    Manifest plugin Cursor
 docs/              Trang landing GitHub Pages + README và FAQ đã dịch (12 ngôn ngữ)
-skills/dubbing/    Bản thân skill (SKILL.md · lib/ · scripts/) — độc lập
+skills/dubbing/    Skill lồng tiếng (SKILL.md · lib/ · scripts/) — độc lập
+skills/srt/        Skill phụ đề SRT (SKILL.md · scripts/) — dùng lib/ của skill dubbing
 scripts/           Trình cài đặt cấp repo (install.mjs)
 ```
 

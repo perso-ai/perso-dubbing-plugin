@@ -14,8 +14,9 @@ export const withUtm = (url) => url + (url.includes('?') ? '&' : '?') + UTM_PARA
 export const messages = {
   // Out-of-usage guidance. The agent can generate a direct Stripe link via scripts/billing.mjs, which
   // routes by the current plan tier (free → subscribe · starter/creator → change plan · pro/business → credits).
-  //   { planTier, remainingQuota, remainingNote, resumeHint, note }
-  quotaExceeded: ({ planTier, remainingQuota, remainingNote, resumeHint, note } = {}) => {
+  //   { planTier, remainingQuota, remainingNote, resumeHint, note, billingScript }
+  //   billingScript: path of billing.mjs relative to the calling worker's folder (the srt skill passes ../dubbing/…).
+  quotaExceeded: ({ planTier, remainingQuota, remainingNote, resumeHint, note, billingScript = 'scripts/billing.mjs' } = {}) => {
     const status =
       `   Current plan: ${planTier ?? 'unknown'} · Credits left: ${remainingQuota ?? '?'}` +
       (remainingNote ? ` · Remaining: ${remainingNote}` : '');
@@ -25,7 +26,7 @@ export const messages = {
       ...(note ? [note] : []),
       '',
       'To continue you can generate a payment link (routes by plan: subscribe / change plan / buy credits):',
-      '  → node scripts/billing.mjs options   (add --shortfall <estimated remaining credits> for a recommendation)',
+      `  → node ${billingScript} options   (add --shortfall <estimated remaining credits> for a recommendation)`,
       '  Then give the returned Stripe link to the user to complete payment in their browser — never pay on their behalf.',
       ...(resumeHint ? [`  Resume after topping up: ${resumeHint}`] : []),
     ].join('\n');

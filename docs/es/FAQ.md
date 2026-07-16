@@ -2,7 +2,7 @@
 
 [English](../../FAQ.md) ｜ [한국어](../ko/FAQ.md) ｜ **Español** ｜ [Português](../pt/FAQ.md) ｜ [Русский](../ru/FAQ.md) ｜ [Bahasa Indonesia](../id/FAQ.md) ｜ [Deutsch](../de/FAQ.md) ｜ [ไทย](../th/FAQ.md) ｜ [日本語](../ja/FAQ.md) ｜ [繁體中文](../zh-TW/FAQ.md) ｜ [简体中文](../zh-CN/FAQ.md) ｜ [Tiếng Việt](../vi/FAQ.md) ｜ [Français](../fr/FAQ.md)
 
-Preguntas frecuentes sobre la skill `/dubbing`. Para la instalación y el uso, consulta el [README](README.md).
+Preguntas frecuentes sobre las skills `/dubbing` y `/srt`. Para la instalación y el uso, consulta el [README](README.md).
 
 ### ¿Qué necesito para usarla?
 
@@ -36,9 +36,13 @@ Ajusta los movimientos de la boca al audio doblado. Se ejecuta después del dobl
 
 Divide la fuente en pistas de voz / fondo / fondo secundario, sin doblaje. Añade `--separate`.
 
+### ¿Puede generar subtítulos (SRT) en lugar de doblar?
+
+Sí — el paquete también instala la skill **`/srt`**. Extrae los subtítulos en el idioma original de un vídeo, audio o URL mediante el reconocimiento de voz de Perso, y tu agente los traduce después a los idiomas que le pidas (guardados como `<name>_<lang>_Subtitle.srt` junto al original). ¿Solo quieres la transcripción? Dilo y se ejecuta con `--transcribe-only`, sin traducción. Cada extracción de subtítulos consume créditos en proporción a la duración del contenido multimedia (por idioma).
+
 ### Se detuvo a mitad (sin créditos, un fallo o un shell terminado). ¿Y ahora qué?
 
-El progreso se guarda en un archivo de estado `*.dubresume.json` durante toda la ejecución. Vuelve a ejecutar el comando `--resume "<state-file>"` que aparece para terminar solo las partes restantes: las completadas se omiten y nunca se vuelven a cobrar.
+El progreso se guarda en un archivo de estado durante toda la ejecución (`*.dubresume.json` para `/dubbing`, `*.srtresume.json` para `/srt`). Vuelve a ejecutar el comando `--resume "<state-file>"` que aparece para terminar solo las partes restantes: las completadas se omiten y nunca se vuelven a cobrar.
 
 ### Me quedé sin créditos. ¿Cómo recargo?
 

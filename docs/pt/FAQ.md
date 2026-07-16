@@ -2,7 +2,7 @@
 
 [English](../../FAQ.md) ｜ [한국어](../ko/FAQ.md) ｜ [Español](../es/FAQ.md) ｜ **Português** ｜ [Русский](../ru/FAQ.md) ｜ [Bahasa Indonesia](../id/FAQ.md) ｜ [Deutsch](../de/FAQ.md) ｜ [ไทย](../th/FAQ.md) ｜ [日本語](../ja/FAQ.md) ｜ [繁體中文](../zh-TW/FAQ.md) ｜ [简体中文](../zh-CN/FAQ.md) ｜ [Tiếng Việt](../vi/FAQ.md) ｜ [Français](../fr/FAQ.md)
 
-Perguntas comuns sobre a skill `/dubbing`. Para instalação e uso, consulte o [README](README.md).
+Perguntas comuns sobre as skills `/dubbing` e `/srt`. Para instalação e uso, consulte o [README](README.md).
 
 ### O que eu preciso para usá-la?
 
@@ -36,9 +36,13 @@ Ela ajusta os movimentos da boca ao áudio dublado. É executada depois da dubla
 
 Ela divide a fonte em faixas de voz / fundo / subfundo — sem envolver dublagem. Adicione `--separate`.
 
+### Ela consegue gerar legendas (SRT) em vez de dublar?
+
+Sim — o pacote também instala a skill **`/srt`**. Ela extrai as legendas no idioma original de um vídeo/áudio/URL usando o reconhecimento de fala da Perso, e seu agente então as traduz para os idiomas que você pedir (salvas como `<name>_<lang>_Subtitle.srt` junto ao arquivo original). Quer só a transcrição? Basta pedir — ele roda com `--transcribe-only`, sem tradução. Cada extração de legenda consome créditos proporcionalmente à duração da mídia (por idioma).
+
 ### Parou no meio do processo (sem créditos, uma falha ou um shell encerrado). E agora?
 
-O progresso é salvo em um arquivo de estado `*.dubresume.json` durante toda a execução. Execute novamente o comando `--resume "<state-file>"` exibido para concluir apenas as partes restantes — as partes já concluídas são ignoradas e nunca são cobradas novamente.
+O progresso é salvo em um arquivo de estado durante toda a execução (`*.dubresume.json` para `/dubbing`, `*.srtresume.json` para `/srt`). Execute novamente o comando `--resume "<state-file>"` exibido para concluir apenas as partes restantes — as partes já concluídas são ignoradas e nunca são cobradas novamente.
 
 ### Fiquei sem créditos. Como faço para recarregar?
 

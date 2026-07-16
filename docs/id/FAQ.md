@@ -2,7 +2,7 @@
 
 [English](../../FAQ.md) ｜ [한국어](../ko/FAQ.md) ｜ [Español](../es/FAQ.md) ｜ [Português](../pt/FAQ.md) ｜ [Русский](../ru/FAQ.md) ｜ **Bahasa Indonesia** ｜ [Deutsch](../de/FAQ.md) ｜ [ไทย](../th/FAQ.md) ｜ [日本語](../ja/FAQ.md) ｜ [繁體中文](../zh-TW/FAQ.md) ｜ [简体中文](../zh-CN/FAQ.md) ｜ [Tiếng Việt](../vi/FAQ.md) ｜ [Français](../fr/FAQ.md)
 
-Pertanyaan umum seputar skill `/dubbing`. Untuk pemasangan dan penggunaan, lihat [README](README.md).
+Pertanyaan umum seputar skill `/dubbing` dan `/srt`. Untuk pemasangan dan penggunaan, lihat [README](README.md).
 
 ### Apa yang saya butuhkan untuk menggunakannya?
 
@@ -36,9 +36,13 @@ Fitur ini menyesuaikan gerakan mulut dengan audio hasil dubbing. Prosesnya berja
 
 Fitur ini memecah sumber menjadi trek suara / latar / sub-latar — tanpa proses dubbing. Tambahkan `--separate`.
 
+### Bisakah skill ini membuat subtitle (SRT), alih-alih dubbing?
+
+Bisa — paket ini juga menginstal skill **`/srt`**. Skill ini mengekstrak subtitle bahasa asli dari video/audio/URL melalui speech-to-text Perso, lalu agen Anda menerjemahkannya ke bahasa yang Anda minta (disimpan sebagai `<name>_<lang>_Subtitle.srt` di sebelah file aslinya). Hanya ingin transkripnya saja? Cukup sampaikan itu, dan skill akan berjalan dengan `--transcribe-only` — tanpa terjemahan. Setiap ekstraksi subtitle menghabiskan kredit sebanding dengan durasi media (per bahasa).
+
 ### Prosesnya berhenti di tengah jalan (kredit habis, crash, atau shell dihentikan). Sekarang bagaimana?
 
-Progres disimpan ke file status `*.dubresume.json` sepanjang proses berjalan. Jalankan kembali perintah `--resume "<state-file>"` yang ditampilkan untuk menyelesaikan hanya bagian yang tersisa — bagian yang sudah selesai akan dilewati dan tidak pernah ditagih ulang.
+Progres disimpan ke file status sepanjang proses berjalan (`*.dubresume.json` untuk `/dubbing`, `*.srtresume.json` untuk `/srt`). Jalankan kembali perintah `--resume "<state-file>"` yang ditampilkan untuk menyelesaikan hanya bagian yang tersisa — bagian yang sudah selesai akan dilewati dan tidak pernah ditagih ulang.
 
 ### Kredit saya habis. Bagaimana cara mengisi ulang?
 

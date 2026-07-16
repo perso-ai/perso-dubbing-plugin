@@ -10,11 +10,18 @@ export async function listSpaces() {
   return _cache;
 }
 
-/** Spaces where dubbing can run (video_translator; falls back to all), with display names for the user to choose from. */
+/** Spaces where dubbing can run, with display names for the user to choose from.
+ *  Tier 1: capability field on the spaces payload, when the server provides one.
+ *  Tier 2: probe the dubbing-scoped plan/status endpoint — spaces without dubbing access fail it.
+ *  Fallback: every space (a transient probe failure must not hide real workspaces). */
 export async function dubbingSpaces() {
   const spaces = await listSpaces();
   if (!spaces.length) throw new Error('No accessible space.');
-  const vt = spaces.filter((s) => s.serviceType === 'video_translator');
+  let vt = spaces.filter((s) => s.useVideoTranslatorEdit === true || s.serviceType === 'video_translator');
+  if (!vt.length) {
+    const probed = await Promise.all(spaces.map(async (s) => ((await getPlanStatus(s.spaceSeq)) ? s : null)));
+    vt = probed.filter(Boolean);
+  }
   return (vt.length ? vt : spaces).map((s) => ({
     seq: s.spaceSeq,
     name: s.spaceName ?? s.name ?? `space ${s.spaceSeq}`,

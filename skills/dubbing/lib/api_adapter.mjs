@@ -31,13 +31,19 @@ const absolutize = (u) => {
 };
 
 // ── upload ──────────────────────────────────────────────
-/** prepared({source,localPath|sourceUrl,originalName}) → { seq:mediaSeq, kind:'video'|'audio' } */
+// Server-measured media length from the register response (durationMs) → whole seconds; null when absent.
+const regDurationSec = (r) => {
+  const ms = Number(r?.durationMs);
+  return Number.isFinite(ms) && ms > 0 ? Math.round(ms / 1000) : null;
+};
+
+/** prepared({source,localPath|sourceUrl,originalName}) → { seq:mediaSeq, kind:'video'|'audio', durationSec:number|null } */
 export async function upload(prepared, spaceSeq) {
   if (prepared.source === 'external') {
     const r = await put('/file/api/upload/video/external', {
       body: { space_seq: spaceSeq, url: prepared.sourceUrl },
     });
-    return { seq: r.seq, kind: 'video' };
+    return { seq: r.seq, kind: 'video', durationSec: regDurationSec(r) };
   }
   return uploadLocal(prepared.localPath, prepared.originalName, spaceSeq);
 }
@@ -67,7 +73,7 @@ async function uploadLocal(localPath, fileName, spaceSeq) {
   const fileUrl = blobSasUrl.split('?')[0];
   const reg = async (k) => {
     const r = await put(`/file/api/upload/${k}`, { body: { spaceSeq, fileUrl, fileName: name } });
-    return { seq: r.seq, kind: k };
+    return { seq: r.seq, kind: k, durationSec: regDurationSec(r) };
   };
   // Only length/size errors (F4008/F4004) are thrown as-is so the caller can split. Other register rejections (401, audio failure after F4007, etc.)
   // are treated as unsupported formats — if the key were wrong it would already have failed at the SAS token above, so a 401 here is not an auth problem.
@@ -171,6 +177,36 @@ export async function downloadSeparation(projectSeq, spaceSeq, outPathFor) {
     saved.push({ label, path: outPath, fileName });
   }
   return saved;
+}
+
+// ── speech-to-text (subtitle extraction) ───────────────
+/** Create an STT project for an uploaded media → array of projectIds (same async project pattern as translate).
+ *  One project per requested output language — billing is per project, so N languages = N calls with the same mediaSeq. */
+export async function requestStt(spaceSeq, mediaSeq, { title, kind = 'video' } = {}) {
+  if (!_queueInited.has(spaceSeq)) {
+    await put(`${VT}/projects/spaces/${spaceSeq}/queue`).catch(() => {});
+    _queueInited.add(spaceSeq);
+  }
+  const body = { mediaSeq, isVideoProject: kind !== 'audio', ...(title ? { title } : {}) };
+  const res = await post(`${VT}/projects/spaces/${spaceSeq}/stt`, { body });
+  return res?.result?.startGenerateProjectIdList ?? [];
+}
+
+/** Download the source-language subtitle (SRT) of a completed STT project via download?target=audioScript.
+ *  The payload's link field name is not documented — rely on the generic *DownloadLink scan.
+ *  outPathFor(serverFileName) decides where the file is written. */
+export async function downloadAudioScript(projectSeq, spaceSeq, outPathFor) {
+  const info = await get(`${VT}/projects/${projectSeq}/spaces/${spaceSeq}/download-info`);
+  const flags = info?.result ?? info;
+  if (flags?.hasOriginalSubtitle === false) throw new Error('The subtitle is not ready yet.');
+  const res = await get(`${VT}/projects/${projectSeq}/spaces/${spaceSeq}/download`, { query: { target: 'audioScript' } });
+  const raw = findDownloadLink(res?.result ?? {});
+  if (!raw) throw new Error('Could not find a subtitle download link.');
+  const link = absolutize(raw);
+  const fileName = decodeURIComponent(new URL(link).pathname.split('/').pop() || '') || null;
+  const outPath = outPathFor(fileName ?? `subtitle_${projectSeq}.srt`);
+  await fetchToFile(link, outPath);
+  return { path: outPath, fileName };
 }
 
 // ── requestLipSync ─────────────────────────────────────
