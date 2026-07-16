@@ -22,7 +22,7 @@
 
 ## 🖥️ 最简单的方式 —— Claude 桌面应用（约 3 分钟）
 
-> 📖 **想要图文教程？**在**[安装教程 →](https://dubbing-plugin.perso.ai/en/)**中选择你使用的智能体并复制命令。
+> 📖 **想要图文教程？**在**[安装教程 →](https://dubbing-plugin.perso.ai/?lang=en)**中选择你使用的智能体并复制命令。
 
 无需终端。在 <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude 桌面应用</a>中（付费版）：
 

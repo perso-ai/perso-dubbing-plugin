@@ -22,7 +22,7 @@ Comme tous les hôtes utilisent le même standard **Agent Skills** (`SKILL.md`),
 
 ## 🖥️ Le plus simple — l'application de bureau Claude (environ 3 minutes)
 
-> 📖 **Vous préférez un guide visuel ?** Suivez le **[tutoriel d'installation →](https://dubbing-plugin.perso.ai/en/)** — choisissez votre agent et copiez les commandes.
+> 📖 **Vous préférez un guide visuel ?** Suivez le **[tutoriel d'installation →](https://dubbing-plugin.perso.ai/?lang=en)** — choisissez votre agent et copiez les commandes.
 
 Aucun terminal nécessaire. Dans l'<a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">application de bureau Claude</a> (offre payante) :
 
