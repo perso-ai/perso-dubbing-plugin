@@ -16,6 +16,8 @@
 
 เนื่องจากทุกโฮสต์ใช้**มาตรฐาน Agent Skills** (`SKILL.md`) เดียวกัน สกิลนี้จึงทำงานเหมือนกันไม่ว่าคุณจะติดตั้งไว้ที่ใด เพียงรัน `/dubbing` หรือพูดว่า *"พากย์วิดีโอนี้ให้หน่อย"* (หรือ `/srt` — *"ทำ SRT ภาษาอังกฤษของวิดีโอนี้ให้หน่อย"*)
 
+![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
+
 ---
 
 ## 🖥️ วิธีที่ง่ายที่สุด — แอปเดสก์ท็อป Claude (ประมาณ 3 นาที)

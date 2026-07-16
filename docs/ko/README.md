@@ -16,6 +16,8 @@
 
 모든 호스트가 동일한 **Agent Skills 표준**(`SKILL.md`)을 사용하기 때문에, 어디에 설치하든 똑같이 동작합니다 — 그냥 `/dubbing`을 실행하거나 *"이 영상 더빙해줘"* 라고 말하면 됩니다 (또는 `/srt` — *"이 영상으로 영어 SRT 만들어줘"*).
 
+![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
+
 ---
 
 ## 🖥️ 가장 쉬운 방법 — Claude 데스크톱 앱 (약 3분)

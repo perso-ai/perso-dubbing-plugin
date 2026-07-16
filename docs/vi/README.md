@@ -16,6 +16,8 @@ Bên dưới, skill gọi Perso Dubbing API, vì vậy **cần có API key của
 
 Vì mọi host đều sử dụng chung **chuẩn Agent Skills** (`SKILL.md`), skill này hoạt động giống hệt nhau dù bạn cài đặt ở đâu — chỉ cần chạy `/dubbing` hoặc nói *"lồng tiếng video này giúp tôi"* (hoặc `/srt` — *"tạo phụ đề SRT tiếng Anh cho video này giúp tôi"*).
 
+![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
+
 ---
 
 ## 🖥️ Cách dễ nhất — ứng dụng desktop Claude (khoảng 3 phút)

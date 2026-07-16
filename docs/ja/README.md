@@ -16,6 +16,8 @@
 
 すべてのホストが同じ **Agent Skills** 標準（`SKILL.md`）を使用しているため、どこにインストールしても同じように動作します — `/dubbing` を実行するか、「この動画を吹き替えて」と言うだけです（または `/srt` — 「この動画の英語字幕を作って」）。
 
+![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
+
 ---
 
 ## 🖥️ 最も簡単な方法 — Claude デスクトップアプリ（約3分）

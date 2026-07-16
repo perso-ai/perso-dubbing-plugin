@@ -16,6 +16,8 @@ Im Hintergrund ruft sie die Perso Dubbing API auf, daher **wird ein Perso Dubbin
 
 Da jeder Host denselben **Agent Skills**-Standard (`SKILL.md`) verwendet, funktioniert sie überall identisch, egal wo du sie installierst — führe einfach `/dubbing` aus oder sage *„synchronisiere dieses Video für mich"* (oder `/srt` — *„erstelle mir ein englisches SRT für dieses Video"*).
 
+![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
+
 ---
 
 ## 🖥️ Der einfachste Weg — die Claude-Desktop-App (ca. 3 Minuten)
