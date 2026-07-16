@@ -3,20 +3,41 @@
   "owner": {
     "name": "Perso AI"
   },
-  "description": "Perso AI agent plugins — AI dubbing (video voice translation with lip-sync & audio separation).",
+  "description": "Perso AI agent plugins — AI dubbing (video voice translation with lip-sync & audio separation) and SRT subtitle extraction & translation.",
   "plugins": [
     {
       "name": "perso-dubbing",
-      "source": { "source": "npm", "package": "perso-dubbing" },
-      "description": "Auto-dub videos into other languages with lip-sync (Perso AI Dubbing), plus voice/background audio separation. Single files, folders, URLs, auto split & merge for long media, multi-language output, resume.",
-      "version": "0.5.0",
-      "author": { "name": "Perso AI" },
+      "source": {
+        "source": "npm",
+        "package": "perso-dubbing"
+      },
+      "description": "Auto-dub videos into other languages with lip-sync (Perso AI Dubbing), plus voice/background audio separation and SRT subtitle extraction & translation (/srt). Single files, folders, URLs, auto split & merge for long media, multi-language output, resume.",
+      "version": "0.6.0",
+      "author": {
+        "name": "Perso AI"
+      },
       "homepage": "https://github.com/perso-ai/perso-dubbing-plugin#readme",
       "repository": "https://github.com/perso-ai/perso-dubbing-plugin",
       "license": "MIT",
       "category": "media",
-      "keywords": ["dubbing", "video-translation", "lip-sync", "perso-ai", "media"],
-      "tags": ["dubbing", "video", "translation", "lip-sync", "audio"]
+      "keywords": [
+        "dubbing",
+        "video-translation",
+        "lip-sync",
+        "srt",
+        "subtitles",
+        "perso-ai",
+        "media"
+      ],
+      "tags": [
+        "dubbing",
+        "video",
+        "translation",
+        "lip-sync",
+        "audio",
+        "srt",
+        "subtitles"
+      ]
     }
   ]
 }

@@ -10,9 +10,11 @@
 
 A coding-agent skill that brings [Perso Dubbing](https://perso.ai/dubbing)'s **Dubbing (AI dubbing)** to your agent. It **auto-dubs** videos into other languages — a single file or a whole folder, and even oversized or very long media is automatically split, processed, and merged back together. It can also **lip-sync** the dubbed video and **separate voice from background audio**.
 
-It calls the Perso Dubbing API under the hood, so **a Perso Dubbing API key is required.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Get an API key</a>
+The package also ships **`/srt`** — a second skill that extracts **SRT subtitles** from a video/audio/URL via Perso's speech-to-text, then has your agent translate them into any languages you ask for (or hands you the original-language transcript as-is).
 
-Because every host uses the same **Agent Skills standard** (`SKILL.md`), it works identically wherever you install it — just run `/dubbing` or say *"dub this video for me."*
+It calls the Perso Dubbing API under the hood, so **a Perso Dubbing API key is required** (one key covers both skills). → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Get an API key</a>
+
+Because every host uses the same **Agent Skills standard** (`SKILL.md`), it works identically wherever you install it — just run `/dubbing` or say *"dub this video for me"* (or `/srt` — *"make me an English SRT for this video"*).
 
 ---
 
@@ -117,18 +119,18 @@ Already have the repo cloned? `node scripts/install.mjs` from the repo root does
 <details>
 <summary><b>🔧 Manual install</b></summary>
 
-Copy the skill folder into your host's skills directory under the name **`dubbing`**. From the repo root:
+Copy **both** skill folders into your host's skills directory, side by side (the `srt` skill imports the `dubbing` skill's libraries from the sibling folder). From the repo root:
 
 ```bash
 # macOS / Linux
-mkdir -p <skills_folder>/dubbing && cp -r skills/dubbing/* <skills_folder>/dubbing/
+mkdir -p <skills_folder> && cp -r skills/dubbing skills/srt <skills_folder>/
 ```
 
-> 💡 Windows (PowerShell): `New-Item -ItemType Directory -Force <skills_folder>\dubbing; Copy-Item .\skills\dubbing\* <skills_folder>\dubbing\ -Recurse`
+> 💡 Windows (PowerShell): `New-Item -ItemType Directory -Force <skills_folder>; Copy-Item .\skills\dubbing,.\skills\srt <skills_folder>\ -Recurse`
 
 </details>
 
-After installing, type **`/dubbing`** in your agent or just say **"dub this video for me"** to run it.
+After installing, type **`/dubbing`** in your agent or just say **"dub this video for me"** to run it — or **`/srt`** / **"make me an English SRT for this video"** for subtitles. (Every install method above installs both skills.)
 
 ---
 
@@ -155,6 +157,12 @@ npm run dub -- "clip.mp4" --target en --lipsync
 
 # Separate voice / background audio tracks (no dubbing)
 npm run dub -- "clip.mp4" --separate
+
+# Extract subtitles and have the agent translate them (/srt skill)
+npm run srt -- "clip.mp4" --target en,ja
+
+# Transcript only — original-language SRT, no translation
+npm run srt -- "clip.mp4" --transcribe-only
 ```
 
 *(Equivalent direct call: `node skills/dubbing/scripts/dubbing.mjs …` — or `node scripts/dubbing.mjs …` from inside an installed skill folder.)*
@@ -172,13 +180,13 @@ More questions? See the **[FAQ](FAQ.md)**.
 | `node` not found / install or run fails | The skill runs on **Node.js 18+** — check with `node -v`. If missing, install the LTS from <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>, or simply ask Claude in the session to install it for you, then restart the app. |
 | No API key yet | Just run any dubbing command — a key file opens automatically; paste your key and save (it's encrypted and the file is deleted). Manual check: `npm run key:check`. **Do not paste the key into the chat.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Get an API key</a> |
 | ffmpeg-related error | ffmpeg is normally installed automatically. If it fails, run `npm run doctor`. |
-| Stops midway (out of credits, crash, killed process) | Progress is saved to a `*.dubresume.json` state file throughout the run. Run the **`--resume "<state-file>"`** command shown in the notice to finish only the remaining parts (completed parts are skipped automatically). |
+| Stops midway (out of credits, crash, killed process) | Progress is saved to a state file throughout the run (`*.dubresume.json` for `/dubbing`, `*.srtresume.json` for `/srt`). Run the **`--resume "<state-file>"`** command shown in the notice to finish only the remaining parts (completed parts are skipped automatically). |
 
 ---
 
 ## Privacy & Telemetry
 
-`/dubbing` sends **anonymous** usage events to improve the skill — for example, which action ran (dub / lip-sync / separate), whether it succeeded, the language pair, app version, and OS. It is tagged only with a random per-install ID and never includes your API key, file names or media content, account/email, or workspace IDs.
+`/dubbing` and `/srt` send **anonymous** usage events to improve the skills — for example, which action ran (dub / lip-sync / separate / subtitle extraction), whether it succeeded, the language pair, media length, app version, and OS. They are tagged only with a random per-install ID and never include your API key, file names or media content, account/email, or workspace IDs. Opt out anytime with the `PERSO_NO_TELEMETRY` environment variable.
 
 ---
 
@@ -189,7 +197,8 @@ More questions? See the **[FAQ](FAQ.md)**.
 .codex-plugin/     Codex plugin manifest
 .cursor-plugin/    Cursor plugin manifest
 docs/              GitHub Pages landing + translated README · FAQ (12 languages)
-skills/dubbing/    The skill itself (SKILL.md · lib/ · scripts/) — self-contained
+skills/dubbing/    The dubbing skill (SKILL.md · lib/ · scripts/) — self-contained
+skills/srt/        The SRT subtitle skill (SKILL.md · scripts/) — uses the dubbing skill's lib/
 scripts/           Repo-level installer (install.mjs)
 ```
 

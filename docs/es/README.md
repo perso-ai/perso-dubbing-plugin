@@ -10,9 +10,11 @@
 
 Una skill para agentes de programación que lleva el **Doblaje (doblaje con IA)** de [Perso AI](https://perso.ai) a tu agente. **Dobla automáticamente** vídeos a otros idiomas —un solo archivo o una carpeta entera—, e incluso los archivos demasiado grandes o muy largos se dividen, se procesan y se vuelven a unir automáticamente. También puede **sincronizar los labios** del vídeo doblado y **separar la voz del audio de fondo**.
 
-Por debajo llama a la API de Doblaje de Perso, así que **se necesita una clave de API de Perso Dubbing.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Consigue una clave de API</a>
+El paquete también incluye **`/srt`** — una segunda skill que extrae **subtítulos SRT** de un vídeo, audio o URL mediante el reconocimiento de voz de Perso, y luego hace que tu agente los traduzca a los idiomas que le pidas (o te entrega la transcripción en el idioma original tal cual).
 
-Como todos los hosts usan el mismo estándar de **Agent Skills** (`SKILL.md`), funciona igual dondequiera que lo instales: solo ejecuta `/dubbing` o di *«dóblame este vídeo»*.
+Por debajo llama a la API de Doblaje de Perso, así que **se necesita una clave de API de Perso Dubbing** (una misma clave cubre ambas skills). → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Consigue una clave de API</a>
+
+Como todos los hosts usan el mismo estándar de **Agent Skills** (`SKILL.md`), funciona igual dondequiera que lo instales: solo ejecuta `/dubbing` o di *«dóblame este vídeo»* (o `/srt` — *«hazme un SRT en inglés de este vídeo»*).
 
 ---
 
@@ -117,18 +119,18 @@ npx perso-dubbing
 <details>
 <summary><b>🔧 Instalación manual</b></summary>
 
-Copia la carpeta de la skill en el directorio de skills de tu host con el nombre **`dubbing`**. Desde la raíz del repositorio:
+Copia **ambas** carpetas de skills en el directorio de skills de tu host, una junto a la otra (la skill `srt` importa las librerías de la skill `dubbing` desde la carpeta hermana). Desde la raíz del repositorio:
 
 ```bash
 # macOS / Linux
-mkdir -p <skills_folder>/dubbing && cp -r skills/dubbing/* <skills_folder>/dubbing/
+mkdir -p <skills_folder> && cp -r skills/dubbing skills/srt <skills_folder>/
 ```
 
-> 💡 Windows (PowerShell): `New-Item -ItemType Directory -Force <skills_folder>\dubbing; Copy-Item .\skills\dubbing\* <skills_folder>\dubbing\ -Recurse`
+> 💡 Windows (PowerShell): `New-Item -ItemType Directory -Force <skills_folder>; Copy-Item .\skills\dubbing,.\skills\srt <skills_folder>\ -Recurse`
 
 </details>
 
-Tras instalar, escribe **`/dubbing`** en tu agente o simplemente di **«dóblame este vídeo»** para ejecutarlo.
+Tras instalar, escribe **`/dubbing`** en tu agente o simplemente di **«dóblame este vídeo»** para ejecutarlo — o **`/srt`** / **«hazme un SRT en inglés de este vídeo»** para subtítulos. (Todos los métodos de instalación anteriores instalan ambas skills.)
 
 ---
 
@@ -155,6 +157,12 @@ npm run dub -- "clip.mp4" --target en --lipsync
 
 # Separar pistas de voz / audio de fondo (sin doblaje)
 npm run dub -- "clip.mp4" --separate
+
+# Extraer subtítulos y hacer que el agente los traduzca (skill /srt)
+npm run srt -- "clip.mp4" --target en,ja
+
+# Solo transcripción — SRT en el idioma original, sin traducción
+npm run srt -- "clip.mp4" --transcribe-only
 ```
 
 *(Llamada directa equivalente: `node skills/dubbing/scripts/dubbing.mjs …` — o `node scripts/dubbing.mjs …` desde dentro de una carpeta de skill instalada.)*
@@ -172,7 +180,7 @@ npm run dub -- "clip.mp4" --separate
 | `node` no encontrado / falla la instalación o la ejecución | La skill se ejecuta con **Node.js 18+** — compruébalo con `node -v`. Si falta, instala la LTS desde <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>, o pídele a Claude en la sesión que lo instale por ti y reinicia la app. |
 | Aún no tienes clave de API | Simplemente ejecuta cualquier comando de doblaje: se abre un archivo de clave automáticamente; pega tu clave y guarda (se cifra y el archivo se elimina). Comprobación manual: `npm run key:check`. **No pegues la clave en el chat.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Consigue una clave de API</a> |
 | Error relacionado con ffmpeg | ffmpeg normalmente se instala solo. Si falla, ejecuta `npm run doctor`. |
-| Se detiene a mitad (sin créditos, fallo, proceso terminado) | El progreso se guarda en un archivo de estado `*.dubresume.json` durante toda la ejecución. Ejecuta el comando **`--resume "<state-file>"`** que aparece en el aviso para terminar solo las partes restantes (las completadas se omiten automáticamente). |
+| Se detiene a mitad (sin créditos, fallo, proceso terminado) | El progreso se guarda en un archivo de estado durante toda la ejecución (`*.dubresume.json` para `/dubbing`, `*.srtresume.json` para `/srt`). Ejecuta el comando **`--resume "<state-file>"`** que aparece en el aviso para terminar solo las partes restantes (las completadas se omiten automáticamente). |
 
 ---
 
@@ -183,13 +191,14 @@ npm run dub -- "clip.mp4" --separate
 .codex-plugin/     Manifiesto de plugin de Codex
 .cursor-plugin/    Manifiesto de plugin de Cursor
 docs/              Landing de GitHub Pages + README y FAQ traducidos (12 idiomas)
-skills/dubbing/    La skill en sí (SKILL.md · lib/ · scripts/) — autónoma
+skills/dubbing/    La skill de doblaje (SKILL.md · lib/ · scripts/) — autónoma
+skills/srt/        La skill de subtítulos SRT (SKILL.md · scripts/) — usa el lib/ de la skill de doblaje
 scripts/           Instalador a nivel de repositorio (install.mjs)
 ```
 
 ## Privacidad y telemetría
 
-Para mejorar la skill, `/dubbing` envía eventos de uso **anónimos** —por ejemplo, qué acción se ejecutó (doblaje / sincronización labial / separación), si tuvo éxito, el par de idiomas, la versión de la app y el sistema operativo. Se etiqueta únicamente con un ID aleatorio por instalación y nunca incluye tu clave de API, nombres de archivo ni contenido multimedia, cuenta/correo, ni IDs de espacio de trabajo.
+`/dubbing` y `/srt` envían eventos de uso **anónimos** para mejorar las skills — por ejemplo, qué acción se ejecutó (doblaje / sincronización labial / separación / extracción de subtítulos), si tuvo éxito, el par de idiomas, la duración del contenido multimedia, la versión de la app y el sistema operativo. Se etiquetan únicamente con un ID aleatorio por instalación y nunca incluyen tu clave de API, nombres de archivo ni contenido multimedia, cuenta/correo, ni IDs de espacio de trabajo. Puedes desactivar esto en cualquier momento con la variable de entorno `PERSO_NO_TELEMETRY`.
 
 ## Licencia
 

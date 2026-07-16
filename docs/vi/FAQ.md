@@ -2,7 +2,7 @@
 
 [English](../../FAQ.md) ｜ [한국어](../ko/FAQ.md) ｜ [Español](../es/FAQ.md) ｜ [Português](../pt/FAQ.md) ｜ [Русский](../ru/FAQ.md) ｜ [Bahasa Indonesia](../id/FAQ.md) ｜ [Deutsch](../de/FAQ.md) ｜ [ไทย](../th/FAQ.md) ｜ [日本語](../ja/FAQ.md) ｜ [繁體中文](../zh-TW/FAQ.md) ｜ [简体中文](../zh-CN/FAQ.md) ｜ **Tiếng Việt** ｜ [Français](../fr/FAQ.md)
 
-Các câu hỏi thường gặp về skill `/dubbing`. Để biết cách cài đặt và sử dụng, xem [README](README.md).
+Các câu hỏi thường gặp về các skill `/dubbing` và `/srt`. Để biết cách cài đặt và sử dụng, xem [README](README.md).
 
 ### Tôi cần gì để sử dụng?
 
@@ -36,9 +36,13 @@ Mặc định là cạnh video gốc, hoặc trong thư mục bạn chỉ địn
 
 Tính năng này tách nguồn thành các track giọng nói / âm thanh nền / âm thanh nền phụ — không liên quan đến lồng tiếng. Thêm `--separate`.
 
+### Nó có thể tạo phụ đề (SRT) thay vì lồng tiếng không?
+
+Có — gói này còn cài đặt thêm skill **`/srt`**. Skill này trích xuất phụ đề ở ngôn ngữ gốc từ video/audio/URL thông qua công nghệ speech-to-text của Perso, sau đó agent của bạn sẽ dịch chúng sang các ngôn ngữ bạn yêu cầu (lưu dưới dạng `<name>_<lang>_Subtitle.srt` cạnh tệp gốc). Chỉ muốn bản ghi thôi? Cứ nói vậy và chạy với `--transcribe-only` — không dịch. Mỗi lần trích xuất phụ đề tốn credit tỷ lệ với thời lượng media (theo từng ngôn ngữ).
+
 ### Quá trình dừng giữa chừng (hết credit, gặp lỗi, hoặc shell bị kill). Giờ phải làm sao?
 
-Tiến trình được lưu vào tệp trạng thái `*.dubresume.json` trong suốt quá trình chạy. Chạy lại lệnh `--resume "<state-file>"` được in ra để chỉ hoàn tất các phần còn lại — các phần đã hoàn thành sẽ được bỏ qua và không bao giờ bị tính phí lại.
+Tiến trình được lưu vào một tệp trạng thái trong suốt quá trình chạy (`*.dubresume.json` cho `/dubbing`, `*.srtresume.json` cho `/srt`). Chạy lại lệnh `--resume "<state-file>"` được in ra để chỉ hoàn tất các phần còn lại — các phần đã hoàn thành sẽ được bỏ qua và không bao giờ bị tính phí lại.
 
 ### Tôi đã hết credit. Làm thế nào để nạp thêm?
 

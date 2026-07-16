@@ -1,0 +1,7 @@
+interface:
+  display_name: "Perso AI Subtitles (SRT)"
+  short_description: "Extract video/audio subtitles as SRT and translate them (Perso AI)."
+  default_prompt: "Make me an English SRT for this video."
+
+policy:
+  allow_implicit_invocation: true

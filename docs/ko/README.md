@@ -10,9 +10,11 @@
 
 [Perso AI](https://perso.ai)의 **더빙(AI 더빙)** 기능을 여러분의 에이전트로 가져오는 코딩 에이전트 스킬입니다. 영상을 다른 언어로 **자동 더빙**하며 — 파일 하나든 폴더 전체든, 심지어 용량이 크거나 아주 긴 영상도 자동으로 분할·처리한 뒤 다시 하나로 합쳐줍니다. 더빙된 영상에 **립싱크**를 입히거나 **음성과 배경음을 분리**하는 것도 가능합니다.
 
-내부적으로 Perso Dubbing API를 호출하므로 **Perso Dubbing API 키가 필요합니다.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">API 키 발급받기</a>
+이 패키지에는 **`/srt`** 도 함께 들어 있습니다 — 영상/오디오/URL에서 Perso의 음성 인식으로 **SRT 자막**을 추출한 뒤, 에이전트가 원하는 언어로 번역해 주는 두 번째 스킬입니다(또는 번역 없이 원본 언어 그대로의 대본을 받을 수도 있습니다).
 
-모든 호스트가 동일한 **Agent Skills 표준**(`SKILL.md`)을 사용하기 때문에, 어디에 설치하든 똑같이 동작합니다 — 그냥 `/dubbing`을 실행하거나 *"이 영상 더빙해줘"* 라고 말하면 됩니다.
+내부적으로 Perso Dubbing API를 호출하므로 **Perso Dubbing API 키가 필요합니다** (하나의 키로 두 스킬 모두 사용할 수 있습니다). → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">API 키 발급받기</a>
+
+모든 호스트가 동일한 **Agent Skills 표준**(`SKILL.md`)을 사용하기 때문에, 어디에 설치하든 똑같이 동작합니다 — 그냥 `/dubbing`을 실행하거나 *"이 영상 더빙해줘"* 라고 말하면 됩니다 (또는 `/srt` — *"이 영상으로 영어 SRT 만들어줘"*).
 
 ---
 
@@ -117,18 +119,18 @@ npx perso-dubbing
 <details>
 <summary><b>🔧 수동 설치</b></summary>
 
-스킬 폴더를 호스트의 스킬 디렉터리에 **`dubbing`** 이라는 이름으로 복사하세요. 저장소 루트에서:
+**두 스킬 폴더 모두**를 호스트의 스킬 디렉터리에 나란히 복사하세요(`srt` 스킬이 인접 폴더에서 `dubbing` 스킬의 라이브러리를 불러와 사용합니다). 저장소 루트에서:
 
 ```bash
 # macOS / Linux
-mkdir -p <skills_folder>/dubbing && cp -r skills/dubbing/* <skills_folder>/dubbing/
+mkdir -p <skills_folder> && cp -r skills/dubbing skills/srt <skills_folder>/
 ```
 
-> 💡 Windows (PowerShell): `New-Item -ItemType Directory -Force <skills_folder>\dubbing; Copy-Item .\skills\dubbing\* <skills_folder>\dubbing\ -Recurse`
+> 💡 Windows (PowerShell): `New-Item -ItemType Directory -Force <skills_folder>; Copy-Item .\skills\dubbing,.\skills\srt <skills_folder>\ -Recurse`
 
 </details>
 
-설치 후 에이전트에 **`/dubbing`** 이라고 입력하거나 **"이 영상 더빙해줘"** 라고 말하면 실행됩니다.
+설치 후 에이전트에 **`/dubbing`** 이라고 입력하거나 **"이 영상 더빙해줘"** 라고 말하면 실행됩니다 — 자막이 필요하다면 **`/srt`** / **"이 영상으로 영어 SRT 만들어줘"** 라고 하세요. (위의 모든 설치 방법은 두 스킬을 모두 설치합니다.)
 
 ---
 
@@ -155,6 +157,12 @@ npm run dub -- "clip.mp4" --target en --lipsync
 
 # 음성 / 배경음 트랙 분리 (더빙 없음)
 npm run dub -- "clip.mp4" --separate
+
+# 자막을 추출하고 에이전트가 번역까지 수행 (/srt 스킬)
+npm run srt -- "clip.mp4" --target en,ja
+
+# 대본만 추출 — 원본 언어 SRT, 번역 없음
+npm run srt -- "clip.mp4" --transcribe-only
 ```
 
 *(동일한 직접 호출: `node skills/dubbing/scripts/dubbing.mjs …` — 또는 설치된 스킬 폴더 안에서 `node scripts/dubbing.mjs …`)*
@@ -172,7 +180,7 @@ npm run dub -- "clip.mp4" --separate
 | `node`를 찾을 수 없음 / 설치·실행 실패 | 스킬은 **Node.js 18+** 에서 동작합니다 — `node -v`로 확인하세요. 없으면 <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>에서 LTS를 설치하거나, 세션에서 Claude에게 설치를 요청한 뒤 앱을 재시작하세요. |
 | 아직 API 키가 없음 | 아무 더빙 명령이나 실행하면 키 파일이 자동으로 열립니다; 키를 붙여넣고 저장하세요(암호화되고 파일은 삭제됩니다). 수동 확인: `npm run key:check`. **키를 채팅에 붙여넣지 마세요.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">API 키 발급</a> |
 | ffmpeg 관련 오류 | ffmpeg는 보통 자동으로 설치됩니다. 실패하면 `npm run doctor`를 실행하세요. |
-| 중간에 멈춤 (크레딧 소진, 크래시, 프로세스 종료) | 실행 내내 진행 상태가 `*.dubresume.json` 상태 파일에 저장됩니다. 안내에 표시된 **`--resume "<state-file>"`** 명령을 실행하면 남은 부분만 이어서 처리합니다(완료된 부분은 자동으로 건너뜁니다). |
+| 중간에 멈춤 (크레딧 소진, 크래시, 프로세스 종료) | 실행 내내 진행 상태가 상태 파일에 저장됩니다 (`/dubbing`은 `*.dubresume.json`, `/srt`는 `*.srtresume.json`). 안내에 표시된 **`--resume "<state-file>"`** 명령을 실행하면 남은 부분만 이어서 처리합니다(완료된 부분은 자동으로 건너뜁니다). |
 
 ---
 
@@ -183,13 +191,14 @@ npm run dub -- "clip.mp4" --separate
 .codex-plugin/     Codex 플러그인 매니페스트
 .cursor-plugin/    Cursor 플러그인 매니페스트
 docs/              GitHub Pages 랜딩 + 번역된 README · FAQ (12개 언어)
-skills/dubbing/    스킬 본체 (SKILL.md · lib/ · scripts/) — 자체 완결형
+skills/dubbing/    더빙 스킬 본체 (SKILL.md · lib/ · scripts/) — 자체 완결형
+skills/srt/        SRT 자막 스킬 (SKILL.md · scripts/) — dubbing 스킬의 lib/를 사용
 scripts/           저장소 레벨 설치 스크립트 (install.mjs)
 ```
 
 ## 개인정보 & 텔레메트리
 
-`/dubbing`은 스킬 개선을 위해 **익명** 사용 이벤트를 전송합니다 — 예: 어떤 동작을 실행했는지(더빙 / 립싱크 / 분리), 성공 여부, 언어 쌍, 앱 버전, OS. 설치별 랜덤 ID로만 태깅되며, API 키·파일명이나 미디어 내용·계정/이메일·워크스페이스 ID는 절대 포함하지 않습니다.
+`/dubbing`과 `/srt`는 스킬 개선을 위해 **익명** 사용 이벤트를 전송합니다 — 예: 어떤 동작을 실행했는지(더빙 / 립싱크 / 분리 / 자막 추출), 성공 여부, 언어 쌍, 미디어 길이, 앱 버전, OS. 설치별 랜덤 ID로만 태깅되며, API 키·파일명이나 미디어 내용·계정/이메일·워크스페이스 ID는 절대 포함하지 않습니다. `PERSO_NO_TELEMETRY` 환경 변수로 언제든지 옵트아웃할 수 있습니다.
 
 ## 라이선스
 

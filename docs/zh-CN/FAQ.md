@@ -2,7 +2,7 @@
 
 [English](../../FAQ.md) ｜ [한국어](../ko/FAQ.md) ｜ [Español](../es/FAQ.md) ｜ [Português](../pt/FAQ.md) ｜ [Русский](../ru/FAQ.md) ｜ [Bahasa Indonesia](../id/FAQ.md) ｜ [Deutsch](../de/FAQ.md) ｜ [ไทย](../th/FAQ.md) ｜ [日本語](../ja/FAQ.md) ｜ [繁體中文](../zh-TW/FAQ.md) ｜ **简体中文** ｜ [Tiếng Việt](../vi/FAQ.md) ｜ [Français](../fr/FAQ.md)
 
-关于 `/dubbing` 技能的常见问题。安装与使用方法请参见 [README](README.md)。
+关于 `/dubbing` 和 `/srt` 技能的常见问题。安装与使用方法请参见 [README](README.md)。
 
 ### 使用它需要什么条件？
 
@@ -36,9 +36,13 @@ Node.js 18+ 和一个 Perso Dubbing API 密钥。安装该技能后，直接说*
 
 它会将源文件拆分为人声 / 背景 / 次背景音轨，不涉及配音处理。添加 `--separate` 即可启用。
 
+### 能不能只生成字幕（SRT），而不是配音？
+
+可以——该软件包还安装了 **`/srt`** 技能。它会通过 Perso 的语音转文字功能，从视频/音频/URL 中提取原始语言的字幕，然后由你的智能体将其翻译成你所需要的语言（保存为原文件旁的 `<name>_<lang>_Subtitle.srt`）。只想要转录文本？直接说明即可，它会以 `--transcribe-only` 运行——不做翻译。每次字幕提取消耗的积分与媒体时长成正比（按语言分别计算）。
+
 ### 运行到一半停止了（积分不足、崩溃，或 shell 被终止）。该怎么办？
 
-运行过程中，进度会持续保存到 `*.dubresume.json` 状态文件中。重新运行提示中给出的 `--resume "<state-file>"` 命令，即可仅完成剩余部分——已完成的部分会被跳过，且不会重复计费。
+运行过程中，进度会持续保存到状态文件中（`/dubbing` 对应 `*.dubresume.json`，`/srt` 对应 `*.srtresume.json`）。重新运行提示中给出的 `--resume "<state-file>"` 命令，即可仅完成剩余部分——已完成的部分会被跳过，且不会重复计费。
 
 ### 我的积分用完了，该怎么充值？
 

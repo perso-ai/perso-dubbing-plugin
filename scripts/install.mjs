@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// One-click install: copy the dubbing skill into the skills folder of every detected host.
+// One-click install: copy every skill into the skills folder of every detected host.
 //   npx github:perso-ai/perso-dubbing-plugin        → auto-install to hosts that have a config folder
 //   node scripts/install.mjs --all                                 → all hosts
 //   ... --claude | --antigravity | --codex | --cursor              → specific hosts only
@@ -10,8 +10,12 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url))); // package root (= parent of scripts/)
-const SRC = join(ROOT, 'skills', 'dubbing'); // skill payload → installs under the name 'dubbing' (→ /dubbing)
-const ITEMS = ['SKILL.md', 'lib', 'scripts', 'agents'];
+// Skill payloads → each installs under its own name (→ /dubbing, /srt). They must land side by side:
+// the srt worker imports the dubbing skill's lib via the sibling folder.
+const SKILLS = {
+  dubbing: ['SKILL.md', 'lib', 'scripts', 'agents'],
+  srt: ['SKILL.md', 'scripts', 'agents'],
+};
 
 const args = process.argv.slice(2);
 const baseDir = args.includes('--project') ? process.cwd() : homedir();
@@ -43,16 +47,19 @@ if (!targets.length) {
 const pkg = JSON.parse(await readFile(join(ROOT, 'package.json'), 'utf8'));
 const miniPkg = JSON.stringify({ name: pkg.name, version: pkg.version, description: pkg.description, type: 'module', license: pkg.license }, null, 2);
 
-const dests = [...new Set(targets.flatMap((h) => HOSTS[h].dests))].map((d) => join(baseDir, d, 'dubbing'));
-for (const dest of dests) {
-  await mkdir(dest, { recursive: true });
-  for (const item of ITEMS) {
-    await cp(join(SRC, item), join(dest, item), { recursive: true, force: true }).catch(() => {});
+const roots = [...new Set(targets.flatMap((h) => HOSTS[h].dests))].map((d) => join(baseDir, d));
+for (const root of roots) {
+  for (const [skill, items] of Object.entries(SKILLS)) {
+    const dest = join(root, skill);
+    await mkdir(dest, { recursive: true });
+    for (const item of items) {
+      await cp(join(ROOT, 'skills', skill, item), join(dest, item), { recursive: true, force: true }).catch(() => {});
+    }
+    for (const doc of ['README.md', 'LICENSE']) {
+      await cp(join(ROOT, doc), join(dest, doc), { force: true }).catch(() => {});
+    }
+    await writeFile(join(dest, 'package.json'), miniPkg + '\n', 'utf8').catch(() => {});
+    console.log(`✅ ${dest}`);
   }
-  for (const doc of ['README.md', 'LICENSE']) {
-    await cp(join(ROOT, doc), join(dest, doc), { force: true }).catch(() => {});
-  }
-  await writeFile(join(dest, 'package.json'), miniPkg + '\n', 'utf8').catch(() => {});
-  console.log(`✅ ${dest}`);
 }
-console.log('\nInstalled! Use it in your agent with  /dubbing  or just  "dub this video for me".');
+console.log('\nInstalled! Use  /dubbing  ("dub this video for me")  or  /srt  ("make me an English SRT for this video").');

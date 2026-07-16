@@ -10,9 +10,11 @@
 
 這是一款編碼代理（coding-agent）技能，將 [Perso AI](https://perso.ai) 的**配音（AI 配音）**功能帶入你的代理程式。它能將影片**自動配音**成其他語言——單一檔案或整個資料夾皆可，即使是過大或過長的媒體檔案，也會自動分割、處理後再合併回來。它還能為配音後的影片**進行對嘴（lip-sync）**，並能**將人聲從背景音訊中分離**。
 
-它在幕後呼叫 Perso Dubbing API，因此**需要一組 Perso Dubbing API 金鑰。** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">取得 API 金鑰</a>
+此套件還包含 **`/srt`**——第二個技能，可透過 Perso 的語音轉文字技術，從影片／音訊／網址中擷取 **SRT 字幕**，接著由你的代理程式將字幕翻譯成你指定的任何語言（或者直接提供原始語言的逐字稿）。
 
-由於每個宿主環境都採用相同的 **Agent Skills 標準**（`SKILL.md`），無論安裝在哪裡，使用方式都一樣——只要執行 `/dubbing`，或直接說「幫我配音這個影片」即可。
+它在幕後呼叫 Perso Dubbing API，因此**需要一組 Perso Dubbing API 金鑰**（一組金鑰可同時用於兩個技能）。 → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">取得 API 金鑰</a>
+
+由於每個宿主環境都採用相同的 **Agent Skills 標準**（`SKILL.md`），無論安裝在哪裡，使用方式都一樣——只要執行 `/dubbing`，或直接說「幫我配音這個影片」即可（或執行 `/srt`——說「幫我做一份這個影片的英文 SRT 字幕」）。
 
 ---
 
@@ -117,18 +119,18 @@ npx perso-dubbing
 <details>
 <summary><b>🔧 手動安裝</b></summary>
 
-將技能資料夾複製到你的宿主環境的技能目錄下，並命名為 **`dubbing`**。從儲存庫根目錄執行：
+請將**兩個**技能資料夾一併複製到你的宿主環境的技能目錄下（`srt` 技能會從旁邊的資料夾匯入 `dubbing` 技能的函式庫）。從儲存庫根目錄執行：
 
 ```bash
 # macOS / Linux
-mkdir -p <skills_folder>/dubbing && cp -r skills/dubbing/* <skills_folder>/dubbing/
+mkdir -p <skills_folder> && cp -r skills/dubbing skills/srt <skills_folder>/
 ```
 
-> 💡 Windows（PowerShell）：`New-Item -ItemType Directory -Force <skills_folder>\dubbing; Copy-Item .\skills\dubbing\* <skills_folder>\dubbing\ -Recurse`
+> 💡 Windows（PowerShell）：`New-Item -ItemType Directory -Force <skills_folder>; Copy-Item .\skills\dubbing,.\skills\srt <skills_folder>\ -Recurse`
 
 </details>
 
-安裝完成後，在你的代理程式中輸入 **`/dubbing`**，或直接說**「幫我配音這個影片」**即可執行。
+安裝完成後，在你的代理程式中輸入 **`/dubbing`**，或直接說**「幫我配音這個影片」**即可執行——若要製作字幕，則輸入 **`/srt`** 或說**「幫我做一份這個影片的英文 SRT 字幕」**。（以上每種安裝方式都會同時安裝兩個技能。）
 
 ---
 
@@ -155,6 +157,12 @@ npm run dub -- "clip.mp4" --target en --lipsync
 
 # 分離人聲／背景音訊軌（不進行配音）
 npm run dub -- "clip.mp4" --separate
+
+# 擷取字幕並由代理程式進行翻譯（/srt 技能）
+npm run srt -- "clip.mp4" --target en,ja
+
+# 僅擷取逐字稿——原始語言 SRT，不進行翻譯
+npm run srt -- "clip.mp4" --transcribe-only
 ```
 
 *（等效的直接呼叫方式：`node skills/dubbing/scripts/dubbing.mjs …`——若在已安裝的技能資料夾內，則為 `node scripts/dubbing.mjs …`。）*
@@ -172,13 +180,13 @@ npm run dub -- "clip.mp4" --separate
 | 找不到 `node`／安裝或執行失敗 | 此技能需要 **Node.js 18+** 才能執行——可用 `node -v` 確認版本。若尚未安裝，請至 <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a> 下載 LTS 版本，或直接在工作階段中請 Claude 幫你安裝，再重新啟動應用程式。 |
 | 尚未設定 API 金鑰 | 只要執行任一配音指令，就會自動開啟金鑰檔案；貼上你的金鑰並儲存即可（會自動加密，且檔案隨後會被刪除）。手動檢查方式：`npm run key:check`。**請勿將金鑰貼到聊天視窗中。** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">取得 API 金鑰</a> |
 | ffmpeg 相關錯誤 | ffmpeg 通常會自動安裝。若安裝失敗，請執行 `npm run doctor`。 |
-| 執行到一半中止（點數用盡、當機、程序被終止） | 執行過程中，進度會持續儲存至 `*.dubresume.json` 狀態檔案中。請執行提示訊息中顯示的 **`--resume "<state-file>"`** 指令，僅完成剩餘的部分（已完成的部分會自動略過）。 |
+| 執行到一半中止（點數用盡、當機、程序被終止） | 執行過程中，進度會持續儲存至狀態檔案中（`/dubbing` 為 `*.dubresume.json`，`/srt` 為 `*.srtresume.json`）。請執行提示訊息中顯示的 **`--resume "<state-file>"`** 指令，僅完成剩餘的部分（已完成的部分會自動略過）。 |
 
 ---
 
 ## 隱私權與遙測
 
-`/dubbing` 會傳送**匿名**使用事件以協助改善此技能——例如執行了哪個動作（配音／對嘴／分離）、是否成功、語言配對、應用程式版本以及作業系統。這些資料僅以隨機產生的每次安裝專屬 ID 標記，絕不包含你的 API 金鑰、檔案名稱或媒體內容、帳號／電子郵件，或工作區 ID。
+`/dubbing` 與 `/srt` 會傳送**匿名**使用事件以協助改善這些技能——例如執行了哪個動作（配音／對嘴／分離／字幕擷取）、是否成功、語言配對、媒體長度、應用程式版本以及作業系統。這些資料僅以隨機產生的每次安裝專屬 ID 標記，絕不包含你的 API 金鑰、檔案名稱或媒體內容、帳號／電子郵件，或工作區 ID。可隨時透過 `PERSO_NO_TELEMETRY` 環境變數選擇停用。
 
 ---
 
@@ -189,7 +197,8 @@ npm run dub -- "clip.mp4" --separate
 .codex-plugin/     Codex 外掛程式清單
 .cursor-plugin/    Cursor 外掛程式清單
 docs/              GitHub Pages 到達頁 + 多語言 README·FAQ（12 種語言）
-skills/dubbing/    技能本體（SKILL.md · lib/ · scripts/）— 自成一體
+skills/dubbing/    配音技能（SKILL.md · lib/ · scripts/）— 自成一體
+skills/srt/        SRT 字幕技能（SKILL.md · scripts/）— 使用 dubbing 技能的 lib/
 scripts/           儲存庫層級的安裝程式（install.mjs）
 ```
 

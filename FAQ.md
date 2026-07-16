@@ -2,7 +2,7 @@
 
 **English** ｜ [한국어](docs/ko/FAQ.md) ｜ [Español](docs/es/FAQ.md) ｜ [Português](docs/pt/FAQ.md) ｜ [Русский](docs/ru/FAQ.md) ｜ [Bahasa Indonesia](docs/id/FAQ.md) ｜ [Deutsch](docs/de/FAQ.md) ｜ [ไทย](docs/th/FAQ.md) ｜ [日本語](docs/ja/FAQ.md) ｜ [繁體中文](docs/zh-TW/FAQ.md) ｜ [简体中文](docs/zh-CN/FAQ.md) ｜ [Tiếng Việt](docs/vi/FAQ.md) ｜ [Français](docs/fr/FAQ.md)
 
-Common questions about the `/dubbing` skill. For setup and usage, see the [README](README.md).
+Common questions about the `/dubbing` and `/srt` skills. For setup and usage, see the [README](README.md).
 
 ### What do I need to use it?
 
@@ -36,9 +36,13 @@ It matches the mouth movements to the dubbed audio. It runs after dubbing, works
 
 It splits the source into voice / background / sub-background tracks — no dubbing involved. Add `--separate`.
 
+### Can it make subtitles (SRT) instead of dubbing?
+
+Yes — the package also installs the **`/srt`** skill. It extracts the original-language subtitles from a video/audio/URL via Perso's speech-to-text, and your agent then translates them into the languages you ask for (saved as `<name>_<lang>_Subtitle.srt` next to the original). Want just the transcript? Say so and it runs with `--transcribe-only` — no translation. Each subtitle extraction consumes credits in proportion to the media length (per language).
+
 ### It stopped midway (out of credits, a crash, or a killed shell). Now what?
 
-Progress is saved to a `*.dubresume.json` state file throughout the run. Re-run the printed `--resume "<state-file>"` command to finish only the remaining parts — completed parts are skipped and never re-billed.
+Progress is saved to a state file throughout the run (`*.dubresume.json` for `/dubbing`, `*.srtresume.json` for `/srt`). Re-run the printed `--resume "<state-file>"` command to finish only the remaining parts — completed parts are skipped and never re-billed.
 
 ### I ran out of credits. How do I top up?
 

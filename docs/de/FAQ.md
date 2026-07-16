@@ -2,7 +2,7 @@
 
 [English](../../FAQ.md) ｜ [한국어](../ko/FAQ.md) ｜ [Español](../es/FAQ.md) ｜ [Português](../pt/FAQ.md) ｜ [Русский](../ru/FAQ.md) ｜ [Bahasa Indonesia](../id/FAQ.md) ｜ **Deutsch** ｜ [ไทย](../th/FAQ.md) ｜ [日本語](../ja/FAQ.md) ｜ [繁體中文](../zh-TW/FAQ.md) ｜ [简体中文](../zh-CN/FAQ.md) ｜ [Tiếng Việt](../vi/FAQ.md) ｜ [Français](../fr/FAQ.md)
 
-Häufig gestellte Fragen zur `/dubbing`-Skill. Informationen zu Einrichtung und Nutzung findest du im [README](README.md).
+Häufig gestellte Fragen zu den `/dubbing`- und `/srt`-Skills. Informationen zu Einrichtung und Nutzung findest du im [README](README.md).
 
 ### Was brauche ich, um sie zu nutzen?
 
@@ -36,9 +36,13 @@ Sie passt die Mundbewegungen an das synchronisierte Audio an. Sie läuft nach de
 
 Sie teilt die Quelle in Stimme / Hintergrund / Sub-Hintergrund-Spuren auf — ohne Synchronisation. Füge `--separate` hinzu.
 
+### Kann sie auch Untertitel (SRT) statt Synchronisation erstellen?
+
+Ja — das Paket installiert außerdem die **`/srt`**-Skill. Sie extrahiert die Untertitel in der Originalsprache aus einem Video, einer Audiodatei oder einer URL per Perso-Speech-to-Text, und dein Agent übersetzt sie anschließend in die gewünschten Sprachen (gespeichert als `<name>_<lang>_Subtitle.srt` neben dem Original). Du willst nur das Transkript? Sag das einfach, dann läuft sie mit `--transcribe-only` — ohne Übersetzung. Jede Untertitel-Extraktion verbraucht Credits proportional zur Medienlänge (pro Sprache).
+
 ### Sie hat mittendrin gestoppt (Credits aufgebraucht, ein Absturz oder eine abgebrochene Shell). Was jetzt?
 
-Der Fortschritt wird während des gesamten Laufs in einer Zustandsdatei `*.dubresume.json` gespeichert. Führe den ausgegebenen Befehl `--resume "<state-file>"` erneut aus, um nur die verbleibenden Teile fertigzustellen — abgeschlossene Teile werden übersprungen und nie erneut berechnet.
+Der Fortschritt wird während des gesamten Laufs in einer Zustandsdatei gespeichert (`*.dubresume.json` für `/dubbing`, `*.srtresume.json` für `/srt`). Führe den ausgegebenen Befehl `--resume "<state-file>"` erneut aus, um nur die verbleibenden Teile fertigzustellen — abgeschlossene Teile werden übersprungen und nie erneut berechnet.
 
 ### Mir sind die Credits ausgegangen. Wie lade ich auf?
 

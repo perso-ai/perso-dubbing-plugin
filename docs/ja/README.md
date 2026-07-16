@@ -10,9 +10,11 @@
 
 コーディングエージェント向けのスキルで、[Perso AI](https://perso.ai) の**吹き替え（AI吹き替え）**機能をエージェントにもたらします。動画を他の言語に**自動吹き替え**します — 単一ファイルでもフォルダ全体でも対応し、サイズが大きすぎる動画や非常に長い動画でも自動的に分割・処理され、最後に結合されます。吹き替えた動画の**リップシンク（口の動きの同期）**や、**音声と背景音の分離**も可能です。
 
-内部で Perso Dubbing API を呼び出すため、**Perso Dubbing API キーが必要です。** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">APIキーを取得</a>
+このパッケージには **`/srt`** も同梱されています — Persoの音声認識（speech-to-text）を使って動画・音声・URLから**SRT字幕**を抽出し、指定した任意の言語にエージェントが翻訳する、もう一つのスキルです（翻訳せず、元言語のままの文字起こしを受け取ることもできます）。
 
-すべてのホストが同じ **Agent Skills** 標準（`SKILL.md`）を使用しているため、どこにインストールしても同じように動作します — `/dubbing` を実行するか、「この動画を吹き替えて」と言うだけです。
+内部で Perso Dubbing API を呼び出すため、**Perso Dubbing API キーが必要です**（1つのキーで両方のスキルをカバーします）。 → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">APIキーを取得</a>
+
+すべてのホストが同じ **Agent Skills** 標準（`SKILL.md`）を使用しているため、どこにインストールしても同じように動作します — `/dubbing` を実行するか、「この動画を吹き替えて」と言うだけです（または `/srt` — 「この動画の英語字幕を作って」）。
 
 ---
 
@@ -117,18 +119,18 @@ npx perso-dubbing
 <details>
 <summary><b>🔧 手動インストール</b></summary>
 
-スキルフォルダを、ホストのスキルディレクトリ内に **`dubbing`** という名前でコピーしてください。リポジトリのルートから:
+**両方の**スキルフォルダを、ホストのスキルディレクトリ内に並べてコピーしてください（`srt` スキルは、隣接フォルダにある `dubbing` スキルのライブラリをインポートします）。リポジトリのルートから:
 
 ```bash
 # macOS / Linux
-mkdir -p <skills_folder>/dubbing && cp -r skills/dubbing/* <skills_folder>/dubbing/
+mkdir -p <skills_folder> && cp -r skills/dubbing skills/srt <skills_folder>/
 ```
 
-> 💡 Windows（PowerShell）: `New-Item -ItemType Directory -Force <skills_folder>\dubbing; Copy-Item .\skills\dubbing\* <skills_folder>\dubbing\ -Recurse`
+> 💡 Windows（PowerShell）: `New-Item -ItemType Directory -Force <skills_folder>; Copy-Item .\skills\dubbing,.\skills\srt <skills_folder>\ -Recurse`
 
 </details>
 
-インストール後、エージェントで **`/dubbing`** と入力するか、**「この動画を吹き替えて」**と言うだけで実行できます。
+インストール後、エージェントで **`/dubbing`** と入力するか、**「この動画を吹き替えて」**と言うだけで実行できます — 字幕には **`/srt`** / **「この動画の英語字幕を作って」**をお使いください。（上記のどのインストール方法でも、両方のスキルが一緒にインストールされます。）
 
 ---
 
@@ -155,6 +157,12 @@ npm run dub -- "clip.mp4" --target en --lipsync
 
 # 音声/背景音トラックの分離（吹き替えなし）
 npm run dub -- "clip.mp4" --separate
+
+# 字幕を抽出し、エージェントに翻訳させる（/srt スキル）
+npm run srt -- "clip.mp4" --target en,ja
+
+# 文字起こしのみ — 元言語のSRT、翻訳なし
+npm run srt -- "clip.mp4" --transcribe-only
 ```
 
 *（同等の直接呼び出し: `node skills/dubbing/scripts/dubbing.mjs …` — またはインストール済みのスキルフォルダ内から `node scripts/dubbing.mjs …`。）*
@@ -172,13 +180,13 @@ npm run dub -- "clip.mp4" --separate
 | `node` が見つからない／インストールや実行が失敗する | このスキルは **Node.js 18以上** で動作します — `node -v` で確認してください。入っていない場合は <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a> からLTS版をインストールするか、セッション内のClaudeにインストールを依頼してから、アプリを再起動してください。 |
 | APIキーがまだない | 吹き替えコマンドを実行するだけで、キーファイルが自動的に開きます。キーを貼り付けて保存してください（暗号化され、ファイルは削除されます）。手動確認: `npm run key:check`。**キーをチャットに貼り付けないでください。** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">APIキーを取得</a> |
 | ffmpeg関連のエラー | ffmpegは通常自動的にインストールされます。失敗する場合は `npm run doctor` を実行してください。 |
-| 途中で停止する（クレジット切れ、クラッシュ、プロセスの強制終了） | 実行中は進捗が `*.dubresume.json` の状態ファイルに保存され続けます。通知に表示される **`--resume "<state-file>"`** コマンドを実行すると、残りの部分だけを完了できます（完了済みの部分は自動的にスキップされます）。 |
+| 途中で停止する（クレジット切れ、クラッシュ、プロセスの強制終了） | 実行中は進捗が状態ファイルに保存され続けます（`/dubbing` の場合は `*.dubresume.json`、`/srt` の場合は `*.srtresume.json`）。通知に表示される **`--resume "<state-file>"`** コマンドを実行すると、残りの部分だけを完了できます（完了済みの部分は自動的にスキップされます）。 |
 
 ---
 
 ## プライバシーとテレメトリー
 
-`/dubbing` はスキルを改善するために、**匿名**の利用イベントを送信します — 例えば、実行されたアクション（吹き替え／リップシンク／分離）、成功したかどうか、言語ペア、アプリバージョン、OSなどです。インストールごとのランダムなIDのみでタグ付けされ、APIキー、ファイル名やメディアの内容、アカウント／メールアドレス、ワークスペースIDは一切含まれません。
+`/dubbing` と `/srt` は、スキルを改善するために**匿名**の利用イベントを送信します — 例えば、実行されたアクション（吹き替え／リップシンク／分離／字幕抽出）、成功したかどうか、言語ペア、メディアの長さ、アプリバージョン、OSなどです。インストールごとのランダムなIDのみでタグ付けされ、APIキー、ファイル名やメディアの内容、アカウント／メールアドレス、ワークスペースIDは一切含まれません。`PERSO_NO_TELEMETRY` 環境変数でいつでもオプトアウトできます。
 
 ---
 
@@ -189,7 +197,8 @@ npm run dub -- "clip.mp4" --separate
 .codex-plugin/     Codex プラグインマニフェスト
 .cursor-plugin/    Cursor プラグインマニフェスト
 docs/              GitHub Pages ランディング + 翻訳版 README・FAQ（12言語）
-skills/dubbing/    スキル本体（SKILL.md・lib/・scripts/） — 自己完結型
+skills/dubbing/    吹き替えスキル本体（SKILL.md・lib/・scripts/） — 自己完結型
+skills/srt/        SRT字幕スキル（SKILL.md・scripts/） — dubbingスキルのlib/を利用
 scripts/           リポジトリレベルのインストーラー（install.mjs）
 ```
 

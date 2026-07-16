@@ -38,7 +38,7 @@ export async function resolveChunks(prepared, spaceSeq, hooks = {}) {
   // when split, number the title _01,_02… → in the Perso project list, distinguish pieces of the same original (a single piece keeps the original name).
   const baseTitle = (prepared.originalName ?? basename(localPath)).replace(/\.[^.]+$/, '');
   const chunks = leaves.map((l, i) => ({
-    index: i, source: 'local', path: l.path, mediaSeq: l.mediaSeq, kind: l.kind, startMs: l.startMs, endMs: l.endMs,
+    index: i, source: 'local', path: l.path, mediaSeq: l.mediaSeq, kind: l.kind, durationSec: l.durationSec ?? null, startMs: l.startMs, endMs: l.endMs,
     title: leaves.length > 1 ? `${baseTitle}_${String(i + 1).padStart(2, '0')}` : baseTitle,
   }));
   const notice = chunks.length > 1 ? `Auto-split: ${chunks.length} parts (length/size limit)` : null;
@@ -61,8 +61,8 @@ async function uploadOrSplit(localPath, spaceSeq, depth, startMs = 0, spanMs = n
   }
   try {
     if (depth === 0) log('Uploading video... (large videos take a while)');
-    const { seq: mediaSeq, kind } = await upload({ source: 'local', localPath, originalName: basename(localPath) }, spaceSeq);
-    return [{ path: localPath, mediaSeq, kind, startMs, endMs: spanMs == null ? null : startMs + spanMs }];
+    const { seq: mediaSeq, kind, durationSec } = await upload({ source: 'local', localPath, originalName: basename(localPath) }, spaceSeq);
+    return [{ path: localPath, mediaSeq, kind, durationSec, startMs, endMs: spanMs == null ? null : startMs + spanMs }];
   } catch (e) {
     const code = e instanceof PersoApiError ? e.code : null;
     if (code !== 'F4008' && code !== 'F4004') throw e; // errors other than length/size are rethrown as-is
