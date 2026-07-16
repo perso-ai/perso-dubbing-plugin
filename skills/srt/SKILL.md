@@ -65,7 +65,7 @@ For each `[srt-original]` line:
 - **Stay within each cue's display time**: the subtitle must be readable while the cue is on screen (rough guide: ~15 chars/sec for Latin scripts, ~10 chars/sec for CJK). A natural translation usually fits, so **most cues need no trimming** — shorten only the ones that overflow.
 - **When you must shorten, keep this priority**: meaning → tone/nuance → length. Cut fillers, redundancy, and repetition first; keep core information, punchlines, and emotional wording until the last. If a pun truly can't fit, replace it with a shorter line that still lands the humor — **flattening it into a bland summary is the last resort**.
 
-**Step 3 — save**: UTF-8, in the same folder, named `{stem}_{lang}_Subtitle.srt`, where `stem` is everything before `_OriginalSubtitle_` in the original file name (e.g. `video_OriginalSubtitle_2026-07-15.srt` + `ja` → `video_ja_Subtitle.srt`). Keep the original SRT file — don't delete or overwrite it.
+**Step 3 — save**: UTF-8, in the same folder, named `{stem}_{lang}_Subtitle.srt`, where `stem` is the input's file name without its extension — take it from the `input` field of the `[srt-original]` line (e.g. `"input":"video.mp4"` + `ja` → `video_ja_Subtitle.srt`; for URL inputs use the media title or a short slug). Do NOT derive the stem from the downloaded file's name — the server builds that from the project title. Keep the original SRT file — don't delete or overwrite it.
 
 Report the saved translated file paths to the user, mentioning the originals are kept alongside.
 

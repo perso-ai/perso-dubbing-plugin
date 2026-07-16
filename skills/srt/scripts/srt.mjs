@@ -336,7 +336,7 @@ async function sttProcess(perInput, ctx, saver, isResume) {
   if (ok) {
     console.log(transcribeOnly
       ? '\nNext: this was a transcription-only run — hand the [srt-original] files to the user as they are (no translation step).'
-      : '\nNext: translate each [srt-original] file into its paired language and save it as <stem>_<lang>_Subtitle.srt next to the original (keep cue numbers, timestamps, and cue count unchanged — see SKILL.md).');
+      : '\nNext: translate each [srt-original] file into its paired language and save it as <stem>_<lang>_Subtitle.srt next to the original, where <stem> is the input file name without its extension (keep cue numbers, timestamps, and cue count unchanged — see SKILL.md).');
   }
   await trackCompleted();
   return flags.pending;
