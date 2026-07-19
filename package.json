@@ -1,6 +1,6 @@
 {
   "name": "perso-dubbing",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Perso AI video auto-dubbing agent skill — dubbing, lip-sync, audio separation, SRT subtitle extraction & translation (Claude Code / Codex / Cursor / Antigravity)",
   "license": "MIT",
   "type": "module",
