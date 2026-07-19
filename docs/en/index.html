@@ -25,8 +25,15 @@
 <meta name="twitter:description" content="Dub many videos into many languages at once. From upload to file cleanup, it&#x27;s all one conversation.">
 <link rel="icon" href="/perso-mark.svg">
 <script>window.__pdlang="en";</script>
+<!-- Google Tag Manager — perso.ai 동일 컨테이너 -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-WT7QJR3V');</script>
+<!-- GA4 direct events (page_view는 GTM이 전송 — send_page_view:false로 중복 방지) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-V4DKL8GB0N"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-V4DKL8GB0N',{send_page_view:false});</script>
 </head>
 <body style="margin:0">
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WT7QJR3V" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+
 <style>
   @font-face{font-family:Pretendard; font-weight:400; font-display:swap; src:url(/fonts/Pretendard-Regular.woff2) format("woff2");}
   @font-face{font-family:Pretendard; font-weight:600; font-display:swap; src:url(/fonts/Pretendard-SemiBold.woff2) format("woff2");}
@@ -475,5 +482,62 @@
 })();
 </script>
 
+<script>
+(function(){
+  var AGENT = {"l-cl":"claude","l-gpt":"chatgpt","l-cu":"cursor","l-an":"gemini"};
+  function lang(){ return document.documentElement.lang || "ko"; }
+  function track(name, params){
+    try {
+      if (typeof gtag !== "function") return;
+      var p = params || {};
+      p.ui_lang = lang();
+      p.page_lang = (typeof window.__pdlang !== "undefined") ? window.__pdlang : "spa";
+      gtag("event", name, p);
+    } catch(e) {}
+  }
+  function ctaOf(a){
+    var h = a.getAttribute("href") || "";
+    if (a.classList.contains("brand")) return "perso_brand";
+    if (h.charAt(0) === "#") return a.closest(".credit") ? "install_bottom" : "install_hero";
+    if (h.indexOf("developers.perso.ai") >= 0) return a.closest(".credit") ? "api_key_bottom" : "api_key_hero";
+    if (a.hasAttribute("data-faq")) return a.closest("footer") ? "faq_footer" : "faq_inline";
+    if (h.indexOf("github.com") >= 0) return a.closest("footer") ? "github_footer" : "github_nav";
+    if (h.indexOf("claude.ai") >= 0) return "agent_claude_dl";
+    if (h.indexOf("chatgpt.com") >= 0) return "agent_chatgpt";
+    if (h.indexOf("cursor.com") >= 0) return "agent_cursor_dl";
+    if (h.indexOf("gemini.google") >= 0) return "agent_gemini";
+    if (h.indexOf("perso.ai") >= 0) return "perso_footer";
+    return null;
+  }
+  document.addEventListener("click", function(e){
+    var t = e.target;
+    if (!t || !t.closest) return;
+    var copyBtn = t.closest("[data-copy]");
+    if (copyBtn) {
+      track("plugin_copy_click", {agent: AGENT[copyBtn.getAttribute("data-copy")] || "unknown"});
+      return;
+    }
+    var langBtn = t.closest(".langmenu button");
+    if (langBtn) {
+      track("plugin_lang_change", {from_lang: lang(), to_lang: langBtn.getAttribute("data-lang") || ""});
+      return;
+    }
+    var a = t.closest("a[href]");
+    if (a) {
+      var cta = ctaOf(a);
+      if (cta) track("plugin_cta_click", {cta: cta});
+    }
+  }, true);
+  var seen = false, inst = document.getElementById("install");
+  if (inst && "IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function(entries){
+      if (seen || !entries[0].isIntersecting) return;
+      seen = true; io.disconnect();
+      track("plugin_install_view", {});
+    }, {threshold: 0.5});
+    io.observe(inst.querySelector("h2") || inst);
+  }
+})();
+</script>
 </body>
 </html>
