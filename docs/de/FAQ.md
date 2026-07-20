@@ -10,15 +10,15 @@ Node.js 18+ und einen Perso Dubbing API-Schlüssel. Installiere die Skill und sa
 
 ### Wie registriere ich meinen API-Schlüssel?
 
-Beim ersten Durchlauf öffnet sich automatisch eine Schlüsseldatei — füge **nur deinen API-Schlüssel** in diese Datei ein und speichere (sie wird verschlüsselt und die Datei anschließend gelöscht). **Füge den Schlüssel niemals in den Chat ein.** Manuelle Prüfung: `npm run key:check`.
+Beim ersten Durchlauf öffnet sich eine Browser-Seite — melde dich an und klicke einmal, dann wird dein Schlüssel ausgestellt und verschlüsselt auf diesem Rechner gespeichert. Nichts zu kopieren. Falls sich kein Browser öffnen lässt, öffnet sich stattdessen eine Schlüsseldatei: Füge **nur deinen API-Schlüssel** in sie ein und speichere (sie wird verschlüsselt und die Datei gelöscht). **Füge den Schlüssel niemals in den Chat ein.** Manuelle Prüfung: `npm run key:check`.
 
 ### Kostet es etwas?
 
-Der Code der Skill ist kostenlos (MIT), aber die Synchronisation läuft über die Perso API, die Credits berechnet: Synchronisation ≈ 1 Credit/Sek., Lippensynchronisation ≈ ×2, Audiotrennung ≈ ×0,5. 4K-Quellen werden in den Plänen Pro/Business/Enterprise mit ×3 berechnet. Maßgeblich ist die Abrechnung des Servers.
+Der Code der Skill ist kostenlos (MIT), aber die Synchronisation läuft über die Perso API, die Credits berechnet.
 
 ### Was kann ich ihr als Eingabe geben?
 
-Eine lokale Datei, einen ganzen Ordner (Stapelverarbeitung) oder eine URL — einschließlich YouTube, TikTok, Google Drive und Vimeo. Übergroße oder sehr lange Videos werden automatisch aufgeteilt, verarbeitet und wieder zusammengeführt.
+Eine lokale Datei, einen lokalen Ordner oder eine URL (YouTube, TikTok, Google Drive). Übergroße oder sehr lange Videos werden automatisch aufgeteilt, verarbeitet und wieder zusammengeführt.
 
 ### Kann sie in mehrere Sprachen synchronisieren oder viele Dateien auf einmal verarbeiten?
 
@@ -38,7 +38,7 @@ Sie teilt die Quelle in Stimme / Hintergrund / Sub-Hintergrund-Spuren auf — oh
 
 ### Kann sie auch Untertitel (SRT) statt Synchronisation erstellen?
 
-Ja — das Paket installiert außerdem die **`/srt`**-Skill. Sie extrahiert die Untertitel in der Originalsprache aus einem Video, einer Audiodatei oder einer URL per Perso-Speech-to-Text, und dein Agent übersetzt sie anschließend in die gewünschten Sprachen (gespeichert als `<name>_<lang>_Subtitle.srt` neben dem Original). Du willst nur das Transkript? Sag das einfach, dann läuft sie mit `--transcribe-only` — ohne Übersetzung. Jede Untertitel-Extraktion verbraucht Credits proportional zur Medienlänge (pro Sprache).
+Die **`/srt`**-Skill extrahiert die Untertitel in der Originalsprache aus einem Video, einer Audiodatei oder einer URL per Perso-Speech-to-Text. Wenn du sie auch übersetzt haben möchtest, frage nach dem SRT und den gewünschten Sprachen.
 
 ### Sie hat mittendrin gestoppt (Credits aufgebraucht, ein Absturz oder eine abgebrochene Shell). Was jetzt?
 
@@ -62,4 +62,4 @@ Die Skill benötigt Node.js 18+. Prüfe das mit `node -v`; installiere die LTS-V
 
 ### Welche Daten sammelt die Skill?
 
-Nur anonyme Nutzungsereignisse — welche Aktion ausgeführt wurde, ob sie erfolgreich war, grobe Zählwerte, App-Version und Betriebssystem — versehen mit einer zufälligen, installationsspezifischen ID. Sie enthalten niemals deinen API-Schlüssel, Dateinamen oder Medieninhalte, Konto/E-Mail oder Workspace-IDs.
+Nur Nutzungsereignisse — welche Aktion ausgeführt wurde, ob sie erfolgreich war, grobe Zählwerte, App-Version und Betriebssystem — versehen mit einer zufälligen, installationsspezifischen ID und deiner Workspace-Nummer. Dein API-Schlüssel und deine Medien sind niemals enthalten.

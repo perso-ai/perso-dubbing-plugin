@@ -1,4 +1,4 @@
-# 🎬 /dubbing — Dubbing Otomatis Video Perso AI
+# 🎬 /dubbing — Terjemahan Video Perso Dubbing
 
 [![Powered by Perso AI](https://img.shields.io/badge/Powered%20by-Perso%20AI-5A4FF3)](https://perso.ai)
 ![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A518-339933?logo=node.js&logoColor=white)
@@ -8,26 +8,30 @@
 
 [English](../../README.md) ｜ [한국어](../ko/README.md) ｜ [Español](../es/README.md) ｜ [Português](../pt/README.md) ｜ [Русский](../ru/README.md) ｜ **Bahasa Indonesia** ｜ [Deutsch](../de/README.md) ｜ [ไทย](../th/README.md) ｜ [日本語](../ja/README.md) ｜ [繁體中文](../zh-TW/README.md) ｜ [简体中文](../zh-CN/README.md) ｜ [Tiếng Việt](../vi/README.md) ｜ [Français](../fr/README.md)
 
-Skill agen coding yang menghadirkan **Dubbing (dubbing AI)** dari [Perso AI](https://perso.ai) ke agen Anda. Skill ini **men-dubbing otomatis** video ke bahasa lain — satu file atau seluruh folder — dan bahkan media yang berukuran terlalu besar atau sangat panjang pun otomatis dipecah, diproses, dan digabungkan kembali. Skill ini juga dapat **menyinkronkan gerakan bibir (lip-sync)** pada video hasil dubbing dan **memisahkan suara dari audio latar**.
+Skill agen coding yang menghadirkan dubbing AI dari [Perso Dubbing](https://perso.ai/dubbing) ke agen Anda. Instal sekali, lalu cukup katakan *"dubbing video ini ke bahasa Inggris"*.
 
-Paket ini juga menyertakan **`/srt`** — skill kedua yang mengekstrak **subtitle SRT** dari video/audio/URL melalui speech-to-text Perso, lalu meminta agen Anda menerjemahkannya ke bahasa apa pun yang Anda minta (atau memberikan transkrip bahasa asli apa adanya).
+- **Dubbing** ke bahasa lain — satu file, seluruh folder, atau sebuah URL
+- **Lip-sync** pada video hasil dubbing agar gerakan mulut sesuai dengan audio barunya
+- **Pisahkan** suara dari audio latar
+- **Subtitle** (`/srt`) — ekstrak SRT melalui speech-to-text, lalu agen Anda menerjemahkannya
+- Media yang berukuran terlalu besar dan sangat panjang otomatis dipecah, diproses, dan digabungkan kembali
 
-Di balik layar, skill ini memanggil API Dubbing Perso, sehingga **diperlukan kunci API Perso Dubbing** (satu kunci berlaku untuk kedua skill). → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Dapatkan kunci API</a>
-
-Karena setiap host menggunakan standar **Agent Skills** yang sama (`SKILL.md`), skill ini bekerja dengan cara yang sama di mana pun Anda menginstalnya — cukup jalankan `/dubbing` atau katakan *"dubbing video ini untuk saya"* (atau `/srt` — *"buatkan saya SRT bahasa Inggris untuk video ini"*).
+Berjalan di atas **Node.js 18+** dan membutuhkan **kunci API Perso Dubbing**. Dibangun di atas standar Agent Skills (`SKILL.md`), sehingga berperilaku sama persis di Claude, Codex, Cursor, dan Antigravity.
 
 ![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
 
 ---
 
-## 🖥️ Cara termudah — aplikasi desktop Claude (sekitar 3 menit)
+## Instalasi
 
-> 📖 **Lebih suka panduan visual?** Ikuti **[tutorial instalasi →](https://perso-ai.github.io/perso-dubbing-plugin/)** — pilih agen Anda dan salin perintahnya.
+> 📖 **[Panduan visual →](https://perso-ai.github.io/perso-dubbing-plugin/)** — pilih agen Anda dan salin perintahnya.
 
-Tidak perlu terminal. Di <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">aplikasi desktop Claude</a> (paket berbayar):
+### Aplikasi desktop Claude — paling mudah, tanpa terminal (sekitar 3 menit)
 
-1. **Buka tab Code** (di tengah atas) dan pilih folder apa pun — pilih lingkungan **Local** (plugin tidak tersedia dalam sesi cloud).
-2. **Tempelkan setiap perintah** ke kotak prompt dan tekan Enter, satu per satu:
+Di <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">aplikasi desktop Claude</a> (paket berbayar):
+
+1. Buka **tab Code** (di tengah atas), pilih folder apa pun, lalu pilih lingkungan **Local** — plugin tidak berfungsi dalam sesi cloud.
+2. Tempelkan setiap perintah ke kotak prompt dan tekan Enter, satu per satu:
 
    ```text
    claude marketplace add perso-ai/perso-dubbing-plugin
@@ -37,137 +41,47 @@ Tidak perlu terminal. Di <a href="https://claude.ai/download" target="_blank" re
    claude install perso-dubbing@perso-ai
    ```
 
-   *Lebih suka mengeklik? Setelah perintah pertama, tekan tombol **+** di samping kotak prompt → **Plugins** → **Add plugin** → instal **perso-dubbing**.*
-3. **Minta dubbing** — misalnya *"Dubbing video ini ke bahasa Inggris — C:\videos\clip.mp4"* (URL YouTube atau seluruh folder juga bisa). Pada eksekusi pertama, sebuah file kunci akan terbuka untuk <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">kunci API Perso</a> Anda — tempelkan kunci tersebut ke dalam file itu, **bukan ke dalam chat**. Kecuali Anda menyertakan `--out`, hasilnya disimpan di sebelah video sumber.
+   *Lebih suka mengeklik? Setelah perintah pertama: tombol **+** → **Plugins** → **Add plugin** → **perso-dubbing**.*
+3. Minta dubbing — *"Dubbing video ini ke bahasa Inggris — C:\videos\clip.mp4"*. URL YouTube atau sebuah folder juga bisa. Hasilnya disimpan di sebelah video sumber kecuali Anda menyertakan `--out`.
 
-> 💡 Skill ini berjalan di atas **Node.js 18+**. Jika PC Anda belum memilikinya, agen akan mengatakan `node` tidak ditemukan — cukup balas *"instalkan Node.js untuk saya"* (atau unduh versi LTS dari <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>), lalu coba lagi.
+**Claude Code CLI:** gunakan `/plugin marketplace add perso-ai/perso-dubbing-plugin` dan `/plugin install perso-dubbing@perso-ai` sebagai gantinya.
 
-Di **Claude Code CLI**, gunakan `/plugin marketplace add perso-ai/perso-dubbing-plugin` dan `/plugin install perso-dubbing@perso-ai` sebagai gantinya.
-
----
-
-## Instal di host lain
-
-Cara tercepat yang berlaku di mana saja: tempelkan URL repositori ini ke agen Anda dan katakan *"instal ini."*
-
-> **🤖 Untuk agen:** Jika Anda hanya diberi URL repositori ini, pilih jalur sesuai host Anda:
->
-> - **Claude Code (aplikasi desktop atau CLI):** **jangan** langsung menjalankan npx — meskipun pengguna berkata "instal ini". Tunjukkan kepada pengguna kedua perintah dari bagian *aplikasi desktop Claude* di atas dan minta mereka mengetikkan perintah tersebut sendiri, satu per pesan (perintah tersebut adalah slash command yang diketik pengguna dan tidak bisa Anda jalankan). Sebutkan juga jalur klik di aplikasi desktop: setelah perintah pertama, **tombol + → Plugins → Add plugin**. Jika Anda perlu menyesuaikan kata-katanya, `CLAUDE_CODE_ENTRYPOINT=cli` pada environment shell Anda mengindikasikan sesi terminal (sinyal tidak terdokumentasi — jika ragu, tampilkan kedua jalur). Gunakan npx hanya jika pengguna, setelah melihat opsi tersebut, tetap ingin Anda yang menangani instalasinya.
-> - **Codex · Cursor · Antigravity, atau pengguna mendelegasikan instalasi kepada Anda:** jalankan satu perintah ini — perintah ini mengambil paket, mendeteksi otomatis setiap host yang terinstal, dan menginstal skill ke masing-masing host:
->
-> ```bash
-> npx perso-dubbing
-> ```
->
-> Jika repositori sudah di-clone, jalankan `node scripts/install.mjs` dari root repositori (tidak perlu jaringan).
-
-<details>
-<summary><b>Codex</b></summary>
-
-Codex membaca skill dari folder Agent Skills bersama. Jalankan `npx perso-dubbing --codex`, atau salin secara manual:
-
-```text
-~/.agents/skills/dubbing/        # personal (semua repo) — Codex saat ini
-~/.codex/skills/dubbing/         # versi Codex lama (installer menulis keduanya)
-<repo>/.agents/skills/dubbing/   # hanya repositori ini
-```
-
-Repositori ini juga menyertakan manifes plugin Codex (`.codex-plugin/plugin.json`) untuk instalasi berbasis marketplace.
-
-</details>
-
-<details>
-<summary><b>Cursor</b></summary>
-
-Jalankan `npx perso-dubbing --cursor`, atau salin ke:
-
-```text
-~/.cursor/skills/dubbing/        # global
-.cursor/skills/dubbing/          # hanya proyek ini
-```
-
-Repositori ini menyertakan manifes plugin Cursor (`.cursor-plugin/plugin.json`) untuk marketplace plugin Cursor.
-
-</details>
-
-<details>
-<summary><b>Antigravity</b></summary>
-
-Jalankan `npx perso-dubbing --antigravity`, atau salin ke salah satu lokasi berikut:
-
-```text
-~/.antigravity/skills/dubbing/   # Antigravity 1.x
-~/.agents/skills/dubbing/        # Antigravity 2.0+ (folder Agent Skills bersama)
-```
-
-</details>
-
-<details>
-<summary><b>⚡ Installer satu baris (host apa pun)</b></summary>
-
-Mendeteksi host mana yang Anda gunakan dan menginstal ke semuanya — tidak perlu clone:
+### Host lainnya
 
 ```bash
 npx perso-dubbing
 ```
 
-- Hanya host tertentu: `--claude` / `--antigravity` / `--codex` / `--cursor` · semua: `--all`
-- Hanya proyek saat ini (`./.claude`, `./.agents`, …): `--project`
+Mendeteksi host mana yang Anda miliki dan menginstal kedua skill ke masing-masing host, sambil menampilkan lokasi pemasangannya. Tambahkan `--claude` / `--codex` / `--cursor` / `--antigravity` untuk satu host, `--all` untuk semua host, atau `--project` hanya untuk proyek saat ini. Sudah meng-clone repositorinya? `node scripts/install.mjs` dari root repositori melakukan hal yang sama, tanpa jaringan.
 
-Repositorinya sudah ter-clone? `node scripts/install.mjs` dari root repositori melakukan hal yang sama tanpa jaringan.
+> **🤖 Untuk agen:** jika Anda hanya diberi URL repositori ini:
+>
+> - **Claude Code (aplikasi desktop atau CLI)** — **jangan** jalankan npx, meskipun pengguna berkata "instal ini". Tunjukkan kepada mereka kedua perintah `claude …` di atas dan minta mereka mengetikkannya sendiri satu per satu (perintah tersebut adalah slash command yang diketik pengguna dan tidak bisa Anda jalankan), beserta jalur kliknya: tombol **+** → **Plugins** → **Add plugin**. Gunakan npx hanya jika setelah itu mereka tetap ingin Anda yang menanganinya.
+> - **Codex · Cursor · Antigravity, atau pengguna mendelegasikan instalasinya** — jalankan `npx perso-dubbing` (atau `node scripts/install.mjs` jika repositorinya sudah di-clone).
 
-</details>
+### Eksekusi pertama — kunci API Anda
 
-<details>
-<summary><b>🔧 Instalasi manual</b></summary>
+Sebuah halaman browser akan terbuka: masuk dan klik sekali, lalu kunci Anda diterbitkan dan disimpan terenkripsi di komputer ini. Tidak ada yang perlu disalin. Jika tidak ada browser yang bisa dibuka, sebuah file kunci akan terbuka sebagai gantinya — tempelkan kunci di sana lalu simpan, dan file tersebut dienkripsi kemudian dihapus.
 
-Salin **kedua** folder skill ke direktori skills host Anda, berdampingan (skill `srt` mengimpor library skill `dubbing` dari folder tetangganya). Dari root repositori:
-
-```bash
-# macOS / Linux
-mkdir -p <skills_folder> && cp -r skills/dubbing skills/srt <skills_folder>/
-```
-
-> 💡 Windows (PowerShell): `New-Item -ItemType Directory -Force <skills_folder>; Copy-Item .\skills\dubbing,.\skills\srt <skills_folder>\ -Recurse`
-
-</details>
-
-Setelah instalasi, ketik **`/dubbing`** di agen Anda atau cukup katakan **"dubbing video ini untuk saya"** untuk menjalankannya — atau **`/srt`** / **"buatkan saya SRT bahasa Inggris untuk video ini"** untuk subtitle. (Setiap metode instalasi di atas menginstal kedua skill.)
+**Jangan pernah menempelkan kunci API Anda ke dalam chat.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Dapatkan kunci API</a> · periksa kapan saja dengan `npm run key:check`
 
 ---
 
-## Contoh
+## Penggunaan
 
-Cara termudah — cukup beri tahu agen Anda:
+Cukup beri tahu agen Anda apa yang Anda inginkan:
 
 > "Dubbing video ini ke bahasa Inggris — C:\videos\clip.mp4"
+>
+> "Dubbing setiap video di folder ini ke bahasa Jepang dan Spanyol"
+>
+> "Dubbing tautan YouTube ini ke bahasa Inggris, dengan lip-sync"
+>
+> "Pisahkan suara dan musik latar dari klip ini"
+>
+> "Buatkan saya SRT bahasa Inggris untuk video ini"
 
-Anda juga dapat menjalankan CLI langsung dari root repositori:
-
-```bash
-# Satu video (deteksi otomatis bahasa sumber → bahasa Inggris)
-npm run dub -- "clip.mp4" --target en --out result.mp4
-
-# Beberapa bahasa sekaligus (diunggah/dipecah sekali, digunakan ulang per bahasa)
-npm run dub -- "clip.mp4" --target en,ja,zh
-
-# Beberapa input sekaligus (URL, file, dan folder bisa dicampur)
-npm run dub -- "https://youtu.be/..." "clip2.mp4" "C:\videos" --target en
-
-# Dubbing + lip-sync (mulut disesuaikan dengan audio hasil dubbing; kredit tambahan)
-npm run dub -- "clip.mp4" --target en --lipsync
-
-# Pisahkan trek suara / audio latar (tanpa dubbing)
-npm run dub -- "clip.mp4" --separate
-
-# Ekstrak subtitle dan minta agen menerjemahkannya (skill /srt)
-npm run srt -- "clip.mp4" --target en,ja
-
-# Hanya transkrip — SRT bahasa asli, tanpa terjemahan
-npm run srt -- "clip.mp4" --transcribe-only
-```
-
-*(Panggilan langsung yang setara: `node skills/dubbing/scripts/dubbing.mjs …` — atau `node scripts/dubbing.mjs …` dari dalam folder skill yang terinstal.)*
+Atau ketik **`/dubbing`** / **`/srt`** untuk memulai. Untuk daftar lengkap opsi CLI, tanyakan cara penggunaannya kepada agen Anda atau jalankan `npm run dub -- --help`.
 
 ---
 
@@ -177,33 +91,33 @@ Punya pertanyaan lain? Lihat **[FAQ](FAQ.md)**.
 
 | Gejala | Solusi |
 |---|---|
+| `node` tidak ditemukan | Instal versi LTS dari <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a> (atau minta agen Anda *"instalkan Node.js untuk saya"*), lalu coba lagi. |
 | Aplikasi desktop Claude meminta Git (Windows) | Tab Code membutuhkan <a href="https://git-scm.com/downloads/win" target="_blank" rel="noopener noreferrer">Git for Windows</a> saat pertama kali digunakan. Instal, lalu mulai ulang aplikasi. |
-| Perintah `claude` atau menu Plugins tidak merespons | Anda berada dalam **sesi cloud** — plugin hanya berfungsi di sesi **Local** (dan SSH). Ubah environment ke Local lalu coba lagi. |
-| `node` tidak ditemukan / instalasi atau eksekusi gagal | Skill ini berjalan di atas **Node.js 18+** — periksa dengan `node -v`. Jika belum ada, instal versi LTS dari <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>, atau cukup minta Claude dalam sesi tersebut untuk menginstalnya, lalu mulai ulang aplikasi. |
-| Belum punya kunci API | Cukup jalankan perintah dubbing apa pun — file kunci akan terbuka otomatis; tempelkan kunci Anda dan simpan (file tersebut dienkripsi lalu dihapus). Pemeriksaan manual: `npm run key:check`. **Jangan tempelkan kunci ke dalam chat.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Dapatkan kunci API</a> |
-| Error terkait ffmpeg | ffmpeg biasanya terinstal otomatis. Jika gagal, jalankan `npm run doctor`. |
-| Berhenti di tengah jalan (kredit habis, crash, proses dihentikan) | Progres disimpan ke file status sepanjang proses berjalan (`*.dubresume.json` untuk `/dubbing`, `*.srtresume.json` untuk `/srt`). Jalankan perintah **`--resume "<state-file>"`** yang ditampilkan pada notifikasi untuk menyelesaikan hanya bagian yang tersisa (bagian yang sudah selesai otomatis dilewati). |
+| Perintah `claude` atau menu Plugins tidak merespons | Anda berada dalam **sesi cloud** — plugin membutuhkan sesi **Local** (atau SSH). |
+| Kunci ditolak atau tidak ada | Daftarkan ulang: `node skills/dubbing/scripts/connect.mjs`. Periksa kunci yang tersimpan dengan `npm run key:check`. |
+| Error terkait ffmpeg | ffmpeg biasanya terinstal otomatis; jika gagal, jalankan `npm run doctor`. |
+| Berhenti di tengah jalan (kredit habis, crash, proses dihentikan) | Progres disimpan terus-menerus. Jalankan perintah **`--resume "<state-file>"`** yang ditampilkan pada notifikasi — bagian yang sudah selesai dilewati dan tidak pernah ditagih ulang. |
 
 ---
 
 ## Privasi & Telemetri
 
-`/dubbing` dan `/srt` mengirimkan event penggunaan **anonim** untuk meningkatkan kualitas kedua skill ini — misalnya, aksi apa yang dijalankan (dubbing / lip-sync / pemisahan / ekstraksi subtitle), apakah berhasil, pasangan bahasa, durasi media, versi aplikasi, dan OS. Data ini hanya ditandai dengan ID acak per instalasi dan tidak pernah menyertakan kunci API, nama file atau konten media, akun/email, maupun ID workspace Anda. Nonaktifkan kapan saja melalui variabel lingkungan `PERSO_NO_TELEMETRY`.
+`/dubbing` dan `/srt` mengirimkan event penggunaan untuk meningkatkan kualitas kedua skill ini — misalnya, aksi apa yang dijalankan, apakah berhasil, durasi media, versi aplikasi, dan OS. Setiap event membawa ID acak per instalasi dan nomor workspace Anda. Kunci API dan media Anda tidak pernah disertakan. Nonaktifkan kapan saja melalui `PERSO_NO_TELEMETRY`.
 
 ---
 
 ## Struktur repositori
 
 ```text
-.claude-plugin/    Manifes plugin Claude Code + marketplace
-.codex-plugin/     Manifes plugin Codex
-.cursor-plugin/    Manifes plugin Cursor
-docs/              Landing GitHub Pages + README dan FAQ terjemahan (12 bahasa)
+.claude-plugin/    Plugin Claude Code + manifest marketplace
+.codex-plugin/     Manifest plugin Codex
+.cursor-plugin/    Manifest plugin Cursor
+docs/              Landing GitHub Pages + README terjemahan · FAQ (12 bahasa)
 skills/dubbing/    Skill dubbing (SKILL.md · lib/ · scripts/) — mandiri
-skills/srt/        Skill subtitle SRT (SKILL.md · scripts/) — menggunakan lib/ skill dubbing
+skills/srt/        Skill subtitle SRT (SKILL.md · scripts/) — memakai lib/ dari skill dubbing
 scripts/           Installer tingkat repositori (install.mjs)
 ```
 
 ## Lisensi
 
-Kode skill ini didistribusikan di bawah **[Lisensi MIT](../../LICENSE)**. Proses dubbing yang sebenarnya dilakukan melalui API Perso Dubbing, sehingga penggunaan API itu sendiri tunduk pada [Ketentuan Layanan Perso AI](https://perso.ai) dan kebijakan harganya.
+Kode skill ini didistribusikan di bawah **[Lisensi MIT](../../LICENSE)**. Proses dubbing itu sendiri berjalan melalui API Perso Dubbing, sehingga penggunaan API tunduk pada [Ketentuan Layanan Perso AI](https://perso.ai) dan kebijakan harganya.

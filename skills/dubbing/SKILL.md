@@ -19,7 +19,7 @@ A skill that auto-dubs videos via the Perso AI Dubbing API.
 
 ## One-time setup
 
-1. **API key** — no separate step: with no key registered, `dubbing.mjs` opens a key file on first run. Show the user the printed key-file path (clickable) and tell them to paste just the key and save (it's encrypted and the file deleted). Pre-check: `node scripts/resolve_key.mjs --check` (exit 2 = missing; `--watch` registers the same way — never start it while a run is already waiting for the key). Never paste the key into chat. Get a key: https://developers.perso.ai/api-keys
+1. **API key** — no separate step: with no key registered, `dubbing.mjs` opens a browser page on first run — the user signs in and clicks once; the key is issued and delivered straight to the plugin (nothing to copy). If the browser can't open (headless/SSH) or the page fails, a key file opens instead — show the user the printed key-file path (clickable) and tell them to paste just the key and save (it's encrypted and the file deleted). Pre-check: `node scripts/resolve_key.mjs --check` (exit 2 = missing; `node scripts/connect.mjs` starts the browser flow, `resolve_key.mjs --watch` the file flow — never start either while a run is already waiting for the key). Never paste the key into chat. Get a key: https://developers.perso.ai/api-keys
 2. **ffmpeg/ffprobe** — auto-installed only when a video exceeds the plan limit and must be split (approve if permission is requested). Manual check: `node scripts/check_deps.mjs`.
 
 ## Run
@@ -133,7 +133,7 @@ The notice lists both commands; pick the one matching how it was installed. It n
 - `PERSO_QUEUE_WAIT_MS` — how long to wait between queue re-checks when all slots are occupied by other jobs (default 5 minutes).
 - `PERSO_LIPSYNC_IDLE_MS` — no-progress allowance for a lip-sync job whose video length is unknown (default 3 hours).
 - `PERSO_NO_UPDATE_CHECK` — skip the once-a-day npm version-update check (headless/CI, or to avoid the extra network call).
-- `PERSO_NO_TELEMETRY` — turn off anonymous usage telemetry (opt-out). No account/key/file data is ever sent; see the README "Privacy & Telemetry" section.
+- `PERSO_NO_TELEMETRY` — turn off usage telemetry (opt-out). The API key and media content are never sent; see the README "Privacy & Telemetry" section.
 
 ## Advanced (debug only — not part of the normal flow)
 

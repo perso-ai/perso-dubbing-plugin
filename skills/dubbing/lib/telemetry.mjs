@@ -1,8 +1,8 @@
-// Anonymous, opt-out usage telemetry → Amplitude HTTP API (/2/httpapi). Non-blocking and
-// fail-silent: never delays or fails a run. No personal data — a random per-install UUID
-// (~/.perso/install-id), coarse environment, and the caller-supplied counts only. No API key,
-// filenames, media content, account/email, or spaceSeq/projectSeq is ever sent.
-// Opt out with PERSO_NO_TELEMETRY. See README "Telemetry & Privacy".
+// Opt-out usage telemetry → Amplitude HTTP API (/2/httpapi). Non-blocking and fail-silent: never
+// delays or fails a run. Sends a random per-install UUID (~/.perso/install-id), coarse environment,
+// the caller-supplied counts, and the workspace number (space_seq) once resolved. No API key,
+// filenames, media content, account/email, or projectSeq is ever sent.
+// Opt out with PERSO_NO_TELEMETRY. See README "Privacy & Telemetry".
 import { randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -36,12 +36,21 @@ function loadInstallId() {
 let cached = null;
 const installId = () => (cached ??= loadInstallId());
 
+// Workspace attached to every event from the moment it is resolved (space_resolved onwards).
+let _spaceSeq = null;
+/** Call once the run's workspace is known (ensureSpace / --resume manifest / billing --space). */
+export function setTelemetrySpace(seq) {
+  const n = Number(seq);
+  _spaceSeq = Number.isInteger(n) && n > 0 ? n : null;
+}
+
 /** Fire one event. Fail-silent and never throws; safe to call without awaiting (the run drains the
  *  pending request on exit). null/undefined properties are dropped so only set fields are sent. */
 export async function track(eventType, props = {}) {
   if (process.env.PERSO_NO_TELEMETRY || !API_KEY) return;
   try {
     const event_properties = NODE_MAJOR ? { node_major: NODE_MAJOR } : {};
+    if (_spaceSeq != null) event_properties.space_seq = _spaceSeq;
     for (const [k, v] of Object.entries(props)) if (v != null) event_properties[k] = v;
     const res = await fetch(ENDPOINT, {
       method: 'POST',

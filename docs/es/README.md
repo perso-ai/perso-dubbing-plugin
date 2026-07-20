@@ -8,26 +8,30 @@
 
 [English](../../README.md) ｜ [한국어](../ko/README.md) ｜ **Español** ｜ [Português](../pt/README.md) ｜ [Русский](../ru/README.md) ｜ [Bahasa Indonesia](../id/README.md) ｜ [Deutsch](../de/README.md) ｜ [ไทย](../th/README.md) ｜ [日本語](../ja/README.md) ｜ [繁體中文](../zh-TW/README.md) ｜ [简体中文](../zh-CN/README.md) ｜ [Tiếng Việt](../vi/README.md) ｜ [Français](../fr/README.md)
 
-Una skill para agentes de programación que lleva el **Doblaje (doblaje con IA)** de [Perso AI](https://perso.ai) a tu agente. **Dobla automáticamente** vídeos a otros idiomas —un solo archivo o una carpeta entera—, e incluso los archivos demasiado grandes o muy largos se dividen, se procesan y se vuelven a unir automáticamente. También puede **sincronizar los labios** del vídeo doblado y **separar la voz del audio de fondo**.
+Una skill para agentes de programación que lleva el doblaje con IA de [Perso Dubbing](https://perso.ai/dubbing) a tu agente. Instálala una vez y luego solo di *«dobla este vídeo al inglés»*.
 
-El paquete también incluye **`/srt`** — una segunda skill que extrae **subtítulos SRT** de un vídeo, audio o URL mediante el reconocimiento de voz de Perso, y luego hace que tu agente los traduzca a los idiomas que le pidas (o te entrega la transcripción en el idioma original tal cual).
+- **Dobla** a otro idioma — un solo archivo, una carpeta entera o una URL
+- **Sincroniza los labios** del vídeo doblado para que la boca coincida con el nuevo audio
+- **Separa** la voz del audio de fondo
+- **Subtítulos** (`/srt`) — extrae un SRT mediante reconocimiento de voz y luego tu agente lo traduce
+- El contenido demasiado grande o muy largo se divide, se procesa y se vuelve a unir automáticamente
 
-Por debajo llama a la API de Doblaje de Perso, así que **se necesita una clave de API de Perso Dubbing** (una misma clave cubre ambas skills). → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Consigue una clave de API</a>
-
-Como todos los hosts usan el mismo estándar de **Agent Skills** (`SKILL.md`), funciona igual dondequiera que lo instales: solo ejecuta `/dubbing` o di *«dóblame este vídeo»* (o `/srt` — *«hazme un SRT en inglés de este vídeo»*).
+Se ejecuta con **Node.js 18+** y necesita una **clave de API de Perso Dubbing**. Está construida sobre el estándar Agent Skills (`SKILL.md`), así que se comporta igual en Claude, Codex, Cursor y Antigravity.
 
 ![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
 
 ---
 
-## 🖥️ La forma más fácil — la app de escritorio de Claude (unos 3 minutos)
+## Instalación
 
-> 📖 **¿Prefieres una guía visual?** Sigue el **[tutorial de instalación →](https://perso-ai.github.io/perso-dubbing-plugin/)**: elige tu agente y copia los comandos.
+> 📖 **[Tutorial visual →](https://perso-ai.github.io/perso-dubbing-plugin/)** — elige tu agente y copia los comandos.
 
-No hace falta terminal. En la <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">app de escritorio de Claude</a> (plan de pago):
+### App de escritorio de Claude — lo más fácil, sin terminal (unos 3 min)
 
-1. **Abre la pestaña Code** (arriba en el centro) y elige cualquier carpeta; selecciona el entorno **Local** (los plugins no están disponibles en sesiones en la nube).
-2. **Pega cada comando** en el cuadro de texto y pulsa Enter, uno por uno:
+En la <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">app de escritorio de Claude</a> (plan de pago):
+
+1. Abre la **pestaña Code** (arriba en el centro), elige cualquier carpeta y selecciona el entorno **Local**: los plugins no funcionan en sesiones en la nube.
+2. Pega cada comando en el cuadro de texto y pulsa Enter, uno por uno:
 
    ```text
    claude marketplace add perso-ai/perso-dubbing-plugin
@@ -37,170 +41,82 @@ No hace falta terminal. En la <a href="https://claude.ai/download" target="_blan
    claude install perso-dubbing@perso-ai
    ```
 
-   *¿Prefieres hacer clic? Tras el primer comando, pulsa el botón **+** junto al cuadro de texto → **Plugins** → **Add plugin** → instala **perso-dubbing**.*
-3. **Pide un doblaje** — p. ej. *«Dobla este vídeo al inglés — C:\videos\clip.mp4»* (también funciona una URL de YouTube o una carpeta entera). En la primera ejecución se abre un archivo de clave para tu <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">clave de API de Perso</a>: pega la clave en ese archivo, **no en el chat**. Salvo que uses `--out`, los resultados se guardan junto al vídeo de origen.
+   *¿Prefieres hacer clic? Tras el primer comando: botón **+** → **Plugins** → **Add plugin** → **perso-dubbing**.*
+3. Pide un doblaje — *«Dobla este vídeo al inglés — C:\videos\clip.mp4»*. También funciona una URL de YouTube o una carpeta. Los resultados se guardan junto al vídeo de origen salvo que uses `--out`.
 
-> 💡 La skill se ejecuta con **Node.js 18+**. Si tu PC no lo tiene, el agente dirá que no encuentra `node`: responde simplemente *«instálame Node.js»* (o descarga la LTS desde <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>) y vuelve a intentarlo.
+**CLI de Claude Code:** usa en su lugar `/plugin marketplace add perso-ai/perso-dubbing-plugin` y `/plugin install perso-dubbing@perso-ai`.
 
-En la **CLI de Claude Code**, usa en su lugar `/plugin marketplace add perso-ai/perso-dubbing-plugin` y `/plugin install perso-dubbing@perso-ai`.
-
----
-
-## Instalar en otros hosts
-
-El atajo que funciona en todas partes: pega la URL de este repositorio en tu agente y di *«instala esto»*.
-
-> **🤖 Para el agente:** Si solo te han dado la URL de este repositorio, elige la ruta según tu host:
->
-> - **Claude Code (app de escritorio o CLI):** **no** ejecutes npx de inmediato, aunque el usuario diga «instala esto». Muéstrale los dos comandos de la sección *app de escritorio de Claude* de arriba y pídele que los escriba él mismo, uno por mensaje (son comandos de barra que escribe el usuario y que tú no puedes ejecutar). Menciona también la ruta con clics en la app de escritorio: tras el primer comando, **botón + → Plugins → Add plugin**. Si necesitas ajustar el texto, `CLAUDE_CODE_ENTRYPOINT=cli` en tu entorno de shell sugiere una sesión de terminal (señal no documentada; cuando dudes, presenta ambas rutas). Recurre a npx solo si el usuario, tras verlo, aún quiere que te encargues de la instalación.
-> - **Codex · Cursor · Antigravity, o el usuario te delegó la instalación:** ejecuta este único comando; descarga el paquete, detecta automáticamente todos los hosts instalados e instala la skill en cada uno:
->
-> ```bash
-> npx perso-dubbing
-> ```
->
-> Si el repositorio ya está clonado, ejecuta `node scripts/install.mjs` desde la raíz del repositorio (no hace falta red).
-
-<details>
-<summary><b>Codex</b></summary>
-
-Codex lee las skills de la carpeta compartida de Agent Skills. Ejecuta `npx perso-dubbing --codex`, o copia manualmente:
-
-```text
-~/.agents/skills/dubbing/        # personal (todos los repos) — Codex actual
-~/.codex/skills/dubbing/         # versiones antiguas de Codex (el instalador escribe ambas)
-<repo>/.agents/skills/dubbing/   # solo este repositorio
-```
-
-El repositorio también incluye un manifiesto de plugin de Codex (`.codex-plugin/plugin.json`) para instalaciones basadas en marketplace.
-
-</details>
-
-<details>
-<summary><b>Cursor</b></summary>
-
-Ejecuta `npx perso-dubbing --cursor`, o copia en:
-
-```text
-~/.cursor/skills/dubbing/        # global
-.cursor/skills/dubbing/          # solo este proyecto
-```
-
-El repositorio incluye un manifiesto de plugin de Cursor (`.cursor-plugin/plugin.json`) para el marketplace de plugins de Cursor.
-
-</details>
-
-<details>
-<summary><b>Antigravity</b></summary>
-
-Ejecuta `npx perso-dubbing --antigravity`, o copia en cualquiera de las dos ubicaciones:
-
-```text
-~/.antigravity/skills/dubbing/   # Antigravity 1.x
-~/.agents/skills/dubbing/        # Antigravity 2.0+ (carpeta compartida de Agent Skills)
-```
-
-</details>
-
-<details>
-<summary><b>⚡ Instalador de una línea (cualquier host)</b></summary>
-
-Detecta qué hosts usas y los instala en todos, sin necesidad de clonar:
+### Cualquier otro host
 
 ```bash
 npx perso-dubbing
 ```
 
-- Solo un host concreto: `--claude` / `--antigravity` / `--codex` / `--cursor` · todos: `--all`
-- Solo el proyecto actual (`./.claude`, `./.agents`, …): `--project`
+Detecta qué hosts tienes e instala ambas skills en cada uno, indicando dónde ha quedado cada una. Añade `--claude` / `--codex` / `--cursor` / `--antigravity` para un solo host, `--all` para todos, o `--project` solo para el proyecto actual. ¿Ya tienes el repositorio clonado? `node scripts/install.mjs` desde la raíz del repositorio hace lo mismo, sin conexión.
 
-¿Ya tienes el repositorio clonado? `node scripts/install.mjs` desde la raíz del repositorio hace lo mismo sin red.
+> **🤖 Para el agente:** si solo te han dado la URL de este repositorio:
+>
+> - **Claude Code (app de escritorio o CLI):** **no** ejecutes npx, aunque el usuario diga «instala esto». Muéstrale los dos comandos `claude …` de arriba y pídele que los escriba él mismo (son comandos de barra que escribe el usuario y que tú no puedes ejecutar), además de la ruta con clics: botón **+** → **Plugins** → **Add plugin**. Recurre a npx solo si, después de verlo, aún quiere que te encargues tú.
+> - **Codex · Cursor · Antigravity, o el usuario te delegó la instalación:** ejecuta `npx perso-dubbing` (o `node scripts/install.mjs` si el repositorio ya está clonado).
 
-</details>
+### Primera ejecución — tu clave de API
 
-<details>
-<summary><b>🔧 Instalación manual</b></summary>
+Se abre una página del navegador: inicia sesión y haz un clic, y tu clave se emite y se guarda cifrada en este equipo. No hay nada que copiar. Si no puede abrirse ningún navegador, se abre en su lugar un archivo de clave: pega ahí la clave y guarda, y el archivo se cifra y se elimina.
 
-Copia **ambas** carpetas de skills en el directorio de skills de tu host, una junto a la otra (la skill `srt` importa las librerías de la skill `dubbing` desde la carpeta hermana). Desde la raíz del repositorio:
-
-```bash
-# macOS / Linux
-mkdir -p <skills_folder> && cp -r skills/dubbing skills/srt <skills_folder>/
-```
-
-> 💡 Windows (PowerShell): `New-Item -ItemType Directory -Force <skills_folder>; Copy-Item .\skills\dubbing,.\skills\srt <skills_folder>\ -Recurse`
-
-</details>
-
-Tras instalar, escribe **`/dubbing`** en tu agente o simplemente di **«dóblame este vídeo»** para ejecutarlo — o **`/srt`** / **«hazme un SRT en inglés de este vídeo»** para subtítulos. (Todos los métodos de instalación anteriores instalan ambas skills.)
+**Nunca pegues tu clave de API en el chat.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Consigue una clave de API</a> · compruébala cuando quieras con `npm run key:check`
 
 ---
 
-## Ejemplos
+## Uso
 
-La forma más fácil: solo dile a tu agente:
+Solo dile a tu agente lo que quieres:
 
 > «Dobla este vídeo al inglés — C:\videos\clip.mp4»
+>
+> «Dobla todos los vídeos de esta carpeta al japonés y al español»
+>
+> «Dobla este enlace de YouTube al inglés, con sincronización labial»
+>
+> «Separa la voz y la música de fondo de este clip»
+>
+> «Hazme un SRT en inglés de este vídeo»
 
-También puedes ejecutar la CLI directamente desde la raíz del repositorio:
-
-```bash
-# Un vídeo (detección automática del idioma de origen → inglés)
-npm run dub -- "clip.mp4" --target en --out result.mp4
-
-# Varios idiomas a la vez (se sube/divide una sola vez y se reutiliza por idioma)
-npm run dub -- "clip.mp4" --target en,ja,zh
-
-# Varias entradas a la vez (se pueden mezclar URLs, archivos y carpetas)
-npm run dub -- "https://youtu.be/..." "clip2.mp4" "C:\videos" --target en
-
-# Doblaje + sincronización labial (boca ajustada al audio doblado; créditos adicionales)
-npm run dub -- "clip.mp4" --target en --lipsync
-
-# Separar pistas de voz / audio de fondo (sin doblaje)
-npm run dub -- "clip.mp4" --separate
-
-# Extraer subtítulos y hacer que el agente los traduzca (skill /srt)
-npm run srt -- "clip.mp4" --target en,ja
-
-# Solo transcripción — SRT en el idioma original, sin traducción
-npm run srt -- "clip.mp4" --transcribe-only
-```
-
-*(Llamada directa equivalente: `node skills/dubbing/scripts/dubbing.mjs …` — o `node scripts/dubbing.mjs …` desde dentro de una carpeta de skill instalada.)*
+O escribe **`/dubbing`** / **`/srt`** para empezar. Para la lista completa de opciones de la CLI, pídele el modo de uso a tu agente o ejecuta `npm run dub -- --help`.
 
 ---
 
 ## Solución de problemas
 
-¿Tienes alguna duda primero? Consulta las **[Preguntas frecuentes (FAQ)](FAQ.md)**.
+¿Más dudas? Consulta las **[Preguntas frecuentes (FAQ)](FAQ.md)**.
 
 | Síntoma | Solución |
 |---|---|
+| `node` no encontrado | Instala la LTS desde <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a> (o pídele a tu agente *«instálame Node.js»*) y reinténtalo. |
 | La app de escritorio de Claude pide Git (Windows) | La pestaña Code necesita <a href="https://git-scm.com/downloads/win" target="_blank" rel="noopener noreferrer">Git para Windows</a> en el primer uso. Instálalo y reinicia la app. |
-| Los comandos `claude` o el menú Plugins no hacen nada | Estás en una **sesión en la nube**: los plugins solo funcionan en sesiones **Local** (y SSH). Cambia el entorno a Local y reinténtalo. |
-| `node` no encontrado / falla la instalación o la ejecución | La skill se ejecuta con **Node.js 18+** — compruébalo con `node -v`. Si falta, instala la LTS desde <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>, o pídele a Claude en la sesión que lo instale por ti y reinicia la app. |
-| Aún no tienes clave de API | Simplemente ejecuta cualquier comando de doblaje: se abre un archivo de clave automáticamente; pega tu clave y guarda (se cifra y el archivo se elimina). Comprobación manual: `npm run key:check`. **No pegues la clave en el chat.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Consigue una clave de API</a> |
-| Error relacionado con ffmpeg | ffmpeg normalmente se instala solo. Si falla, ejecuta `npm run doctor`. |
-| Se detiene a mitad (sin créditos, fallo, proceso terminado) | El progreso se guarda en un archivo de estado durante toda la ejecución (`*.dubresume.json` para `/dubbing`, `*.srtresume.json` para `/srt`). Ejecuta el comando **`--resume "<state-file>"`** que aparece en el aviso para terminar solo las partes restantes (las completadas se omiten automáticamente). |
+| Los comandos `claude` o el menú Plugins no hacen nada | Estás en una **sesión en la nube**: los plugins necesitan una sesión **Local** (o SSH). |
+| Clave rechazada o ausente | Regístrala de nuevo: `node skills/dubbing/scripts/connect.mjs`. Comprueba la clave guardada con `npm run key:check`. |
+| Error de ffmpeg | ffmpeg normalmente se instala solo; si falla, ejecuta `npm run doctor`. |
+| Se detiene a mitad (sin créditos, fallo, proceso terminado) | El progreso se guarda continuamente. Ejecuta el comando **`--resume "<state-file>"`** que aparece en el aviso: las partes terminadas se omiten y nunca se vuelven a cobrar. |
+
+---
+
+## Privacidad y telemetría
+
+`/dubbing` y `/srt` envían eventos de uso para mejorar las skills — por ejemplo, qué acción se ejecutó, si tuvo éxito, la duración del contenido multimedia, la versión de la app y el sistema operativo. Cada evento lleva un ID aleatorio por instalación y tu número de espacio de trabajo. Tu clave de API y tu contenido multimedia nunca se incluyen. Puedes desactivarlo cuando quieras con `PERSO_NO_TELEMETRY`.
 
 ---
 
 ## Estructura del repositorio
 
 ```text
-.claude-plugin/    Manifiestos de plugin y marketplace de Claude Code
-.codex-plugin/     Manifiesto de plugin de Codex
-.cursor-plugin/    Manifiesto de plugin de Cursor
-docs/              Landing de GitHub Pages + README y FAQ traducidos (12 idiomas)
+.claude-plugin/    Plugin de Claude Code + manifiestos del marketplace
+.codex-plugin/     Manifiesto del plugin de Codex
+.cursor-plugin/    Manifiesto del plugin de Cursor
+docs/              Landing de GitHub Pages + README traducidos · FAQ (12 idiomas)
 skills/dubbing/    La skill de doblaje (SKILL.md · lib/ · scripts/) — autónoma
-skills/srt/        La skill de subtítulos SRT (SKILL.md · scripts/) — usa el lib/ de la skill de doblaje
+skills/srt/        La skill de subtítulos SRT (SKILL.md · scripts/) — usa la lib/ de la skill de doblaje
 scripts/           Instalador a nivel de repositorio (install.mjs)
 ```
-
-## Privacidad y telemetría
-
-`/dubbing` y `/srt` envían eventos de uso **anónimos** para mejorar las skills — por ejemplo, qué acción se ejecutó (doblaje / sincronización labial / separación / extracción de subtítulos), si tuvo éxito, el par de idiomas, la duración del contenido multimedia, la versión de la app y el sistema operativo. Se etiquetan únicamente con un ID aleatorio por instalación y nunca incluyen tu clave de API, nombres de archivo ni contenido multimedia, cuenta/correo, ni IDs de espacio de trabajo. Puedes desactivar esto en cualquier momento con la variable de entorno `PERSO_NO_TELEMETRY`.
 
 ## Licencia
 

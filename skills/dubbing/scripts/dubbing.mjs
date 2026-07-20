@@ -18,7 +18,7 @@ import { download, getStatus, upload, requestAudioSeparation, downloadSeparation
 import { mergeGroups } from '../lib/merge.mjs';
 import { messages, withUtm, SUBSCRIPTION_URL } from '../lib/messages.mjs';
 import { checkForUpdate } from '../lib/update_check.mjs';
-import { track, initTelemetry } from '../lib/telemetry.mjs';
+import { track, initTelemetry, setTelemetrySpace } from '../lib/telemetry.mjs';
 import { cleanupTempDirs, makeTempDir } from '../lib/tmp.mjs';
 import { probe } from '../lib/ffmpeg.mjs';
 import { AUDIO_EXT, CREDIT_RATE_DUB, CREDIT_RATE_LIPSYNC, UHD_CREDIT_MULT, UHD_BILLED_TIERS, POLL_INTERVAL_MS, MAX_IDLE_MS } from '../lib/config.mjs';
@@ -552,6 +552,7 @@ async function creditPreflight(perInput, spaceSeq, targetCount) {
 async function runResume(file) {
   await ensureKey();
   const m = JSON.parse(readFileSync(file, 'utf8'));
+  setTelemetrySpace(m.spaceSeq); // resume bypasses ensureSpace — attach the workspace from the manifest
   if (m.kind === 'separation') return runResumeSeparation(m, file); // separation has its own (scheduler-less) resume
   if (m.version !== 4 && m.version !== 5) throw new Error('Unsupported state-file format — run again from the original.');
   const targets = m.targets ?? [m.opts?.target ?? 'en'];

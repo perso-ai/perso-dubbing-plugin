@@ -10,15 +10,15 @@ Node.js 18+ e uma chave de API do Perso Dubbing. Instale a skill e depois basta 
 
 ### Como registro minha chave de API?
 
-Na primeira execução, um arquivo de chave abre automaticamente — cole **apenas a sua chave de API** nesse arquivo e salve (ela é criptografada e o arquivo é excluído). **Nunca cole a chave no chat.** Verificação manual: `npm run key:check`.
+Na primeira execução, uma página do navegador é aberta — faça login e clique uma vez, e sua chave é emitida e armazenada criptografada nesta máquina. Não há nada para copiar. Se nenhum navegador puder ser aberto, um arquivo de chave é aberto no lugar: cole nele **apenas a sua chave de API** e salve (ela é criptografada e o arquivo é excluído). **Nunca cole a chave no chat.** Verificação manual: `npm run key:check`.
 
 ### Isso tem custo?
 
-O código da skill é gratuito (MIT), mas a dublagem é executada através da API da Perso, que cobra créditos: dublagem ≈ 1 crédito/s, sincronização labial ≈ ×2, separação de áudio ≈ ×0,5. Fontes em 4K são cobradas ×3 nos planos pro/business/enterprise. A cobrança do servidor é a que prevalece.
+O código da skill é gratuito (MIT), mas a dublagem é executada através da API da Perso, que cobra créditos.
 
 ### O que posso fornecer como entrada?
 
-Um arquivo local, uma pasta inteira (em lote) ou uma URL — incluindo YouTube, TikTok, Google Drive e Vimeo. Vídeos grandes demais ou muito longos são divididos, processados e remontados automaticamente.
+Um arquivo local, uma pasta local ou uma URL (YouTube, TikTok, Google Drive). Vídeos grandes demais ou muito longos são divididos, processados e remontados automaticamente.
 
 ### Ela consegue dublar para vários idiomas ou processar muitos arquivos de uma vez?
 
@@ -38,7 +38,7 @@ Ela divide a fonte em faixas de voz / fundo / subfundo — sem envolver dublagem
 
 ### Ela consegue gerar legendas (SRT) em vez de dublar?
 
-Sim — o pacote também instala a skill **`/srt`**. Ela extrai as legendas no idioma original de um vídeo/áudio/URL usando o reconhecimento de fala da Perso, e seu agente então as traduz para os idiomas que você pedir (salvas como `<name>_<lang>_Subtitle.srt` junto ao arquivo original). Quer só a transcrição? Basta pedir — ele roda com `--transcribe-only`, sem tradução. Cada extração de legenda consome créditos proporcionalmente à duração da mídia (por idioma).
+A skill **`/srt`** extrai as legendas no idioma original de um vídeo/áudio/URL usando o reconhecimento de fala da Perso. Se você também quiser as legendas traduzidas, peça o SRT indicando os idiomas desejados.
 
 ### Parou no meio do processo (sem créditos, uma falha ou um shell encerrado). E agora?
 
@@ -62,4 +62,4 @@ A skill precisa do Node.js 18+. Verifique com `node -v`; instale a versão LTS e
 
 ### Quais dados a skill coleta?
 
-Apenas eventos de uso anônimos — qual ação foi executada, se teve sucesso, contagens aproximadas, versão do app e sistema operacional — identificados com um ID aleatório por instalação. Isso nunca inclui sua chave de API, nomes de arquivo ou conteúdo de mídia, conta/e-mail, ou IDs de espaço de trabalho.
+Apenas eventos de uso — qual ação foi executada, se teve sucesso, contagens aproximadas, versão do app e sistema operacional — identificados com um ID aleatório por instalação e o número do seu espaço de trabalho. Sua chave de API e sua mídia nunca são incluídas.

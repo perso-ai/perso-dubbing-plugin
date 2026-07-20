@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { createInterface } from 'node:readline/promises';
 import { resolveKey, onboardingHelp, preloadKeyEnv } from '../scripts/resolve_key.mjs';
 import { dubbingSpaces, getPlanStatus } from './space.mjs';
-import { track } from './telemetry.mjs';
+import { track, setTelemetrySpace } from './telemetry.mjs';
 
 const notify = (m) => console.log(`[progress] ${m}`);
 
@@ -40,10 +40,11 @@ export function errorClass(e) {
   return 'unknown';
 }
 
-// Key gate with self-healing: when no key is registered, hand off to `resolve_key.mjs --watch` in a child
-// process (creates the key file, opens it in the editor, encrypts on save, deletes the file) and continue
-// once registered. Runs in a child because Windows DPAPI work (powershell) must not run in this main process.
-// PERSO_NO_WATCH=1 restores the old fail-fast behavior (headless/CI).
+// Key gate with self-healing: when no key is registered, first hand off to `connect.mjs` in a child
+// process (opens the portal /connect page; the key is issued in the browser and delivered to a local
+// listener — no copy/paste), then fall back to `resolve_key.mjs --watch` (key file opened in the
+// editor, encrypted on save). Runs in a child because Windows DPAPI work (powershell) must not run in
+// this main process. PERSO_NO_OPEN skips the browser flow; PERSO_NO_WATCH=1 restores fail-fast (headless/CI).
 export async function ensureKey() {
   if (resolveKey()) { track('key_check', { has_key: true }); return; }
   track('key_check', { has_key: false });
@@ -51,20 +52,27 @@ export async function ensureKey() {
     console.error(onboardingHelp());
     throw new ExitCode(2);
   }
-  notify('No API key registered — a key file will open; paste just your Perso API key and save it. (Get one: https://developers.perso.ai/api-keys)');
-  track('key_onboarding_started');
-  const watcher = fileURLToPath(new URL('../scripts/resolve_key.mjs', import.meta.url));
-  const code = await new Promise((res) => {
-    const child = spawn(process.execPath, [watcher, '--watch'], { stdio: 'inherit' });
+  const runChild = (rel, args = []) => new Promise((res) => {
+    const child = spawn(process.execPath, [fileURLToPath(new URL(rel, import.meta.url)), ...args], { stdio: 'inherit' });
     child.on('close', res);
     child.on('error', () => res(1));
   });
+  if (!process.env.PERSO_NO_OPEN) {
+    notify('No API key registered — a browser page will open: sign in and click once to connect this device.');
+    track('key_onboarding_started', { method: 'connect' });
+    const code = await runChild('../scripts/connect.mjs');
+    preloadKeyEnv();
+    if (code === 0 && resolveKey()) { notify('API key registered — continuing.'); return; } // key_registered tracked by connect.mjs
+  }
+  notify('Falling back to file-based registration — a key file will open; paste just your Perso API key and save it. (Get one: https://developers.perso.ai/api-keys)');
+  track('key_onboarding_started', { method: 'watch' });
+  const code = await runChild('../scripts/resolve_key.mjs', ['--watch']);
   preloadKeyEnv();
   if (code !== 0 || !resolveKey()) {
     console.error(onboardingHelp());
     throw new ExitCode(2);
   }
-  track('key_registered');
+  track('key_registered', { method: 'watch' });
   notify('API key registered — continuing.');
 }
 
@@ -75,9 +83,9 @@ export async function ensureKey() {
 // --space "<space name>".
 export async function ensureSpace(args) {
   const wanted = args.space != null ? String(args.space).trim() : '';
-  if (/^\d+$/.test(wanted)) { track('space_resolved'); return Number(wanted); } // raw seq — power users/scripts; not shown to end users
+  if (/^\d+$/.test(wanted)) { setTelemetrySpace(wanted); track('space_resolved'); return Number(wanted); } // raw seq — power users/scripts; not shown to end users
   const pinned = Number(process.env.PERSO_SPACE_SEQ);
-  if (!wanted && pinned) { track('space_resolved'); return pinned; }
+  if (!wanted && pinned) { setTelemetrySpace(pinned); track('space_resolved'); return pinned; }
 
   const spaces = await dubbingSpaces();
   // Options shown to the user carry "name | (plan) | remaining credits" — never the internal seq.
@@ -88,7 +96,7 @@ export async function ensureSpace(args) {
 
   if (wanted) {
     const hits = spaces.filter((s) => s.name.toLowerCase() === wanted.toLowerCase());
-    if (hits.length === 1) { track('space_resolved', { plan_tier: hits[0].tier ?? null, plan_name: hits[0].planName ?? null }); console.log(`Space: ${brief(hits[0])}`); return hits[0].seq; }
+    if (hits.length === 1) { setTelemetrySpace(hits[0].seq); track('space_resolved', { plan_tier: hits[0].tier ?? null, plan_name: hits[0].planName ?? null }); console.log(`Space: ${brief(hits[0])}`); return hits[0].seq; }
     if (hits.length > 1) {
       console.log(`[space-select] Several spaces share the name "${wanted}" — rename one in Perso, or pin PERSO_SPACE_SEQ:`);
       for (const s of await enrich(hits)) console.log(`  PERSO_SPACE_SEQ=${s.seq}  →  ${label(s)}`);
@@ -99,7 +107,7 @@ export async function ensureSpace(args) {
     throw new ExitCode(3);
   }
 
-  if (spaces.length === 1) { track('space_resolved', { plan_tier: spaces[0].tier ?? null, plan_name: spaces[0].planName ?? null }); return spaces[0].seq; }
+  if (spaces.length === 1) { setTelemetrySpace(spaces[0].seq); track('space_resolved', { plan_tier: spaces[0].tier ?? null, plan_name: spaces[0].planName ?? null }); return spaces[0].seq; }
   const options = await enrich(spaces);
   if (process.stdin.isTTY && process.stdout.isTTY) {
     console.log('Several spaces are available. Which one should this job run in?');
@@ -109,6 +117,7 @@ export async function ensureSpace(args) {
     rl.close();
     const chosen = options[Number(answer) - 1] ?? options.find((s) => s.name.toLowerCase() === answer.toLowerCase());
     if (!chosen) { console.error('Invalid selection — run again.'); throw new ExitCode(1); }
+    setTelemetrySpace(chosen.seq);
     track('space_resolved', { plan_tier: chosen.tier ?? null, plan_name: chosen.planName ?? null });
     console.log(`Space: ${brief(chosen)}`);
     return chosen.seq;

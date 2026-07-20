@@ -21,7 +21,7 @@ A skill that extracts the source-language subtitles of a video/audio via the Per
 
 ## One-time setup
 
-Same as `/dubbing` — no separate step: with no key registered, `srt.mjs` opens a key file on first run. Show the user the printed key-file path (clickable) and tell them to paste just the key and save (it's encrypted and the file deleted). Never paste the key into chat. Get a key: https://developers.perso.ai/api-keys
+Same as `/dubbing` — no separate step: with no key registered, `srt.mjs` opens a browser page on first run (the user signs in and clicks once; the key is delivered automatically). If the browser can't open, a key file opens instead — show the user the printed key-file path (clickable) and tell them to paste just the key and save (it's encrypted and the file deleted). Never paste the key into chat. Get a key: https://developers.perso.ai/api-keys
 
 ## Run
 

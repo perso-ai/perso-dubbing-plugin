@@ -10,15 +10,15 @@ Node.js 18+ dan kunci API Perso Dubbing. Instal skill-nya, lalu cukup katakan *"
 
 ### Bagaimana cara mendaftarkan kunci API saya?
 
-Pada eksekusi pertama, sebuah file kunci akan terbuka secara otomatis — tempelkan **hanya kunci API Anda** ke dalam file tersebut lalu simpan (file itu dienkripsi kemudian dihapus). **Jangan pernah menempelkan kunci ke dalam chat.** Pemeriksaan manual: `npm run key:check`.
+Pada eksekusi pertama, sebuah halaman browser akan terbuka — masuk dan klik sekali, lalu kunci Anda diterbitkan dan disimpan terenkripsi di komputer ini. Tidak ada yang perlu disalin. Jika tidak ada browser yang bisa dibuka, sebuah file kunci akan terbuka sebagai gantinya: tempelkan **hanya kunci API Anda** ke dalam file tersebut lalu simpan (file itu dienkripsi kemudian dihapus). **Jangan pernah menempelkan kunci ke dalam chat.** Pemeriksaan manual: `npm run key:check`.
 
 ### Apakah ini berbayar?
 
-Kode skill ini gratis (MIT), tetapi proses dubbing berjalan melalui API Perso yang membebankan kredit: dubbing ≈ 1 kredit/detik, lip-sync ≈ ×2, pemisahan audio ≈ ×0,5. Sumber 4K dikenakan ×3 pada paket pro/business/enterprise. Perhitungan tagihan di server bersifat final.
+Kode skill ini gratis (MIT), tetapi proses dubbing berjalan melalui API Perso yang membebankan kredit.
 
 ### Apa saja yang bisa saya masukkan?
 
-File lokal, seluruh folder (batch), atau URL — termasuk YouTube, TikTok, Google Drive, dan Vimeo. Video yang berukuran terlalu besar atau sangat panjang akan otomatis dipecah, diproses, dan digabungkan kembali.
+File lokal, folder lokal, atau URL (YouTube, TikTok, Google Drive). Video yang berukuran terlalu besar atau sangat panjang akan otomatis dipecah, diproses, dan digabungkan kembali.
 
 ### Bisakah skill ini men-dubbing ke beberapa bahasa, atau memproses banyak file sekaligus?
 
@@ -38,7 +38,7 @@ Fitur ini memecah sumber menjadi trek suara / latar / sub-latar — tanpa proses
 
 ### Bisakah skill ini membuat subtitle (SRT), alih-alih dubbing?
 
-Bisa — paket ini juga menginstal skill **`/srt`**. Skill ini mengekstrak subtitle bahasa asli dari video/audio/URL melalui speech-to-text Perso, lalu agen Anda menerjemahkannya ke bahasa yang Anda minta (disimpan sebagai `<name>_<lang>_Subtitle.srt` di sebelah file aslinya). Hanya ingin transkripnya saja? Cukup sampaikan itu, dan skill akan berjalan dengan `--transcribe-only` — tanpa terjemahan. Setiap ekstraksi subtitle menghabiskan kredit sebanding dengan durasi media (per bahasa).
+Skill **`/srt`** mengekstrak subtitle bahasa asli dari video/audio/URL melalui speech-to-text Perso. Jika Anda juga ingin subtitle tersebut diterjemahkan, mintalah SRT beserta bahasa yang Anda inginkan.
 
 ### Prosesnya berhenti di tengah jalan (kredit habis, crash, atau shell dihentikan). Sekarang bagaimana?
 
@@ -62,4 +62,4 @@ Skill ini membutuhkan Node.js 18+. Periksa dengan `node -v`; instal versi LTS da
 
 ### Data apa yang dikumpulkan oleh skill ini?
 
-Hanya event penggunaan anonim — aksi apa yang dijalankan, apakah berhasil, jumlah kasar, versi aplikasi, dan OS — yang ditandai dengan ID acak per instalasi. Data ini tidak pernah menyertakan kunci API, nama file atau konten media, akun/email, maupun ID workspace Anda.
+Hanya event penggunaan — aksi apa yang dijalankan, apakah berhasil, jumlah kasar, versi aplikasi, dan OS — yang ditandai dengan ID acak per instalasi dan nomor workspace Anda. Kunci API dan media Anda tidak pernah disertakan.

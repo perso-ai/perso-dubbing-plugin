@@ -12,7 +12,7 @@ import {
   withCurrencyFallback, isCurrencyMismatch, CREDIT_PER_UNIT, DEFAULT_CURRENCY, CURRENCIES,
 } from '../lib/billing.mjs';
 import { withUtm, SUBSCRIPTION_URL } from '../lib/messages.mjs';
-import { track } from '../lib/telemetry.mjs';
+import { track, setTelemetrySpace } from '../lib/telemetry.mjs';
 
 class UsageError extends Error { constructor(m) { super(m); this.name = 'UsageError'; } }
 class ExitCode extends Error { constructor(c) { super(`exit ${c}`); this.name = 'ExitCode'; this.code = c; } }
@@ -52,13 +52,18 @@ function parseArgs(argv) {
 
 // --space accepts a numeric spaceSeq or a space name (matching dubbing.mjs); omitted → the pinned/only space.
 async function resolveSpaceSeq(arg) {
-  if (arg === undefined) return resolveSpace();
+  let seq;
   const n = Number(arg);
-  if (Number.isInteger(n) && n > 0) return n;
-  const spaces = await dubbingSpaces();
-  const hit = spaces.find((s) => s.name === arg) ?? spaces.find((s) => s.name.toLowerCase() === String(arg).toLowerCase());
-  if (!hit) throw new UsageError(`No space named "${arg}". Available: ${spaces.map((s) => s.name).join(', ')}`);
-  return hit.seq;
+  if (arg === undefined) seq = await resolveSpace();
+  else if (Number.isInteger(n) && n > 0) seq = n;
+  else {
+    const spaces = await dubbingSpaces();
+    const hit = spaces.find((s) => s.name === arg) ?? spaces.find((s) => s.name.toLowerCase() === String(arg).toLowerCase());
+    if (!hit) throw new UsageError(`No space named "${arg}". Available: ${spaces.map((s) => s.name).join(', ')}`);
+    seq = hit.seq;
+  }
+  setTelemetrySpace(seq); // billing_link_created etc. carry space_seq
+  return seq;
 }
 
 const money = (o) => (o && o.price != null ? `${String(o.price).trim()} ${String(o.priceUnit).toUpperCase()}` : '');

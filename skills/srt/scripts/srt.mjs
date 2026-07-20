@@ -18,7 +18,7 @@ import { upload, requestStt, downloadAudioScript, getStatus } from '../../dubbin
 import { probe } from '../../dubbing/lib/ffmpeg.mjs';
 import { messages } from '../../dubbing/lib/messages.mjs';
 import { checkForUpdate } from '../../dubbing/lib/update_check.mjs';
-import { track, initTelemetry } from '../../dubbing/lib/telemetry.mjs';
+import { track, initTelemetry, setTelemetrySpace } from '../../dubbing/lib/telemetry.mjs';
 import { cleanupTempDirs } from '../../dubbing/lib/tmp.mjs';
 import { POLL_INTERVAL_MS, MAX_IDLE_MS } from '../../dubbing/lib/config.mjs';
 
@@ -389,6 +389,7 @@ async function runResume(fileArg) {
   if (m.kind !== 'stt' || m.version !== 1) {
     throw new Error('Not a subtitle state file — dubbing/separation state files resume with the dubbing worker instead.');
   }
+  setTelemetrySpace(m.spaceSeq); // resume bypasses ensureSpace — attach the workspace from the state file
   track('resume_started', { resumed_from: m.stopReason ?? 'manual' });
   const ctx = { spaceSeq: m.spaceSeq, out: m.out ?? null, targets: m.targets ?? [], file: fileArg, resumedFrom: m.stopReason ?? 'manual' };
   if (!ctx.targets.length) throw new Error('Corrupt state file (no target languages) — run again from the original command.');
