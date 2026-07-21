@@ -83,11 +83,37 @@
   .nav a.gh:hover{color:var(--ink); text-decoration:underline; text-underline-offset:3px;}
 
   .hero{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:56px; align-items:center; padding-top:72px; padding-bottom:64px;}
+  .kick{display:inline-block; font-size:13.5px; font-weight:600; color:var(--accent-ink); background:var(--accent-soft);
+    border-radius:99px; padding:5px 14px; margin-bottom:16px; word-break:keep-all;}
   .hero h1{font-size:40px; font-weight:700; line-height:1.32; letter-spacing:-.028em; text-wrap:balance;}
   .hero .lede{font-size:17px; color:var(--body); margin-top:18px; max-width:42ch; word-break:keep-all;}
   .hero .sub{font-size:14.5px; color:var(--mut); margin-top:14px;}
   .hero .sub b{color:var(--body);}
-  .hero-cta{display:flex; gap:12px; align-items:center; margin-top:30px;}
+  .hero-cta{display:flex; flex-direction:column; align-items:flex-start; gap:11px; margin-top:30px;}
+  .cta-label{font-size:14px; font-weight:600; color:var(--body); word-break:keep-all;}
+  .iconrow{display:flex; gap:12px; align-items:center;}
+  .icobtn{position:relative; width:54px; height:54px; display:inline-flex; align-items:center; justify-content:center;
+    background:#fff; border:1px solid var(--line); border-radius:14px; cursor:pointer; padding:0;
+    transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease;}
+  .icobtn svg{width:26px; height:26px;}
+  .icobtn:hover, .icobtn:focus-visible{transform:translateY(-2px); border-color:var(--accent);
+    box-shadow:0 10px 24px -14px rgba(100,74,255,.5);}
+  .icobtn.ok{border-color:var(--ok); box-shadow:0 10px 24px -14px rgba(26,158,108,.5);}
+  .tip{position:absolute; bottom:calc(100% + 10px); left:50%; transform:translateX(-50%);
+    background:var(--ink); color:#fff; font-size:12px; font-weight:500; line-height:1.4;
+    border-radius:8px; padding:6px 11px; white-space:nowrap; opacity:0; pointer-events:none;
+    transition:opacity .15s ease; z-index:40;}
+  .tip::after{content:""; position:absolute; top:100%; left:50%; transform:translateX(-50%);
+    border:5px solid transparent; border-top-color:var(--ink);}
+  .icobtn:first-child .tip{left:0; transform:none;}
+  .icobtn:first-child .tip::after{left:20px;}
+  .icobtn:hover .tip, .icobtn:focus-visible .tip, .icobtn.ok .tip{opacity:1;}
+  .icobtn.ok .tip{background:var(--ok);}
+  .icobtn.ok .tip::after{border-top-color:var(--ok);}
+  .steps{display:flex; gap:9px; align-items:center; flex-wrap:wrap; margin-top:16px;
+    font-size:13px; color:var(--mut); word-break:keep-all;}
+  .steps b{color:var(--body); font-weight:600;}
+  .steps .arr{color:var(--mut); opacity:.6;}
   .btn{display:inline-block; font:inherit; font-size:15px; font-weight:600; text-decoration:none; cursor:pointer;
     border-radius:10px; padding:12px 22px; border:1px solid transparent;
     transition:transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;}
@@ -95,6 +121,8 @@
   .btn:active{transform:translateY(0);}
   .btn-primary{background:var(--accent); color:#fff;}
   .btn-primary:hover{background:var(--accent-ink); box-shadow:0 8px 20px -10px rgba(100,74,255,.55);}
+  .btn-primary.ok{background:var(--ok);}
+  .btn-primary.ok:hover{background:var(--ok); box-shadow:none;}
   .btn-quiet{border-color:var(--line); color:var(--ink); background:#fff;}
   .btn-quiet:hover{border-color:var(--mut);}
 
@@ -121,8 +149,9 @@
   .agents{background:var(--bg-soft); border-top:1px solid var(--line-soft); border-bottom:1px solid var(--line-soft);
     padding-top:56px; padding-bottom:64px;}
   .agents h2, .bene h2{font-size:26px; font-weight:700; letter-spacing:-.02em; text-wrap:balance;}
-  .agents .lead{font-size:15px; color:var(--body); margin-top:8px; max-width:58ch; word-break:keep-all;}
-  .agrows{display:flex; flex-direction:column; gap:12px; margin-top:26px;}
+  .agents .lead, .bene .lead{font-size:15px; color:var(--body); margin-top:8px; max-width:58ch; word-break:keep-all;}
+  .bene .lead{max-width:none;}
+  .agrows{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-top:26px;}
   .agrow{background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px 18px 14px;
     transition:border-color .2s ease, box-shadow .2s ease;}
   .agrow:hover{border-color:#d5d0f5; box-shadow:0 12px 28px -22px rgba(16,12,32,.35);}
@@ -134,7 +163,9 @@
   .agnote a{color:var(--accent); text-decoration:none; font-weight:600;}
   .agnote a:hover{text-decoration:underline; text-underline-offset:3px;}
   .agline{display:flex; align-items:center; gap:10px; margin-top:11px; background:var(--bg-soft);
-    border:1px solid var(--line-soft); border-radius:10px; padding:5px 5px 5px 14px;}
+    border:1px solid var(--line-soft); border-radius:10px; padding:5px 5px 5px 14px; cursor:pointer;
+    transition:border-color .15s ease;}
+  .agline:hover{border-color:#d5d0f5;}
   .agline code{flex:1; min-width:0; font-family:inherit; font-size:14px; color:var(--ink);
     word-break:break-all; line-height:1.55; padding:6px 0;}
   .agline code.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:13px;
@@ -154,28 +185,33 @@
   .honest a{color:var(--accent); text-decoration:none; font-weight:600;}
   .honest a:hover{text-decoration:underline; text-underline-offset:3px;}
 
-  .bene{padding-top:64px; padding-bottom:48px;}
-  .blist{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 32px; margin-top:28px; padding:0;}
-  .blist li{list-style:none; display:flex; gap:10px; align-items:flex-start; font-size:14.5px; color:var(--body); word-break:keep-all;}
-  .blist li .bt{flex:1; min-width:0;}
-  .blist li::before{content:"✓"; width:20px; height:20px; border-radius:50%; background:var(--accent-soft); color:var(--accent);
-    font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;}
-  .blist b{color:var(--ink);}
+  .bene{padding-top:64px; padding-bottom:64px;}
+  .hookcards{display:flex; flex-direction:column; gap:14px; margin-top:26px;}
+  .hookcard{background:#fff; border:1px solid var(--line); border-radius:16px; padding:24px 28px;
+    transition:border-color .2s ease, box-shadow .2s ease;}
+  .hookcard:hover{border-color:#d5d0f5; box-shadow:0 14px 32px -26px rgba(16,12,32,.4);}
+  .hookcard.hl{position:relative; background:linear-gradient(135deg, #f4f1ff 0%, #fdf3fb 100%);
+    border-color:#ddd4ff; overflow:hidden;}
+  .hookcard.hl::after{content:""; position:absolute; right:-60px; top:-60px; width:190px; height:190px;
+    border-radius:50%; background:radial-gradient(circle, rgba(100,74,255,.14), transparent 70%); pointer-events:none;}
+  .hookchip{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700;
+    color:var(--accent-ink); background:var(--accent-soft); border-radius:99px; padding:3px 11px;}
+  .hookcard.hl .hookchip{color:#fff; background:linear-gradient(90deg, var(--accent), #b656ff); letter-spacing:.01em; padding:4px 12px;}
+  .hookcard h3{font-size:19px; font-weight:700; letter-spacing:-.018em; margin-top:12px; text-wrap:balance;}
+  .hookcard p{font-size:14.5px; color:var(--body); margin-top:9px; word-break:keep-all;}
+  .hookcard p b{color:var(--ink);}
+  .bene .extra{font-size:13.5px; color:var(--mut); margin-top:18px; word-break:keep-all;}
 
-  .credit{padding-bottom:44px;}
-  .credit .box{display:flex; gap:28px; align-items:center; justify-content:space-between; flex-wrap:wrap;
-    border:1px solid var(--line); border-radius:14px; padding:26px 30px;}
-  .credit .box > div{flex:1 1 420px; min-width:0;}
-  .credit .box > .credit-cta{flex:0 0 auto; display:flex; flex-direction:column; gap:10px;}
-  .credit .box > .credit-cta .btn{text-align:center;}
-  .credit h2{font-size:19px; font-weight:700; letter-spacing:-.015em;}
-  .credit .fine{font-size:13px; color:var(--mut); margin-top:16px; word-break:keep-all;}
-  .checks{display:flex; flex-direction:column; gap:10px; margin-top:20px; padding:0; font-size:14px; color:var(--body);}
-  .checks li{list-style:none; display:flex; gap:10px; align-items:flex-start; word-break:keep-all;}
-  .checks li .ct{flex:1; min-width:0;}
-  .checks li::before{content:"✓"; width:20px; height:20px; border-radius:50%; background:var(--accent-soft); color:var(--accent);
-    font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;}
-  .checks b{color:var(--ink);}
+  .sticky{position:fixed; left:0; right:0; bottom:0; z-index:80; background:rgba(255,255,255,.94);
+    -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); border-top:1px solid var(--line);
+    box-shadow:0 -10px 30px -18px rgba(16,12,32,.18);
+    transform:translateY(110%); transition:transform .32s ease; will-change:transform;}
+  .sticky.show{transform:none;}
+  .stickyrow{display:flex; align-items:center; gap:18px; padding-top:12px; padding-bottom:12px;}
+  .stickytxt{flex:1; min-width:0; font-size:14px; color:var(--body); word-break:keep-all;}
+  .stickytxt b{color:var(--ink);}
+  .sticky .btn{flex-shrink:0; padding:11px 20px; font-size:14px; white-space:nowrap;}
+  body.has-sticky footer.site{padding-bottom:92px;}
 
   footer.site{border-top:1px solid var(--line-soft); padding:20px 0 26px; font-size:13.5px; color:var(--mut);}
   footer.site .shell{display:flex; gap:24px; flex-wrap:wrap;}
@@ -191,12 +227,8 @@
     .hero{grid-template-columns:minmax(0,1fr); gap:36px; padding-top:48px; padding-bottom:48px;}
     .hero h1{font-size:32px;}
     .hero h1 br{display:none;}
-    .hero .lede, .agents .lead{max-width:none;}
-    .blist{grid-template-columns:1fr; gap:12px;}
-    .credit .box{flex-direction:column; align-items:stretch; gap:20px;}
-    .credit .box > div{flex:0 0 auto;}
-    .credit .box > .credit-cta{width:100%; flex-direction:row; gap:10px;}
-    .credit .box > .credit-cta .btn{flex:1; padding:13px 10px; font-size:14.5px; white-space:nowrap;}
+    .hero .lede, .agents .lead, .bene .lead{max-width:none;}
+    .agrows{grid-template-columns:1fr;}
   }
   @media (max-width:720px){
     .nav{flex-wrap:nowrap;}
@@ -215,7 +247,8 @@
     .hero h1{font-size:27px; letter-spacing:-.024em;}
     .hero .lede{font-size:15.5px;}
     .hero-cta{gap:10px;}
-    .hero-cta .btn{flex:1; text-align:center; padding:13px 10px; font-size:14.5px; white-space:nowrap;}
+    .iconrow{width:100%; justify-content:flex-start; gap:10px;}
+    .icobtn{width:50px; height:50px;}
     .term{font-size:11.5px; padding:13px 14px 15px; min-height:0;}
     .agents{padding-top:44px; padding-bottom:48px;}
     .agents h2, .bene h2{font-size:22px;}
@@ -223,8 +256,12 @@
     .agline button{width:100%; padding:11px;}
     .agline code.mono{white-space:normal; word-break:break-all;}
     .bene{padding-top:48px; padding-bottom:48px;}
-    .credit .box{padding:22px 20px;}
-    .credit{padding-bottom:40px;}
+    .hookcard{padding:20px 20px;}
+    .hookcard h3{font-size:17px;}
+    .stickyrow{gap:12px;}
+    .stickytxt{display:none;}
+    .sticky .btn{flex:1; text-align:center; padding:13px 10px;}
+    body.has-sticky footer.site{padding-bottom:96px;}
     footer.site{padding:18px 0 24px;}
     footer.site .shell{gap:20px; align-items:center;}
     footer.site a{font-size:14px;}
@@ -252,13 +289,20 @@
 
 <section class="shell hero">
   <div>
-    <h1 class="reveal" data-i="h1">영상 폴더를 통째로 맡기는 <br>AI 더빙</h1>
-    <p class="lede reveal" data-d="80" data-i="lede"><b>Claude Code</b>(Claude 데스크톱 앱)에 Perso Dubbing 스킬을 설치하면, 영상 여러 개를 여러 언어로 한 번에 더빙할 수 있습니다. 업로드부터 파일 정리까지 대화로 끝납니다. ChatGPT · Cursor · Gemini에서도 그대로 동작합니다.</p>
-    <p class="sub reveal" data-d="160" data-i="sub">지금 쓰시는 <b>Perso 계정과 크레딧을 그대로</b> 사용합니다.</p>
+    <span class="kick reveal" data-i="kick">아직 영상을 하나씩 올려서 더빙하세요?</span>
+    <h1 class="reveal" data-i="h1">더빙의 모든 과정, <br>대화 한 줄에 맡기세요</h1>
+    <p class="lede reveal" data-d="80" data-i="lede">웹 업로드 화면 없이 <b>내 컴퓨터 폴더에서 바로</b> — Perso Dubbing 스킬을 설치하면 영상 수십 개를 여러 언어로 한 번에 더빙합니다. 업로드부터 파일 정리까지 대화 한 줄로 끝. Claude Code · ChatGPT · Cursor · Gemini에서 그대로 동작합니다.</p>
+    <p class="sub reveal" data-d="160" data-i="sub">지금 쓰시는 <b>Perso 계정·크레딧 그대로</b> — 추가 요금 없이, 처리한 분량만큼만 차감됩니다.</p>
     <div class="hero-cta reveal" data-d="240">
-      <a class="btn btn-primary" href="#install" data-i="btn_install">설치 방법 보기</a>
-      <a class="btn btn-quiet" href="https://developers.perso.ai/api-keys" data-i="btn_key">API 키 발급</a>
+      <span class="cta-label" data-i="cta_label">쓰는 도구를 골라 설치 프롬프트 복사 —</span>
+      <div class="iconrow">
+        <button class="icobtn" data-copyagent="l-cl" aria-label="Claude"><svg viewBox="0 0 24 24" fill="#D97757" aria-hidden="true"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg><span class="tip" data-i="tip_cl">Claude Code에 붙여넣기 · 유료 플랜</span></button>
+        <button class="icobtn" data-copyagent="l-gpt" aria-label="ChatGPT"><svg viewBox="0 0 24 24" fill="#10A37F" aria-hidden="true"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg><span class="tip" data-i="tip_gpt">ChatGPT에 붙여넣기 · 무료로 시작</span></button>
+        <button class="icobtn" data-copyagent="l-cu" aria-label="Cursor"><svg viewBox="0 0 24 24" fill="#111111" aria-hidden="true"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg><span class="tip" data-i="tip_cu">Cursor 채팅에 붙여넣기 · 무료로 시작</span></button>
+        <button class="icobtn" data-copyagent="l-an" aria-label="Gemini"><svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="gemgrad2" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#4E8CF7"/><stop offset="0.55" stop-color="#8A63F4"/><stop offset="1" stop-color="#C06BF0"/></linearGradient></defs><path fill="url(#gemgrad2)" d="M11.04 19.32Q12 21.51 12 24q0-2.49.93-4.68.96-2.19 2.58-3.81t3.81-2.55Q21.51 12 24 12q-2.49 0-4.68-.93a12.3 12.3 0 0 1-3.81-2.58 12.3 12.3 0 0 1-2.58-3.81Q12 2.49 12 0q0 2.49-.96 4.68-.93 2.19-2.55 3.81a12.3 12.3 0 0 1-3.81 2.58Q2.49 12 0 12q2.49 0 4.68.96 2.19.93 3.81 2.55t2.55 3.81"/></svg><span class="tip" data-i="tip_an">Gemini에 붙여넣기 · 무료로 시작</span></button>
+      </div>
     </div>
+    <p class="steps reveal" data-d="300" data-i="steps"><b>아이콘 클릭</b> <span class="arr">→</span> <b>쓰는 도구에 붙여넣기</b> <span class="arr">→</span> 설치부터 더빙까지 대화로 진행</p>
   </div>
   <div class="run reveal" data-d="150" role="img" aria-label="터미널 실행 화면 예시">
     <div class="run-bar"><span class="dot d1"></span><span class="dot d2"></span><span class="dot d3"></span><span class="ttl">claude — videos/ — 80×24</span></div>
@@ -266,15 +310,38 @@
   </div>
 </section>
 
+<section class="shell bene" id="bene">
+  <h2 class="reveal" data-i="be_h2">에이전트에게 맡기면, 이렇게 달라집니다</h2>
+  <p class="lead reveal" data-d="20" data-i="be_lead">웹에서 클릭 수십 번 하던 일이 대화 한 줄이 됩니다. 걸어두고 다른 일 하세요 — 전부 내 컴퓨터에서 돌아갑니다.</p>
+  <div class="hookcards">
+    <div class="hookcard reveal" data-d="40">
+      <span class="hookchip" data-i="hk1_t">폴더째 배치</span>
+      <h3 data-i="hk1_h">웹에서는 영상 1개씩. 에이전트는 폴더째, 긴 영상은 알아서 나눠서.</h3>
+      <p data-i="hk1_p">파일·폴더·유튜브 링크를 섞어 맡겨도 알아서 정리해 처리하고, 여러 언어도 한 번에 끝냅니다. <b>개당 길이 제한 없이 자동 분할·병합</b> — 플랜의 월 처리 한도 내에서.</p>
+    </div>
+    <div class="hookcard hl reveal" data-d="80">
+      <span class="hookchip" data-i="ft_b">에이전트 전용 — 웹에는 없어요</span>
+      <h3 data-i="hk2_h">번역 자막만 필요한데, 더빙 요금을 내고 계셨나요?</h3>
+      <p data-i="hk2_p">"자막만 만들어줘"라고 하면 <b>STT 비용만 차감</b>됩니다. 번역은 대화 중인 AI가 그 자리에서 무료로 — 웹 서비스에는 없는, 에이전트로만 쓸 수 있는 기능입니다.</p>
+    </div>
+    <div class="hookcard reveal" data-d="120">
+      <span class="hookchip" data-i="hk3_t">걸어두면 끝</span>
+      <h3 data-i="hk3_h">퇴근 전에 걸어두세요. 아침엔 원본 옆에 다국어 영상이 정리돼 있습니다.</h3>
+      <p data-i="hk3_p">큐가 차면 알아서 기다렸다 다시 시도하고, 중간에 끊겨도 <b>이중 과금 없이</b> 저장 지점부터 이어갑니다. 결과는 내 컴퓨터 원본 옆에 언어별로 저장 — 다운로드 버튼 누를 일이 없습니다.</p>
+    </div>
+  </div>
+  <p class="extra reveal" data-d="160" data-i="hk_extra">립싱크 · 음성/배경음 분리 · 여러 언어 동시 더빙 — 전부 문장 한 줄로 요청하면 됩니다.</p>
+</section>
+
 <section class="agents" id="install">
   <div class="shell">
     <h2 class="reveal" data-i="ag_h2">설치, 한 줄이면 됩니다</h2>
-    <p class="lead reveal" data-d="60" data-i="ag_lead">쓰시는 도구에 맞는 한 줄을 복사해 붙여넣으세요. 나머지는 에이전트가 알아서 진행합니다.</p>
+    <p class="lead reveal" data-d="60" data-i="ag_lead">쓰시는 도구에 맞는 한 줄을 복사해 붙여넣으세요. 설치도, Perso API 키 발급도 에이전트가 대화로 알아서 진행합니다.</p>
 
     <div class="agrows reveal" data-d="120">
       <div class="agrow">
-        <div class="aghead"><svg class="ticon" viewBox="0 0 24 24" fill="#D97757" aria-hidden="true"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg><b>Claude</b><span class="agnote" data-i="n_cl"><a href="https://claude.ai/download">Claude Code</a>에 붙여넣기 · 유료 플랜</span></div>
-        <div class="agline"><code id="l-cl" data-i="l_cl"><span class="hl">https://github.com/perso-ai/perso-dubbing-plugin</span> 이거 설치해줘. 설치 후 내 폴더의 영상을 영어로 더빙해줘.</code><button data-copy="l-cl">복사</button></div>
+        <div class="aghead"><svg class="ticon" viewBox="0 0 24 24" fill="#D97757" aria-hidden="true"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg><b>Claude</b><span class="agnote" data-i="n_cl"><a href="https://claude.ai/download">Claude Code</a>에 붙여넣기 · 유료 플랜 · Code 탭은 Local 세션 선택</span></div>
+        <div class="agline"><code id="l-cl" data-i="l_cl"><span class="hl">https://github.com/perso-ai/perso-dubbing-plugin</span> 이거 설치해줘.</code><button data-copy="l-cl">복사</button></div>
       </div>
       <div class="agrow">
         <div class="aghead"><svg class="ticon" viewBox="0 0 24 24" fill="#10A37F" aria-hidden="true"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg><b>ChatGPT</b><span class="agfree" data-i="free_b">무료로 시작</span><span class="agnote" data-i="n_gpt"><a href="https://chatgpt.com">ChatGPT</a>에 붙여넣기 · Codex로 실행됩니다</span></div>
@@ -282,7 +349,7 @@
       </div>
       <div class="agrow">
         <div class="aghead"><svg class="ticon" viewBox="0 0 24 24" fill="#111111" aria-hidden="true"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg><b>Cursor</b><span class="agfree" data-i="free_b">무료로 시작</span><span class="agnote" data-i="n_cu"><a href="https://cursor.com/download">Cursor</a> 채팅에 붙여넣기</span></div>
-        <div class="agline"><code id="l-cu" data-i="l_cu"><span class="hl">https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/agent-setup.md</span> 이 가이드대로 Perso Dubbing을 설치해줘. 설치 후 내 폴더의 영상을 영어로 더빙해줘.</code><button data-copy="l-cu">복사</button></div>
+        <div class="agline"><code id="l-cu" data-i="l_cu"><span class="hl">https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/agent-setup.md</span> 이 가이드대로 Perso Dubbing을 설치해줘.</code><button data-copy="l-cu">복사</button></div>
       </div>
       <div class="agrow">
         <div class="aghead"><svg class="ticon" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="gemgrad" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#4E8CF7"/><stop offset="0.55" stop-color="#8A63F4"/><stop offset="1" stop-color="#C06BF0"/></linearGradient></defs><path fill="url(#gemgrad)" d="M11.04 19.32Q12 21.51 12 24q0-2.49.93-4.68.96-2.19 2.58-3.81t3.81-2.55Q21.51 12 24 12q-2.49 0-4.68-.93a12.3 12.3 0 0 1-3.81-2.58 12.3 12.3 0 0 1-2.58-3.81Q12 2.49 12 0q0 2.49-.96 4.68-.93 2.19-2.55 3.81a12.3 12.3 0 0 1-3.81 2.58Q2.49 12 0 12q2.49 0 4.68.96 2.19.93 3.81 2.55t2.55 3.81"/></svg><b>Gemini</b><span class="agfree" data-i="free_b">무료로 시작</span><span class="agnote" data-i="n_an"><a href="https://gemini.google.com">Gemini</a>에 붙여넣기 · Antigravity로 실행됩니다</span></div>
@@ -290,39 +357,17 @@
       </div>
     </div>
 
-    <div class="allnote reveal" data-d="160" data-i="allnote"><span aria-hidden="true">💡</span><span>에이전트를 여러 개 쓰신다면 <b><span class="kbd">npx perso-dubbing</span> 한 번</b>이면 됩니다 — 설치된 호스트를 자동으로 감지해 전부에 설치합니다. 스킬 실행에는 <b>Node.js 18 이상</b>이 필요합니다.</span></div>
+    <div class="allnote reveal" data-d="160" data-i="allnote"><span aria-hidden="true">💡</span><span>에이전트를 여러 개 쓰신다면 <b><span class="kbd">npx perso-dubbing</span> 한 번</b>이면 됩니다 — 설치된 호스트를 자동으로 감지해 전부에 설치합니다. 스킬 실행에는 <b>Node.js 18 이상</b>이 필요합니다 (Windows는 Git도) — 없으면 에이전트에게 설치를 부탁하세요.</span></div>
     <p class="honest reveal" data-d="200" data-i="honest">더빙 요금은 지금 워크스페이스에서 쓰시는 것과 동일하게 <b>보유 크레딧 한도 내에서, 처리한 분량만큼</b> 차감됩니다. 막히는 부분은 <a data-faq href="https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/ko/FAQ.md">FAQ</a>에 정리돼 있습니다.</p>
   </div>
 </section>
 
-<section class="shell bene" id="bene">
-  <h2 class="reveal" data-i="be_h2">이런 작업이 자동이 됩니다</h2>
-  <ul class="blist reveal" data-d="60">
-    <li><span class="bt" data-i="b1"><b>폴더째, 유튜브 URL도</b> — 파일·폴더·링크를 섞어 맡겨도 됩니다</span></li>
-    <li><span class="bt" data-i="b2"><b>긴 영상 자동 분할 · 병합</b> — 플랜의 월 처리 한도 내에서</span></li>
-    <li><span class="bt" data-i="b3"><b>여러 언어를 한 번에</b> — 업로드는 1회, 언어별로 재사용</span></li>
-    <li><span class="bt" data-i="b4"><b>립싱크 · 음성/배경음 분리</b> — 문장으로 요청하면 끝</span></li>
-    <li><span class="bt" data-i="b5"><b>중단돼도 이어서</b> — 저장된 지점부터 재개</span></li>
-    <li><span class="bt" data-i="b6"><b>결과는 원본 옆에</b> — 언어별로 정리되어 저장</span></li>
-  </ul>
-</section>
-
-<section class="shell credit">
-  <div class="box reveal">
-    <div>
-      <h2 data-i="cr_h2">준비물은 두 가지입니다</h2>
-      <ul class="checks">
-        <li><span class="ct" data-i="cr_li1"><b>Claude 유료 플랜</b> — 데스크톱 앱·CLI의 Claude Code에서 실행합니다 (ChatGPT · Cursor 등 다른 에이전트는 해당 없음)</span></li>
-        <li><span class="ct" data-i="cr_li2"><b>Perso API 키</b> — 지금 로그인한 계정으로 바로 발급됩니다</span></li>
-      </ul>
-      <p class="fine" data-i="cr_fine">Code 탭에서는 Local 세션을 선택하세요. Windows는 Git · Node 18 이상이 필요합니다 — 없으면 Claude에게 설치를 부탁하면 됩니다.</p>
-    </div>
-    <div class="credit-cta">
-      <a class="btn btn-primary" href="https://developers.perso.ai/api-keys" data-i="btn_key2">API 키 발급하기</a>
-      <a class="btn btn-quiet" href="#install" data-i="btn_install">설치 방법 보기</a>
-    </div>
+<div class="sticky" id="sticky" aria-hidden="true">
+  <div class="shell stickyrow">
+    <span class="stickytxt" data-i="st_t"><b>30초 설치</b> — 복사해서 Claude Code에 붙여넣으면 끝</span>
+    <button class="btn btn-primary" data-copyprompt="sticky" data-i="btn_copy">설치 프롬프트 복사</button>
   </div>
-</section>
+</div>
 
 <footer class="site">
   <div class="shell">
@@ -336,11 +381,11 @@
 (function(){
   var reduced = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  var S = {"en": {"_title": "Perso Dubbing — Dub whole folders with Claude", "_type": "Dub everything in the videos folder into English, Japanese, and Spanish.", "nav_gh": "For developers · View on GitHub", "h1": "AI dubbing that takes on <br>your whole video folder", "lede": "Install the Perso Dubbing skill in <b>Claude Code</b> (the Claude desktop app) and dub multiple videos into multiple languages at once. From upload to file cleanup, it’s all one conversation. Works the same in ChatGPT, Cursor, and Gemini.", "sub": "Uses the <b>Perso account and credits you already have</b>.", "btn_install": "See how to install", "btn_key": "Get an API key", "btn_key2": "Get an API key", "tl3": "Found <span class=\"ty\">31</span> videos. Dubbing into 3 languages — long videos are split automatically.", "tl4": "<span class=\"tg\">✔</span> promo_launch.mp4 <span class=\"tm\">→</span> <span class=\"tc\">en·ja·es</span> <span class=\"tg\">done</span>", "tl5": "<span class=\"tg\">✔</span> tutorial_02.mp4 <span class=\"tm\">→</span> <span class=\"tc\">en·ja·es</span> <span class=\"tg\">done</span>", "tl6": "<span class=\"ta\">⣧</span> interview_full.mp4 <span class=\"tm\">(47 min · auto-split 4/6)</span> <span class=\"ty\"><span id=\"pct\">68</span>%</span>", "tl7": "<span class=\"tm\">○ shorts_015.mp4 +27 more queued</span>", "tl8": "Results are saved next to each original", "ag_h2": "One line is all it takes", "allnote": "<span aria-hidden=\"true\">💡</span><span>Using more than one agent? Run <b><span class=\"kbd\">npx perso-dubbing</span> once</b> — it detects every installed host and installs to all of them. The skill runs on <b>Node.js 18+</b>.</span>", "honest": "Dubbing is billed just like the workspace — deducted from <b>your existing credit balance, for the minutes you process</b>. Stuck on something? The <a href=\"https://github.com/perso-ai/perso-dubbing-plugin/blob/main/FAQ.md\">FAQ</a> has you covered.", "be_h2": "Here’s what goes on autopilot", "cr_h2": "You only need two things", "cr_li1": "<b>A paid Claude plan</b> — runs in Claude Code, in the desktop app or CLI (not needed for ChatGPT, Cursor, and other agents)", "cr_li2": "<b>A Perso API key</b> — issued instantly for the account you’re signed in with", "cr_fine": "Pick a Local session in the Code tab. On Windows you’ll need Git and Node 18+ — if they’re missing, just ask Claude to install them.", "ag_lead": "Copy the line for the tool you use and paste it in. The agent handles the rest.", "n_cl": "Paste into <a href=\"https://claude.ai/download\">Claude Code</a> · paid plan", "l_cl": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin</span> Install this, then dub the videos in my folder into Spanish.", "n_gpt": "Paste into <a href=\"https://chatgpt.com\">ChatGPT</a> · runs on Codex", "l_gpt": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/chatgpt-setup.md</span> Read this guide and help me set up Perso Dubbing on my computer from scratch, one step at a time.", "n_cu": "Paste into <a href=\"https://cursor.com/download\">Cursor</a>’s chat", "n_an": "Paste into <a href=\"https://gemini.google.com\">Gemini</a> · runs on Antigravity", "free_b": "Free to start", "l_cu": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/agent-setup.md</span> Set up Perso Dubbing following this guide, then dub the videos in my folder into Spanish.", "l_an": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/gemini-setup.md</span> Read this guide and help me set up Perso Dubbing on my computer from scratch, one step at a time.", "b1": "<b>Whole folders, YouTube URLs too</b> — mix files, folders, and links", "b2": "<b>Long videos auto split & merged</b> — within your plan’s monthly limit", "b3": "<b>Several languages in one pass</b> — one upload, reused per language", "b4": "<b>Lip sync · voice/background separation</b> — just ask in plain words", "b5": "<b>Picks up where it left off</b> — resumes from the saved point", "b6": "<b>Results saved next to the originals</b> — organized per language"}, "pt": {"_title": "Perso Dubbing — Duble pastas inteiras com o Claude", "_type": "Duble tudo da pasta videos para inglês, japonês e espanhol.", "nav_gh": "Para devs · Ver no GitHub", "h1": "Dublagem com IA que assume <br>a pasta inteira de vídeos", "lede": "Instale a skill Perso Dubbing no <b>Claude Code</b> (app do Claude para desktop) e duble vários vídeos em vários idiomas de uma vez. Do upload à organização dos arquivos, tudo em uma conversa. Funciona igual no ChatGPT, Cursor e Gemini.", "sub": "Usa a <b>conta e os créditos Perso que você já tem</b>.", "btn_install": "Ver como instalar", "btn_key": "Gerar chave de API", "btn_key2": "Gerar chave de API", "tl3": "Encontrei <span class=\"ty\">31</span> vídeos. Dublando em 3 idiomas — vídeos longos são divididos automaticamente.", "tl4": "<span class=\"tg\">✔</span> promo_launch.mp4 <span class=\"tm\">→</span> <span class=\"tc\">en·ja·es</span> <span class=\"tg\">concluído</span>", "tl5": "<span class=\"tg\">✔</span> tutorial_02.mp4 <span class=\"tm\">→</span> <span class=\"tc\">en·ja·es</span> <span class=\"tg\">concluído</span>", "tl6": "<span class=\"ta\">⣧</span> interview_full.mp4 <span class=\"tm\">(47 min · divisão 4/6)</span> <span class=\"ty\"><span id=\"pct\">68</span>%</span>", "tl7": "<span class=\"tm\">○ shorts_015.mp4 +27 na fila</span>", "tl8": "Os resultados ficam ao lado de cada original", "ag_h2": "Uma linha e pronto", "allnote": "<span aria-hidden=\"true\">💡</span><span>Usa mais de um agente? Rode <b><span class=\"kbd\">npx perso-dubbing</span> uma vez</b> — ele detecta todos os hosts instalados e instala em cada um. A skill roda em <b>Node.js 18+</b>.</span>", "honest": "A dublagem é cobrada como no workspace — descontada dos <b>seus créditos, conforme os minutos processados</b>. Ficou com dúvida? Veja a <a href=\"https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/pt/FAQ.md\">FAQ</a>.", "be_h2": "Isto passa a ser automático", "cr_h2": "Você só precisa de duas coisas", "cr_li1": "<b>Plano pago do Claude</b> — roda no Claude Code, no app desktop ou na CLI (não vale para ChatGPT, Cursor e outros agentes)", "cr_li2": "<b>Chave de API da Perso</b> — emitida na hora para a conta em que você está logado", "cr_fine": "Na aba Code, escolha uma sessão Local. No Windows você precisa de Git e Node 18+ — se faltarem, peça ao Claude para instalar.", "ag_lead": "Copie a linha da ferramenta que você usa e cole. O agente cuida do resto.", "n_cl": "Cole no <a href=\"https://claude.ai/download\">Claude Code</a> · plano pago", "l_cl": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin</span> Instale isto e depois duble os vídeos da minha pasta para o inglês.", "n_gpt": "Cole no <a href=\"https://chatgpt.com\">ChatGPT</a> · roda no Codex", "l_gpt": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/chatgpt-setup.md</span> Leia este guia e me ajude a instalar o Perso Dubbing no meu computador do zero, passo a passo.", "n_cu": "Cole no chat do <a href=\"https://cursor.com/download\">Cursor</a>", "n_an": "Cole no <a href=\"https://gemini.google.com\">Gemini</a> · roda no Antigravity", "free_b": "Comece grátis", "l_cu": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/agent-setup.md</span> Instale o Perso Dubbing seguindo este guia e depois duble os vídeos da minha pasta para o inglês.", "l_an": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/gemini-setup.md</span> Leia este guia e me ajude a instalar o Perso Dubbing no meu computador do zero, passo a passo.", "b1": "<b>Pastas inteiras, URLs do YouTube também</b> — misture arquivos, pastas e links", "b2": "<b>Vídeos longos divididos e unidos sozinhos</b> — dentro do limite mensal do plano", "b3": "<b>Vários idiomas de uma vez</b> — um upload, reaproveitado por idioma", "b4": "<b>Lip sync · separação de voz/fundo</b> — basta pedir", "b5": "<b>Retoma de onde parou</b> — a partir do ponto salvo", "b6": "<b>Resultados ao lado dos originais</b> — organizados por idioma"}, "es": {"_title": "Perso Dubbing — Dobla carpetas enteras con Claude", "_type": "Dobla todo lo de la carpeta videos a inglés, japonés y español.", "nav_gh": "Para devs · Ver en GitHub", "h1": "Doblaje con IA que se encarga <br>de toda tu carpeta de vídeos", "lede": "Instala la skill Perso Dubbing en <b>Claude Code</b> (la app de escritorio de Claude) y dobla varios vídeos a varios idiomas a la vez. De la subida a la organización de archivos, todo en una conversación. Funciona igual en ChatGPT, Cursor y Gemini.", "sub": "Usa la <b>cuenta y los créditos de Perso que ya tienes</b>.", "btn_install": "Ver cómo instalar", "btn_key": "Obtener clave de API", "btn_key2": "Obtener clave de API", "tl3": "He encontrado <span class=\"ty\">31</span> vídeos. Doblando a 3 idiomas — los vídeos largos se dividen automáticamente.", "tl4": "<span class=\"tg\">✔</span> promo_launch.mp4 <span class=\"tm\">→</span> <span class=\"tc\">en·ja·es</span> <span class=\"tg\">listo</span>", "tl5": "<span class=\"tg\">✔</span> tutorial_02.mp4 <span class=\"tm\">→</span> <span class=\"tc\">en·ja·es</span> <span class=\"tg\">listo</span>", "tl6": "<span class=\"ta\">⣧</span> interview_full.mp4 <span class=\"tm\">(47 min · división 4/6)</span> <span class=\"ty\"><span id=\"pct\">68</span>%</span>", "tl7": "<span class=\"tm\">○ shorts_015.mp4 +27 en cola</span>", "tl8": "Los resultados se guardan junto a cada original", "ag_h2": "Con una línea basta", "allnote": "<span aria-hidden=\"true\">💡</span><span>¿Usas más de un agente? Ejecuta <b><span class=\"kbd\">npx perso-dubbing</span> una sola vez</b>: detecta todos los hosts instalados y lo instala en cada uno. La skill funciona con <b>Node.js 18+</b>.</span>", "honest": "El doblaje se cobra igual que en el workspace: se descuenta de <b>tus créditos, según los minutos procesados</b>. ¿Dudas? Consulta las <a href=\"https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/es/FAQ.md\">FAQ</a>.", "be_h2": "Esto pasa a ser automático", "cr_h2": "Solo necesitas dos cosas", "cr_li1": "<b>Un plan de pago de Claude</b> — se ejecuta en Claude Code, en la app de escritorio o la CLI (no hace falta para ChatGPT, Cursor y otros agentes)", "cr_li2": "<b>Una clave de API de Perso</b> — se emite al instante para la cuenta con la que has iniciado sesión", "cr_fine": "En la pestaña Code, elige una sesión Local. En Windows necesitas Git y Node 18+ — si faltan, pídele a Claude que los instale.", "ag_lead": "Copia la línea de la herramienta que usas y pégala. El agente se encarga del resto.", "n_cl": "Pega en <a href=\"https://claude.ai/download\">Claude Code</a> · plan de pago", "l_cl": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin</span> Instala esto y luego dobla los vídeos de mi carpeta al inglés.", "n_gpt": "Pega en <a href=\"https://chatgpt.com\">ChatGPT</a> · se ejecuta en Codex", "l_gpt": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/chatgpt-setup.md</span> Lee esta guía y ayúdame a instalar Perso Dubbing en mi ordenador desde cero, paso a paso.", "n_cu": "Pega en el chat de <a href=\"https://cursor.com/download\">Cursor</a>", "n_an": "Pega en <a href=\"https://gemini.google.com\">Gemini</a> · se ejecuta en Antigravity", "free_b": "Empieza gratis", "l_cu": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/agent-setup.md</span> Instala Perso Dubbing siguiendo esta guía y luego dobla los vídeos de mi carpeta al inglés.", "l_an": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/gemini-setup.md</span> Lee esta guía y ayúdame a instalar Perso Dubbing en mi ordenador desde cero, paso a paso.", "b1": "<b>Carpetas enteras, URLs de YouTube también</b> — mezcla archivos, carpetas y enlaces", "b2": "<b>Vídeos largos divididos y unidos solos</b> — dentro del límite mensual de tu plan", "b3": "<b>Varios idiomas de una vez</b> — una subida, reutilizada por idioma", "b4": "<b>Lip sync · separación de voz/fondo</b> — solo pídelo", "b5": "<b>Continúa donde lo dejó</b> — desde el punto guardado", "b6": "<b>Resultados junto a los originales</b> — organizados por idioma"}};
-  var LBL = {ko:{copy:"복사",copied:"복사됨",sel:"선택됨 — Ctrl+C / ⌘C"},
-             en:{copy:"Copy",copied:"Copied",sel:"Selected — Ctrl+C / ⌘C"},
-             pt:{copy:"Copiar",copied:"Copiado",sel:"Selecionado — Ctrl+C / ⌘C"},
-             es:{copy:"Copiar",copied:"Copiado",sel:"Seleccionado — Ctrl+C / ⌘C"}};
+  var S = {"en": {"_title": "Perso Dubbing — Dub whole folders with Claude", "_type": "Dub everything in the videos folder into English, Japanese, and Spanish.", "nav_gh": "For developers · View on GitHub", "kick": "Still uploading videos one at a time?", "h1": "The whole dubbing job, <br>done with one line of chat", "lede": "No upload screens — it works <b>right in your local folders</b>. Install the Perso Dubbing skill and dub dozens of videos into multiple languages at once, from upload to file cleanup, in one line of conversation. Works the same in Claude Code, ChatGPT, Cursor, and Gemini.", "sub": "Uses the <b>Perso account and credits you already have</b> — no extra fees, you only pay for the minutes you process.", "btn_copy": "Copy install prompt", "cta_label": "Pick your tool and copy the install prompt —", "tip_cl": "Paste into Claude Code · paid plan", "tip_gpt": "Paste into ChatGPT · free to start", "tip_cu": "Paste into Cursor’s chat · free to start", "tip_an": "Paste into Gemini · free to start", "steps": "<b>Click an icon</b> <span class=\"arr\">→</span> <b>paste into your tool</b> <span class=\"arr\">→</span> from install to dubbing, one conversation", "tl3": "Found <span class=\"ty\">31</span> videos. Dubbing into 3 languages — long videos are split automatically.", "tl4": "<span class=\"tg\">✔</span> promo_launch.mp4 <span class=\"tm\">→</span> <span class=\"tc\">en·ja·es</span> <span class=\"tg\">done</span>", "tl5": "<span class=\"tg\">✔</span> tutorial_02.mp4 <span class=\"tm\">→</span> <span class=\"tc\">en·ja·es</span> <span class=\"tg\">done</span>", "tl6": "<span class=\"ta\">⣧</span> interview_full.mp4 <span class=\"tm\">(47 min · auto-split 4/6)</span> <span class=\"ty\"><span id=\"pct\">68</span>%</span>", "tl7": "<span class=\"tm\">○ shorts_015.mp4 +27 more queued</span>", "tl8": "Results are saved next to each original", "ag_h2": "One line is all it takes", "allnote": "<span aria-hidden=\"true\">💡</span><span>Using more than one agent? Run <b><span class=\"kbd\">npx perso-dubbing</span> once</b> — it detects every installed host and installs to all of them. The skill runs on <b>Node.js 18+</b> (plus Git on Windows) — if anything’s missing, just ask the agent to install it.</span>", "honest": "Dubbing is billed just like the workspace — deducted from <b>your existing credit balance, for the minutes you process</b>. Stuck on something? The <a href=\"https://github.com/perso-ai/perso-dubbing-plugin/blob/main/FAQ.md\">FAQ</a> has you covered.", "be_h2": "Hand it to the agent, and this is what changes", "be_lead": "What took dozens of clicks in the web app becomes one line of conversation. Set it running and walk away — it all runs on your machine.", "ft_b": "Agent-only — not in the web app", "hk1_t": "Batch by folder", "hk1_h": "The web app takes one video at a time. The agent takes the whole folder — and splits long videos on its own.", "hk1_p": "Mix files, folders, and YouTube links — it sorts everything out and handles several languages in one pass. <b>Auto split &amp; merge with no per-video length cap</b> — within your plan’s monthly limit.", "hk2_h": "Only need translated subtitles — but paying full dubbing rates?", "hk2_p": "Say “just make the subtitles” and <b>only the STT cost</b> is deducted. The AI you’re talking to does the translation for free — a feature you won’t find in the web app.", "hk3_t": "Set &amp; forget", "hk3_h": "Set it running before you leave. By morning, the dubbed videos are sitting next to the originals.", "hk3_p": "If the queue is full it waits and retries on its own; if interrupted, it resumes from the last checkpoint <b>without double billing</b>. Results land next to your local originals, organized per language — no download buttons, ever.", "hk_extra": "Lip sync · voice/background separation · several languages at once — all one sentence away.", "st_t": "<b>30-second install</b> — copy, paste into Claude Code, done", "ag_lead": "Copy the line for the tool you use and paste it in. The agent handles the rest — including issuing your Perso API key, right in the chat.", "n_cl": "Paste into <a href=\"https://claude.ai/download\">Claude Code</a> · paid plan · pick a Local session in the Code tab", "l_cl": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin</span> Install this.", "n_gpt": "Paste into <a href=\"https://chatgpt.com\">ChatGPT</a> · runs on Codex", "l_gpt": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/chatgpt-setup.md</span> Read this guide and help me set up Perso Dubbing on my computer from scratch, one step at a time.", "n_cu": "Paste into <a href=\"https://cursor.com/download\">Cursor</a>’s chat", "n_an": "Paste into <a href=\"https://gemini.google.com\">Gemini</a> · runs on Antigravity", "free_b": "Free to start", "l_cu": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/agent-setup.md</span> Set up Perso Dubbing following this guide.", "l_an": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/gemini-setup.md</span> Read this guide and help me set up Perso Dubbing on my computer from scratch, one step at a time."}, "pt": {"_title": "Perso Dubbing — Duble pastas inteiras com o Claude", "_type": "Duble tudo da pasta videos para inglês, japonês e espanhol.", "nav_gh": "Para devs · Ver no GitHub", "kick": "Ainda envia os vídeos um por um?", "h1": "Todo o processo de dublagem, <br>em uma linha de conversa", "lede": "Sem telas de upload — funciona <b>direto nas pastas do seu computador</b>. Instale a skill Perso Dubbing e duble dezenas de vídeos em vários idiomas de uma vez, do upload à organização dos arquivos, em uma linha de conversa. Igual no Claude Code, ChatGPT, Cursor e Gemini.", "sub": "Usa a <b>conta e os créditos Perso que você já tem</b> — sem taxas extras, você paga só pelos minutos processados.", "btn_copy": "Copiar prompt de instalação", "cta_label": "Escolha sua ferramenta e copie o prompt de instalação —", "tip_cl": "Cole no Claude Code · plano pago", "tip_gpt": "Cole no ChatGPT · comece grátis", "tip_cu": "Cole no chat do Cursor · comece grátis", "tip_an": "Cole no Gemini · comece grátis", "steps": "<b>Clique num ícone</b> <span class=\"arr\">→</span> <b>cole na sua ferramenta</b> <span class=\"arr\">→</span> da instalação à dublagem, uma conversa", "tl3": "Encontrei <span class=\"ty\">31</span> vídeos. Dublando em 3 idiomas — vídeos longos são divididos automaticamente.", "tl4": "<span class=\"tg\">✔</span> promo_launch.mp4 <span class=\"tm\">→</span> <span class=\"tc\">en·ja·es</span> <span class=\"tg\">concluído</span>", "tl5": "<span class=\"tg\">✔</span> tutorial_02.mp4 <span class=\"tm\">→</span> <span class=\"tc\">en·ja·es</span> <span class=\"tg\">concluído</span>", "tl6": "<span class=\"ta\">⣧</span> interview_full.mp4 <span class=\"tm\">(47 min · divisão 4/6)</span> <span class=\"ty\"><span id=\"pct\">68</span>%</span>", "tl7": "<span class=\"tm\">○ shorts_015.mp4 +27 na fila</span>", "tl8": "Os resultados ficam ao lado de cada original", "ag_h2": "Uma linha e pronto", "allnote": "<span aria-hidden=\"true\">💡</span><span>Usa mais de um agente? Rode <b><span class=\"kbd\">npx perso-dubbing</span> uma vez</b> — ele detecta todos os hosts instalados e instala em cada um. A skill roda em <b>Node.js 18+</b> (e Git no Windows) — se faltar algo, peça ao agente para instalar.</span>", "honest": "A dublagem é cobrada como no workspace — descontada dos <b>seus créditos, conforme os minutos processados</b>. Ficou com dúvida? Veja a <a href=\"https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/pt/FAQ.md\">FAQ</a>.", "be_h2": "Entregue ao agente, e isto é o que muda", "be_lead": "O que levava dezenas de cliques no app web vira uma linha de conversa. Deixe rodando e vá fazer outra coisa — tudo roda no seu computador.", "ft_b": "Só no agente — não existe no app web", "hk1_t": "Lotes por pasta", "hk1_h": "O app web aceita um vídeo por vez. O agente aceita a pasta inteira — e divide sozinho os vídeos longos.", "hk1_p": "Misture arquivos, pastas e links do YouTube — ele organiza tudo e cuida de vários idiomas de uma vez. <b>Divisão e união automáticas, sem limite de duração por vídeo</b> — dentro do limite mensal do seu plano.", "hk2_h": "Só precisa das legendas traduzidas — e paga a tarifa cheia de dublagem?", "hk2_p": "Diga “faça só as legendas” e <b>só o custo de STT</b> é descontado. A IA com quem você conversa faz a tradução de graça — um recurso que não existe no app web.", "hk3_t": "Deixe e esqueça", "hk3_h": "Deixe rodando antes de sair. De manhã, os vídeos dublados estão ao lado dos originais.", "hk3_p": "Se a fila estiver cheia, ele espera e tenta de novo sozinho; se for interrompido, retoma do último ponto <b>sem cobrança dupla</b>. Os resultados ficam ao lado dos seus originais locais, organizados por idioma — sem botões de download.", "hk_extra": "Lip sync · separação de voz/fundo · vários idiomas de uma vez — tudo a uma frase de distância.", "st_t": "<b>Instalação em 30 s</b> — copie, cole no Claude Code e pronto", "ag_lead": "Copie a linha da ferramenta que você usa e cole. O agente cuida do resto — inclusive da emissão da sua chave de API da Perso, na própria conversa.", "n_cl": "Cole no <a href=\"https://claude.ai/download\">Claude Code</a> · plano pago · escolha uma sessão Local na aba Code", "l_cl": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin</span> Instale isto.", "n_gpt": "Cole no <a href=\"https://chatgpt.com\">ChatGPT</a> · roda no Codex", "l_gpt": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/chatgpt-setup.md</span> Leia este guia e me ajude a instalar o Perso Dubbing no meu computador do zero, passo a passo.", "n_cu": "Cole no chat do <a href=\"https://cursor.com/download\">Cursor</a>", "n_an": "Cole no <a href=\"https://gemini.google.com\">Gemini</a> · roda no Antigravity", "free_b": "Comece grátis", "l_cu": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/agent-setup.md</span> Instale o Perso Dubbing seguindo este guia.", "l_an": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/gemini-setup.md</span> Leia este guia e me ajude a instalar o Perso Dubbing no meu computador do zero, passo a passo."}, "es": {"_title": "Perso Dubbing — Dobla carpetas enteras con Claude", "_type": "Dobla todo lo de la carpeta videos a inglés, japonés y español.", "nav_gh": "Para devs · Ver en GitHub", "kick": "¿Sigues subiendo los vídeos de uno en uno?", "h1": "Todo el proceso de doblaje, <br>en una línea de conversación", "lede": "Sin pantallas de subida — funciona <b>directamente en las carpetas de tu ordenador</b>. Instala la skill Perso Dubbing y dobla decenas de vídeos a varios idiomas a la vez, de la subida a la organización de archivos, en una línea de conversación. Igual en Claude Code, ChatGPT, Cursor y Gemini.", "sub": "Usa la <b>cuenta y los créditos de Perso que ya tienes</b> — sin cargos extra, solo pagas los minutos que procesas.", "btn_copy": "Copiar prompt de instalación", "cta_label": "Elige tu herramienta y copia el prompt de instalación —", "tip_cl": "Pega en Claude Code · plan de pago", "tip_gpt": "Pega en ChatGPT · empieza gratis", "tip_cu": "Pega en el chat de Cursor · empieza gratis", "tip_an": "Pega en Gemini · empieza gratis", "steps": "<b>Haz clic en un icono</b> <span class=\"arr\">→</span> <b>pega en tu herramienta</b> <span class=\"arr\">→</span> de la instalación al doblaje, una conversación", "tl3": "He encontrado <span class=\"ty\">31</span> vídeos. Doblando a 3 idiomas — los vídeos largos se dividen automáticamente.", "tl4": "<span class=\"tg\">✔</span> promo_launch.mp4 <span class=\"tm\">→</span> <span class=\"tc\">en·ja·es</span> <span class=\"tg\">listo</span>", "tl5": "<span class=\"tg\">✔</span> tutorial_02.mp4 <span class=\"tm\">→</span> <span class=\"tc\">en·ja·es</span> <span class=\"tg\">listo</span>", "tl6": "<span class=\"ta\">⣧</span> interview_full.mp4 <span class=\"tm\">(47 min · división 4/6)</span> <span class=\"ty\"><span id=\"pct\">68</span>%</span>", "tl7": "<span class=\"tm\">○ shorts_015.mp4 +27 en cola</span>", "tl8": "Los resultados se guardan junto a cada original", "ag_h2": "Con una línea basta", "allnote": "<span aria-hidden=\"true\">💡</span><span>¿Usas más de un agente? Ejecuta <b><span class=\"kbd\">npx perso-dubbing</span> una sola vez</b>: detecta todos los hosts instalados y lo instala en cada uno. La skill funciona con <b>Node.js 18+</b> (y Git en Windows) — si falta algo, pídele al agente que lo instale.</span>", "honest": "El doblaje se cobra igual que en el workspace: se descuenta de <b>tus créditos, según los minutos procesados</b>. ¿Dudas? Consulta las <a href=\"https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/es/FAQ.md\">FAQ</a>.", "be_h2": "Déjaselo al agente, y esto es lo que cambia", "be_lead": "Lo que costaba decenas de clics en la app web se convierte en una línea de conversación. Déjalo en marcha y dedícate a otra cosa — todo corre en tu ordenador.", "ft_b": "Solo con el agente — no está en la app web", "hk1_t": "Lotes por carpeta", "hk1_h": "La app web acepta un vídeo a la vez. El agente acepta la carpeta entera — y divide solo los vídeos largos.", "hk1_p": "Mezcla archivos, carpetas y enlaces de YouTube — lo organiza todo y maneja varios idiomas en una pasada. <b>División y unión automáticas, sin límite de duración por vídeo</b> — dentro del límite mensual de tu plan.", "hk2_h": "¿Solo necesitas los subtítulos traducidos — y pagas la tarifa completa de doblaje?", "hk2_p": "Di «haz solo los subtítulos» y <b>solo se descuenta el coste de STT</b>. La IA con la que hablas hace la traducción gratis — una función que no existe en la app web.", "hk3_t": "Déjalo y olvídate", "hk3_h": "Déjalo en marcha antes de salir. Por la mañana, los vídeos doblados están junto a los originales.", "hk3_p": "Si la cola está llena, espera y reintenta solo; si se interrumpe, retoma desde el último punto <b>sin doble cobro</b>. Los resultados quedan junto a tus originales locales, organizados por idioma — sin botones de descarga.", "hk_extra": "Lip sync · separación de voz/fondo · varios idiomas a la vez — todo a una frase de distancia.", "st_t": "<b>Instalación en 30 s</b> — copia, pega en Claude Code y listo", "ag_lead": "Copia la línea de la herramienta que usas y pégala. El agente se encarga del resto — incluida la emisión de tu clave de API de Perso, en la misma conversación.", "n_cl": "Pega en <a href=\"https://claude.ai/download\">Claude Code</a> · plan de pago · elige una sesión Local en la pestaña Code", "l_cl": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin</span> Instala esto.", "n_gpt": "Pega en <a href=\"https://chatgpt.com\">ChatGPT</a> · se ejecuta en Codex", "l_gpt": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/chatgpt-setup.md</span> Lee esta guía y ayúdame a instalar Perso Dubbing en mi ordenador desde cero, paso a paso.", "n_cu": "Pega en el chat de <a href=\"https://cursor.com/download\">Cursor</a>", "n_an": "Pega en <a href=\"https://gemini.google.com\">Gemini</a> · se ejecuta en Antigravity", "free_b": "Empieza gratis", "l_cu": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/agent-setup.md</span> Instala Perso Dubbing siguiendo esta guía.", "l_an": "<span class=\"hl\">https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/gemini-setup.md</span> Lee esta guía y ayúdame a instalar Perso Dubbing en mi ordenador desde cero, paso a paso."}};
+  var LBL = {ko:{copy:"복사",copied:"복사됨",sel:"선택됨 — Ctrl+C / ⌘C",paste:"복사됨! Claude Code에 붙여넣으세요",pasted:"복사됨! 붙여넣으세요"},
+             en:{copy:"Copy",copied:"Copied",sel:"Selected — Ctrl+C / ⌘C",paste:"Copied! Paste into Claude Code",pasted:"Copied! Now paste it"},
+             pt:{copy:"Copiar",copied:"Copiado",sel:"Selecionado — Ctrl+C / ⌘C",paste:"Copiado! Cole no Claude Code",pasted:"Copiado! Agora cole"},
+             es:{copy:"Copiar",copied:"Copiado",sel:"Seleccionado — Ctrl+C / ⌘C",paste:"¡Copiado! Pégalo en Claude Code",pasted:"¡Copiado! Ahora pégalo"}};
   var FAQ_HREF = {ko:"https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/ko/FAQ.md",
                   en:"https://github.com/perso-ai/perso-dubbing-plugin/blob/main/FAQ.md",
                   pt:"https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/pt/FAQ.md",
@@ -403,12 +448,36 @@
   }
 
 
-  function copied(btn){ btn.textContent = LBL[curLang].copied; btn.classList.add("ok");
+  function copied(btn){
+    if (btn.hasAttribute("data-copyagent")) {
+      var tip = btn.querySelector(".tip");
+      btn.classList.add("ok");
+      if (tip) {
+        tip.textContent = LBL[curLang].pasted;
+        setTimeout(function(){
+          var k = tip.getAttribute("data-i");
+          tip.innerHTML = curLang === "ko" ? tip.__ko : (S[curLang][k] || tip.__ko);
+          btn.classList.remove("ok");
+        }, 2400);
+      }
+      return;
+    }
+    if (btn.hasAttribute("data-copyprompt")) {
+      btn.textContent = LBL[curLang].paste; btn.classList.add("ok");
+      setTimeout(function(){
+        btn.innerHTML = curLang === "ko" ? btn.__ko : (S[curLang].btn_copy || btn.__ko);
+        btn.classList.remove("ok");
+      }, 2400);
+      return;
+    }
+    btn.textContent = LBL[curLang].copied; btn.classList.add("ok");
     setTimeout(function(){ btn.textContent = LBL[curLang].copy; btn.classList.remove("ok"); }, 1800); }
   function fallbackSelect(btn, el){
     if (el) { var sel = window.getSelection(); var r = document.createRange();
       r.selectNodeContents(el); sel.removeAllRanges(); sel.addRange(r); }
-    btn.textContent = LBL[curLang].sel;
+    var tip = btn.querySelector && btn.querySelector(".tip");
+    if (tip) { tip.textContent = LBL[curLang].sel; btn.classList.add("ok"); }
+    else btn.textContent = LBL[curLang].sel;
   }
   function doCopy(text, btn, selEl){
     var ta = document.createElement("textarea");
@@ -430,7 +499,37 @@
       doCopy(el.textContent.trim(), btn, el);
     });
   });
+  document.querySelectorAll("[data-copyprompt]").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var el = document.getElementById("l-cl");
+      doCopy(el.textContent.trim(), btn, el);
+    });
+  });
+  document.querySelectorAll("[data-copyagent]").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var el = document.getElementById(btn.getAttribute("data-copyagent"));
+      doCopy(el.textContent.trim(), btn, el);
+    });
+  });
+  document.querySelectorAll(".agline").forEach(function(line){
+    line.addEventListener("click", function(e){
+      if (e.target.closest("button") || e.target.closest("a")) return;
+      var b = line.querySelector("[data-copy]");
+      if (b) b.click();
+    });
+  });
 
+  var sticky = document.getElementById("sticky");
+  var heroCta = document.querySelector(".hero-cta");
+  if (sticky && heroCta && "IntersectionObserver" in window) {
+    var sio = new IntersectionObserver(function(entries){
+      var below = !entries[0].isIntersecting && entries[0].boundingClientRect.top < 0;
+      sticky.classList.toggle("show", below);
+      sticky.setAttribute("aria-hidden", below ? "false" : "true");
+      document.body.classList.toggle("has-sticky", below);
+    });
+    sio.observe(heroCta);
+  }
 
   if (reduced || !("IntersectionObserver" in window)) return;
   document.documentElement.classList.add("anim");
@@ -499,8 +598,7 @@
   function ctaOf(a){
     var h = a.getAttribute("href") || "";
     if (a.classList.contains("brand")) return "perso_brand";
-    if (h.charAt(0) === "#") return a.closest(".credit") ? "install_bottom" : "install_hero";
-    if (h.indexOf("developers.perso.ai") >= 0) return a.closest(".credit") ? "api_key_bottom" : "api_key_hero";
+    if (h.charAt(0) === "#") return "install_hero";
     if (a.hasAttribute("data-faq")) return a.closest("footer") ? "faq_footer" : "faq_inline";
     if (h.indexOf("github.com") >= 0) return a.closest("footer") ? "github_footer" : "github_nav";
     if (h.indexOf("claude.ai") >= 0) return "agent_claude_dl";
@@ -513,9 +611,19 @@
   document.addEventListener("click", function(e){
     var t = e.target;
     if (!t || !t.closest) return;
+    var promptBtn = t.closest("[data-copyprompt]");
+    if (promptBtn) {
+      track("plugin_copy_click", {agent: "claude", placement: promptBtn.getAttribute("data-copyprompt")});
+      return;
+    }
+    var agentBtn = t.closest("[data-copyagent]");
+    if (agentBtn) {
+      track("plugin_copy_click", {agent: AGENT[agentBtn.getAttribute("data-copyagent")] || "unknown", placement: "hero"});
+      return;
+    }
     var copyBtn = t.closest("[data-copy]");
     if (copyBtn) {
-      track("plugin_copy_click", {agent: AGENT[copyBtn.getAttribute("data-copy")] || "unknown"});
+      track("plugin_copy_click", {agent: AGENT[copyBtn.getAttribute("data-copy")] || "unknown", placement: "install"});
       return;
     }
     var langBtn = t.closest(".langmenu button");
