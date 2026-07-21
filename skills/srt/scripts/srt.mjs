@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // /srt entry worker: extract the source-language subtitles (SRT) of each input via Perso AI STT.
-//   key gate → input(s) → upload once per input → one STT project per (input × language) → download each
-//   project's SRT → print one [srt-original] mapping line per (input × language).
-//   Translation is NOT done here: the calling agent translates each original SRT into its paired language
-//   and saves {stem}_{lang}_Subtitle.srt (see ../SKILL.md).
+//   key gate → input(s) → upload once per input → ONE STT project per input (languages share it) →
+//   download the original SRT → print one [srt-original] mapping line per input carrying the target list.
+//   Translation is NOT done here: the calling agent translates the one original SRT into every language
+//   in its `langs` list and saves {stem}_{lang}_Subtitle.srt per language (see ../SKILL.md).
 //   usage: node scripts/srt.mjs "<local|URL|folder>" ["<another input>" ...] [--target en,ja] [--space "space name"] [--out folder] [--recursive]
 //          node scripts/srt.mjs --resume "<state-file>"
 // Shares the dubbing skill's libraries via the sibling folder (../../dubbing) — both skills always install together.
@@ -18,7 +18,7 @@ import { upload, requestStt, downloadAudioScript, getStatus } from '../../dubbin
 import { probe } from '../../dubbing/lib/ffmpeg.mjs';
 import { messages } from '../../dubbing/lib/messages.mjs';
 import { checkForUpdate } from '../../dubbing/lib/update_check.mjs';
-import { track, initTelemetry, setTelemetrySpace } from '../../dubbing/lib/telemetry.mjs';
+import { track, initTelemetry, setTelemetrySpace, primeTelemetrySpace } from '../../dubbing/lib/telemetry.mjs';
 import { cleanupTempDirs } from '../../dubbing/lib/tmp.mjs';
 import { POLL_INTERVAL_MS, MAX_IDLE_MS } from '../../dubbing/lib/config.mjs';
 
@@ -40,9 +40,9 @@ const USAGE = [
   '       node scripts/srt.mjs --resume "<state-file>"',
   '',
   '  --target     comma-separated language codes the subtitles will be translated into (default: en).',
-  '               One subtitle project is created per input × language.',
-  '  --transcribe-only  no translation pairing — the original-language subtitles are the final result',
-  '               (one subtitle project per input; cannot be combined with --target)',
+  '               One subtitle project is created per input; every target shares its original SRT.',
+  '  --transcribe-only  no translation — the original-language subtitles are the final result',
+  '               (cannot be combined with --target)',
   '  --space      workspace name to run in (otherwise asked via the [space-select] flow)',
   '  --out        folder that collects the extracted .srt files (default: next to each source)',
   '  --recursive  when an input is a folder, include its subfolders',
@@ -76,7 +76,7 @@ function parseArgs(argv) {
   return a;
 }
 
-// Language tokens only drive project titles and the output pairing (the agent does the translating),
+// Language tokens only drive the translation list handed to the agent (which does the translating),
 // so validate the shape rather than membership in the dubbing language list.
 function parseTargets(raw) {
   const list = String(raw ?? '').split(',').map((s) => s.trim()).filter(Boolean);
@@ -138,14 +138,28 @@ function guardExistingState(file) {
   throw new ExitCode(3);
 }
 
-// Manifest v1 kind 'stt': the (input × language) plan + per-pair checkpoints keyed `${inputId}|${lang}`.
+// Manifest v2 kind 'stt': one STT project per input (all target languages share it) + per-input
+// checkpoints keyed by inputId. v1 (≤0.7.0) keyed done by `${inputId}|${lang}` with one project per
+// pair — migrated on resume, never written anymore.
 function buildManifest(ctx, perInput, done) {
   return {
-    version: 1, kind: 'stt', spaceSeq: ctx.spaceSeq, out: ctx.out ?? null, targets: ctx.targets,
+    version: 2, kind: 'stt', spaceSeq: ctx.spaceSeq, out: ctx.out ?? null, targets: ctx.targets,
     stopReason: ctx.stopReason ?? null, // why the previous run stopped ('quota') → resume telemetry
     inputs: perInput.map((p) => ({ inputId: p.inputId, ref: p.ref, mediaSeq: p.mediaSeq ?? null, kind: p.kind ?? null, durationSec: p.durationSec ?? null })),
-    done, // `${inputId}|${lang}` → { status:'RUN'|'OK'|'HARD_FAIL', projectId?, savedPath?, reason? }
+    done, // `${inputId}` → { status:'RUN'|'OK'|'HARD_FAIL', projectId?, savedPath?, reason? }
   };
+}
+// Collapse a v1 per-pair `done` map to per-input entries. Every pair of an input held the same
+// original-language content, so the best entry wins (OK > RUN > HARD_FAIL) — an already-paid
+// project is reused and nothing is resubmitted.
+function migrateDoneV1(done = {}) {
+  const rank = { OK: 3, RUN: 2, HARD_FAIL: 1 };
+  const out = {};
+  for (const [k, v] of Object.entries(done)) {
+    const id = k.split('|')[0];
+    if ((rank[v?.status] ?? 0) > (rank[out[id]?.status] ?? 0)) out[id] = v;
+  }
+  return out;
 }
 function sttSaver(ctx, perInput, prevDone = {}) {
   const done = { ...prevDone };
@@ -160,9 +174,9 @@ function sttSaver(ctx, perInput, prevDone = {}) {
   return {
     writeNow, done,
     // The paid projectId is persisted the moment it exists → a hard kill can't cause a re-submission on resume.
-    onSubmit: (inputId, lang, projectId) => { done[`${inputId}|${lang}`] = { status: 'RUN', projectId }; writeNow(); },
-    onComplete: (inputId, lang, projectId, savedPath) => { done[`${inputId}|${lang}`] = { status: 'OK', projectId, savedPath }; writeNow(); },
-    onFail: (inputId, lang, reason) => { done[`${inputId}|${lang}`] = { status: 'HARD_FAIL', reason }; writeNow(); },
+    onSubmit: (inputId, projectId) => { done[inputId] = { status: 'RUN', projectId }; writeNow(); },
+    onComplete: (inputId, projectId, savedPath) => { done[inputId] = { status: 'OK', projectId, savedPath }; writeNow(); },
+    onFail: (inputId, reason) => { done[inputId] = { status: 'HARD_FAIL', reason }; writeNow(); },
   };
 }
 
@@ -219,19 +233,22 @@ function overLimitMsg(e) {
   return 'the file is larger than the upload limit (2 GB). Split or compress it yourself and try again.';
 }
 
-// One [srt-original] line per finished pair — the agent parses these to know which file to translate into which language.
-function emitMapping(inp, lang, savedPath) {
-  console.log('[srt-original] ' + JSON.stringify({ input: labelOf(inp), lang, path: resolve(savedPath) }));
+// One [srt-original] line per finished input — the agent translates the file at `path` into every
+// language in `langs` (null on a --transcribe-only run: deliver the file as-is).
+function emitMapping(inp, langs, savedPath) {
+  console.log('[srt-original] ' + JSON.stringify({ input: labelOf(inp), langs, path: resolve(savedPath) }));
 }
 
-// Per (input × language): submit (checkpointed) → wait → download the SRT → report. Shared by run + resume.
+// Per input: submit ONE STT project (checkpointed) → wait → download the original SRT → report. All
+// target languages share that single project (the agent translates the one file). Shared by run + resume.
 // Returns true when some paid part is still owed (undelivered) → the caller must keep the state file for resume.
 async function sttProcess(perInput, ctx, saver, isResume) {
   const { spaceSeq, targets, out } = ctx;
   const transcribeOnly = targets.length === 1 && targets[0] === TRANSCRIBE;
+  const langs = transcribeOnly ? null : targets; // translation list carried on every mapping line
   const usedByDir = new Map();
   const lines = [];
-  let ok = 0, fail = 0, noVoice = 0;
+  let ok = 0, fail = 0, noVoice = 0; // per input (one STT project each)
   const flags = { pending: false };
   // Completed-funnel event — also fired on a quota stop (partial counts), like dubbing_completed.
   const trackCompleted = async () => {
@@ -251,47 +268,44 @@ async function sttProcess(perInput, ctx, saver, isResume) {
   for (const pin of perInput) {
     const name = labelOf(pin.inp ?? pin.ref);
     try {
-      for (const lang of targets) {
-        const prev = saver.done[`${pin.inputId}|${lang}`];
-        if (prev?.status === 'HARD_FAIL') { fail++; lines.push(`Could not extract: ${name} [${lang}] — ${prev.reason ?? 'failed'}`); continue; }
-        if (prev?.status === 'OK' && prev.savedPath && existsSync(prev.savedPath)) {
-          emitMapping(pin.inp ?? pin.ref, transcribeOnly ? null : lang, prev.savedPath); // re-print so the agent gets the full mapping on resume
-          ok++; lines.push(`Done (subtitle): ${name} [${lang}] → ${basename(prev.savedPath)}`);
-          continue;
-        }
-        let projectId = prev?.projectId ?? null;
-        if (projectId == null) { // never submitted → upload (once per input) and submit
-          await ensureMedia(pin, spaceSeq, saver);
-          const title = transcribeOnly ? name : `${name} (${lang})`;
-          try {
-            ([projectId] = await requestStt(spaceSeq, pin.mediaSeq, { title, kind: pin.kind ?? 'video' }));
-          } catch (e) {
-            // A mediaSeq recorded in the state file may have expired server-side — re-upload once and retry.
-            if (e?.httpStatus === 402 || !isResume) throw e;
-            await ensureMedia(pin, spaceSeq, saver, { forceReupload: true });
-            ([projectId] = await requestStt(spaceSeq, pin.mediaSeq, { title, kind: pin.kind ?? 'video' }));
-          }
-          if (projectId == null) throw new Error('The subtitle request was not accepted.');
-          saver.onSubmit(pin.inputId, lang, projectId); // checkpoint the billed unit before any wait
-          log(`${name} [${lang}]: subtitle project submitted`);
-        }
-        const st = await waitForProject(projectId, spaceSeq);
-        if (st.state !== 'complete') {
-          if (st.timedOut) { flags.pending = true; fail++; lines.push(`Could not extract: ${name} [${lang}] — ${st.message}`); continue; } // may still be running (paid) → keep the RUN checkpoint so resume re-polls it
-          if (st.noVoice) noVoice++;
-          const reason = st.noVoice ? 'no voice detected in the source' : (st.message ?? st.failureReason ?? 'failed');
-          saver.onFail(pin.inputId, lang, reason); // genuine server failure → terminal (no automatic retry)
-          fail++; lines.push(`Could not extract: ${name} [${lang}] — ${reason}`);
-          continue;
-        }
-        const dir = out ?? inputSaveDir(pin.inp?.localPath ? pin.inp : pin.ref);
-        mkdirSync(dir, { recursive: true });
-        const saved = await downloadAudioScript(projectId, spaceSeq, (serverName) => join(dir, reserve(dir, serverName, usedByDir)));
-        saver.onComplete(pin.inputId, lang, projectId, saved.path);
-        emitMapping(pin.inp ?? pin.ref, transcribeOnly ? null : lang, saved.path);
-        ok++;
-        lines.push(`Done (subtitle): ${name} [${lang}] → ${basename(saved.path)}`);
+      const prev = saver.done[pin.inputId];
+      if (prev?.status === 'HARD_FAIL') { fail++; lines.push(`Could not extract: ${name} — ${prev.reason ?? 'failed'}`); continue; }
+      if (prev?.status === 'OK' && prev.savedPath && existsSync(prev.savedPath)) {
+        emitMapping(pin.inp ?? pin.ref, langs, prev.savedPath); // re-print so the agent gets the full mapping on resume
+        ok++; lines.push(`Done (subtitle): ${name} → ${basename(prev.savedPath)}`);
+        continue;
       }
+      let projectId = prev?.projectId ?? null;
+      if (projectId == null) { // never submitted → upload and submit
+        await ensureMedia(pin, spaceSeq, saver);
+        try {
+          ([projectId] = await requestStt(spaceSeq, pin.mediaSeq, { title: name, kind: pin.kind ?? 'video' }));
+        } catch (e) {
+          // A mediaSeq recorded in the state file may have expired server-side — re-upload once and retry.
+          if (e?.httpStatus === 402 || !isResume) throw e;
+          await ensureMedia(pin, spaceSeq, saver, { forceReupload: true });
+          ([projectId] = await requestStt(spaceSeq, pin.mediaSeq, { title: name, kind: pin.kind ?? 'video' }));
+        }
+        if (projectId == null) throw new Error('The subtitle request was not accepted.');
+        saver.onSubmit(pin.inputId, projectId); // checkpoint the billed unit before any wait
+        log(`${name}: subtitle project submitted`);
+      }
+      const st = await waitForProject(projectId, spaceSeq);
+      if (st.state !== 'complete') {
+        if (st.timedOut) { flags.pending = true; fail++; lines.push(`Could not extract: ${name} — ${st.message}`); continue; } // may still be running (paid) → keep the RUN checkpoint so resume re-polls it
+        if (st.noVoice) noVoice++;
+        const reason = st.noVoice ? 'no voice detected in the source' : (st.message ?? st.failureReason ?? 'failed');
+        saver.onFail(pin.inputId, reason); // genuine server failure → terminal (no automatic retry)
+        fail++; lines.push(`Could not extract: ${name} — ${reason}`);
+        continue;
+      }
+      const dir = out ?? inputSaveDir(pin.inp?.localPath ? pin.inp : pin.ref);
+      mkdirSync(dir, { recursive: true });
+      const saved = await downloadAudioScript(projectId, spaceSeq, (serverName) => join(dir, reserve(dir, serverName, usedByDir)));
+      saver.onComplete(pin.inputId, projectId, saved.path);
+      emitMapping(pin.inp ?? pin.ref, langs, saved.path);
+      ok++;
+      lines.push(`Done (subtitle): ${name} → ${basename(saved.path)}`);
     } catch (e) {
       if (e?.httpStatus === 402) { // out of credits — deliver what finished + top-up/resume path, then stop
         ctx.stopReason = 'quota'; // recorded in the state file → resume telemetry reports why
@@ -299,7 +313,7 @@ async function sttProcess(perInput, ctx, saver, isResume) {
         if (lines.length) console.log('\n' + lines.join('\n'));
         const plan = await getPlanStatus(spaceSeq);
         const settled = Object.values(saver.done).filter((d) => d.status === 'OK' || d.status === 'HARD_FAIL').length;
-        track('quota_exceeded', { ...await spacePlanProps(spaceSeq), remaining_pairs: Math.max(0, perInput.length * targets.length - settled) });
+        track('quota_exceeded', { ...await spacePlanProps(spaceSeq), remaining_inputs: Math.max(0, perInput.length - settled) });
         await trackCompleted();
         console.log(messages.quotaExceeded({
           planTier: plan?.planTier, remainingQuota: plan?.remainingQuota,
@@ -332,11 +346,11 @@ async function sttProcess(perInput, ctx, saver, isResume) {
     }
   }
   console.log('\n' + lines.join('\n'));
-  if (perInput.length * targets.length > 1) console.log(`\nSummary: ${ok} done · ${fail} failed`);
+  if (perInput.length > 1) console.log(`\nSummary: ${ok} done · ${fail} failed`);
   if (ok) {
     console.log(transcribeOnly
       ? '\nNext: this was a transcription-only run — hand the [srt-original] files to the user as they are (no translation step).'
-      : '\nNext: translate each [srt-original] file into its paired language and save it as <stem>_<lang>_Subtitle.srt next to the original, where <stem> is the input file name without its extension (keep cue numbers, timestamps, and cue count unchanged — see SKILL.md).');
+      : '\nNext: translate each [srt-original] file into every language in its "langs" list and save one <stem>_<lang>_Subtitle.srt per language next to the original, where <stem> is the input file name without its extension (keep cue numbers, timestamps, and cue count unchanged — see SKILL.md).');
   }
   await trackCompleted();
   return flags.pending;
@@ -373,9 +387,8 @@ async function runStt(args) {
   const knownDur = perInput.map((p) => p.durationSec).filter((d) => d != null);
   track('stt_submitted', {
     ...await spacePlanProps(spaceSeq),
-    input_count: perInput.length,
+    input_count: perInput.length, // = billed STT projects (one per input; languages share it)
     lang_count: args.transcribeOnly ? null : targets.length,
-    pair_count: perInput.length * targets.length,
     transcribe_only: !!args.transcribeOnly,
     duration_sec: knownDur.length ? knownDur.reduce((a, b) => a + b, 0) : null,
     input_durations_sec: knownDur.length ? knownDur : null,
@@ -386,7 +399,7 @@ async function runStt(args) {
 
 async function runResume(fileArg) {
   const m = JSON.parse(readFileSync(fileArg, 'utf8'));
-  if (m.kind !== 'stt' || m.version !== 1) {
+  if (m.kind !== 'stt' || ![1, 2].includes(m.version)) {
     throw new Error('Not a subtitle state file — dubbing/separation state files resume with the dubbing worker instead.');
   }
   setTelemetrySpace(m.spaceSeq); // resume bypasses ensureSpace — attach the workspace from the state file
@@ -395,22 +408,33 @@ async function runResume(fileArg) {
   if (!ctx.targets.length) throw new Error('Corrupt state file (no target languages) — run again from the original command.');
   // pin.inp starts as the recorded ref; materialize() re-prepares it only if an upload is actually needed.
   const perInput = m.inputs.map((pin) => ({ inputId: pin.inputId, ref: pin.ref, inp: pin.ref, mediaSeq: pin.mediaSeq ?? null, kind: pin.kind ?? null, durationSec: pin.durationSec ?? null }));
-  const saver = sttSaver(ctx, perInput, m.done ?? {});
+  const saver = sttSaver(ctx, perInput, m.version === 1 ? migrateDoneV1(m.done) : m.done ?? {});
   const pending = await sttProcess(perInput, ctx, saver, true);
   finishState(ctx.file, pending);
 }
 
 // Pure helper exports for testing (when run directly, only main below executes).
-export { parseArgs, parseTargets, statePath, guardExistingState, buildManifest, sttSaver, overLimitMsg, TRANSCRIBE };
+export { parseArgs, parseTargets, statePath, guardExistingState, buildManifest, sttSaver, migrateDoneV1, overLimitMsg, TRANSCRIBE };
+
+// The workspace as far as argv alone reveals it, for the events that fire before the space gate.
+function earlySpaceHint(args) {
+  if (/^\d+$/.test(String(args.space ?? '').trim())) return args.space; // raw seq; a space NAME needs the gate
+  if (args.resume) {
+    try { return JSON.parse(readFileSync(args.resume, 'utf8')).spaceSeq; } catch { /* unreadable → no hint */ }
+  }
+  return null;
+}
 
 async function main() {
   let exitCode = 0;
   let updateNotice = null; // daily version check, kicked off in the background and printed after the work finishes
   try {
     preloadKeyEnv(); // pre-inject the key into env before async (at a clean point) → avoid a synchronous powershell call/crash in the main process
+    primeTelemetrySpace(); // env pin / previous run — parseArgs itself can throw before any event
     const args = parseArgs(process.argv.slice(2));
     if (!args.help) {
       updateNotice = checkForUpdate().catch(() => null); // non-blocking; never fails the run
+      primeTelemetrySpace(earlySpaceHint(args));
       initTelemetry(); // emits first_run once per install
       track('run_started', {
         mode: args.resume ? 'srt-resume' : 'srt',

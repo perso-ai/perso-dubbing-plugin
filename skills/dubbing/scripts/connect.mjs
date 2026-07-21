@@ -14,7 +14,7 @@ import { realpathSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { persoBaseUrl } from '../lib/config.mjs';
 import { storeKey } from './resolve_key.mjs';
-import { track } from '../lib/telemetry.mjs';
+import { track, primeTelemetrySpace } from '../lib/telemetry.mjs';
 
 const PORTAL_BASE = persoBaseUrl('PERSO_PORTAL_BASE', process.env.PERSO_PORTAL_BASE, 'https://developers.perso.ai');
 const PORTAL_ORIGIN = new URL(PORTAL_BASE).origin;
@@ -95,6 +95,7 @@ function awaitCallback(state) {
 }
 
 async function main() {
+  primeTelemetrySpace(); // separate process from the caller — re-registrations carry the last known workspace
   const state = randomBytes(24).toString('base64url');
   const received = await awaitCallback(state);
   if (!received) {
