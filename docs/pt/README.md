@@ -24,7 +24,7 @@ Roda em **Node.js 18+** e precisa de uma **chave de API do Perso Dubbing**. É c
 
 ## Instalação
 
-> 📖 **[Tutorial visual →](https://perso-ai.github.io/perso-dubbing-plugin/)** — escolha seu agente e copie os comandos.
+> 📖 **[Tutorial visual →](https://dubbing-plugin.perso.ai/pt/)** — escolha seu agente e copie os comandos.
 
 ### App de desktop do Claude — o mais fácil, sem terminal (cerca de 3 min)
 

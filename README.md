@@ -24,7 +24,7 @@ Runs on **Node.js 18+** and needs a **Perso Dubbing API key**. Built on the Agen
 
 ## Install
 
-> 📖 **[Visual walkthrough →](https://perso-ai.github.io/perso-dubbing-plugin/)** — pick your agent and copy the commands.
+> 📖 **[Visual walkthrough →](https://dubbing-plugin.perso.ai/en/)** — pick your agent and copy the commands.
 
 ### Claude desktop app — easiest, no terminal (~3 min)
 

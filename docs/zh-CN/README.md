@@ -24,7 +24,7 @@
 
 ## 安装
 
-> 📖 **[图文教程 →](https://perso-ai.github.io/perso-dubbing-plugin/)**——选择你使用的智能体并复制命令。
+> 📖 **[图文教程 →](https://dubbing-plugin.perso.ai/en/)**——选择你使用的智能体并复制命令。
 
 ### Claude 桌面应用 —— 最简单，无需终端（约 3 分钟）
 

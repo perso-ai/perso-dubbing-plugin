@@ -24,7 +24,7 @@ Fonctionne avec **Node.js 18+** et nécessite une **clé API Perso Dubbing**. Ba
 
 ## Installation
 
-> 📖 **[Tutoriel visuel →](https://perso-ai.github.io/perso-dubbing-plugin/)** — choisissez votre agent et copiez les commandes.
+> 📖 **[Tutoriel visuel →](https://dubbing-plugin.perso.ai/en/)** — choisissez votre agent et copiez les commandes.
 
 ### Application de bureau Claude — le plus simple, sans terminal (environ 3 min)
 

@@ -24,7 +24,7 @@ Chạy trên **Node.js 18+** và cần **API key của Perso Dubbing**. Được
 
 ## Cài đặt
 
-> 📖 **[Hướng dẫn trực quan →](https://perso-ai.github.io/perso-dubbing-plugin/)** — chọn agent của bạn và sao chép lệnh.
+> 📖 **[Hướng dẫn trực quan →](https://dubbing-plugin.perso.ai/en/)** — chọn agent của bạn và sao chép lệnh.
 
 ### Ứng dụng desktop Claude — dễ nhất, không cần terminal (khoảng 3 phút)
 

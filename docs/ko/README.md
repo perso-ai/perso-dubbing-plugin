@@ -24,7 +24,7 @@
 
 ## 설치
 
-> 📖 **[설치 튜토리얼 →](https://perso-ai.github.io/perso-dubbing-plugin/)** — 에이전트를 고르고 명령을 복사하세요.
+> 📖 **[설치 튜토리얼 →](https://dubbing-plugin.perso.ai/)** — 에이전트를 고르고 명령을 복사하세요.
 
 ### Claude 데스크톱 앱 — 가장 쉬움, 터미널 불필요 (약 3분)
 

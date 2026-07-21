@@ -24,7 +24,7 @@ Läuft mit **Node.js 18+** und benötigt einen **Perso Dubbing API-Schlüssel**.
 
 ## Installation
 
-> 📖 **[Visuelle Anleitung →](https://perso-ai.github.io/perso-dubbing-plugin/)** — Agent auswählen und Befehle kopieren.
+> 📖 **[Visuelle Anleitung →](https://dubbing-plugin.perso.ai/en/)** — Agent auswählen und Befehle kopieren.
 
 ### Claude-Desktop-App — am einfachsten, kein Terminal (ca. 3 Minuten)
 

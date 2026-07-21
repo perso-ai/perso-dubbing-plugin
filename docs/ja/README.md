@@ -24,7 +24,7 @@
 
 ## インストール
 
-> 📖 **[画面付きの手順 →](https://perso-ai.github.io/perso-dubbing-plugin/)** — エージェントを選んでコマンドをコピーできます。
+> 📖 **[画面付きの手順 →](https://dubbing-plugin.perso.ai/en/)** — エージェントを選んでコマンドをコピーできます。
 
 ### Claude デスクトップアプリ — 最も簡単、ターミナル不要（約3分）
 
