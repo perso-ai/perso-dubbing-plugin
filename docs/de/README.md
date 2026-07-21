@@ -1,4 +1,4 @@
-# 🎬 /dubbing — Automatische Video-Synchronisation mit Perso AI
+# 🎬 /dubbing — Perso Dubbing Videoübersetzung
 
 [![Powered by Perso AI](https://img.shields.io/badge/Powered%20by-Perso%20AI-5A4FF3)](https://perso.ai)
 ![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A518-339933?logo=node.js&logoColor=white)
@@ -8,26 +8,30 @@
 
 [English](../../README.md) ｜ [한국어](../ko/README.md) ｜ [Español](../es/README.md) ｜ [Português](../pt/README.md) ｜ [Русский](../ru/README.md) ｜ [Bahasa Indonesia](../id/README.md) ｜ **Deutsch** ｜ [ไทย](../th/README.md) ｜ [日本語](../ja/README.md) ｜ [繁體中文](../zh-TW/README.md) ｜ [简体中文](../zh-CN/README.md) ｜ [Tiếng Việt](../vi/README.md) ｜ [Français](../fr/README.md)
 
-Eine Skill für Coding-Agents, die das **Dubbing (KI-Synchronisation)** von [Perso AI](https://perso.ai) in deinen Agenten bringt. Sie **synchronisiert Videos automatisch** in andere Sprachen — eine einzelne Datei oder einen ganzen Ordner —, und selbst übergroße oder sehr lange Mediendateien werden automatisch aufgeteilt, verarbeitet und wieder zusammengeführt. Sie kann das synchronisierte Video außerdem **lippensynchronisieren** und **die Stimme vom Hintergrundton trennen**.
+Eine Skill für Coding-Agents, die die KI-Synchronisation von [Perso Dubbing](https://perso.ai/dubbing) in deinen Agenten bringt. Einmal installieren, dann einfach sagen: *„synchronisiere dieses Video ins Englische"*.
 
-Das Paket enthält außerdem **`/srt`** — eine zweite Skill, die per Perso-Speech-to-Text **SRT-Untertitel** aus einem Video, einer Audiodatei oder einer URL extrahiert und sie deinen Agenten anschließend in beliebige gewünschte Sprachen übersetzen lässt (oder dir das Transkript in der Originalsprache unverändert liefert).
+- **Synchronisieren** in eine andere Sprache — eine einzelne Datei, einen ganzen Ordner oder eine URL
+- **Lippensynchronisation** des synchronisierten Videos, damit der Mund zum neuen Audio passt
+- **Trennen** von Stimme und Hintergrundton
+- **Untertitel** (`/srt`) — SRT per Speech-to-Text extrahieren, dein Agent übersetzt sie anschließend
+- Übergroße und sehr lange Mediendateien werden automatisch aufgeteilt, verarbeitet und wieder zusammengeführt
 
-Im Hintergrund ruft sie die Perso Dubbing API auf, daher **wird ein Perso Dubbing API-Schlüssel benötigt** (ein Schlüssel deckt beide Skills ab). → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">API-Schlüssel holen</a>
-
-Da jeder Host denselben **Agent Skills**-Standard (`SKILL.md`) verwendet, funktioniert sie überall identisch, egal wo du sie installierst — führe einfach `/dubbing` aus oder sage *„synchronisiere dieses Video für mich"* (oder `/srt` — *„erstelle mir ein englisches SRT für dieses Video"*).
+Läuft mit **Node.js 18+** und benötigt einen **Perso Dubbing API-Schlüssel**. Basiert auf dem Agent-Skills-Standard (`SKILL.md`) und verhält sich daher auf Claude, Codex, Cursor und Antigravity identisch.
 
 ![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
 
 ---
 
-## 🖥️ Der einfachste Weg — die Claude-Desktop-App (ca. 3 Minuten)
+## Installation
 
-> 📖 **Lieber eine visuelle Anleitung?** Folgen Sie dem **[Installations-Tutorial →](https://dubbing-plugin.perso.ai/en/)** — Agent auswählen und Befehle kopieren.
+> 📖 **[Visuelle Anleitung →](https://dubbing-plugin.perso.ai/en/)** — Agent auswählen und Befehle kopieren.
 
-Kein Terminal nötig. In der <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude-Desktop-App</a> (kostenpflichtiger Plan):
+### Claude-Desktop-App — am einfachsten, kein Terminal (ca. 3 Minuten)
 
-1. **Öffne den Code-Tab** (oben in der Mitte) und wähle einen beliebigen Ordner — wähle die Umgebung **Local** (Plugins sind in Cloud-Sitzungen nicht verfügbar).
-2. **Füge jeden Befehl** einzeln in das Eingabefeld ein und drücke Enter:
+In der <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude-Desktop-App</a> (kostenpflichtiger Plan):
+
+1. Öffne den **Code-Tab** (oben in der Mitte), wähle einen beliebigen Ordner und die Umgebung **Local** — Plugins funktionieren nicht in Cloud-Sitzungen.
+2. Füge jeden Befehl einzeln in das Eingabefeld ein und drücke Enter:
 
    ```text
    claude marketplace add perso-ai/perso-dubbing-plugin
@@ -37,137 +41,47 @@ Kein Terminal nötig. In der <a href="https://claude.ai/download" target="_blank
    claude install perso-dubbing@perso-ai
    ```
 
-   *Lieber klicken? Drücke nach dem ersten Befehl die Schaltfläche **+** neben dem Eingabefeld → **Plugins** → **Add plugin** → installiere **perso-dubbing**.*
-3. **Fordere eine Synchronisation an** — z. B. *„Synchronisiere dieses Video ins Englische — C:\videos\clip.mp4"* (eine YouTube-URL oder ein ganzer Ordner funktionieren ebenfalls). Beim ersten Durchlauf öffnet sich eine Schlüsseldatei für deinen <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Perso-API-Schlüssel</a> — füge den Schlüssel in diese Datei ein, **nicht in den Chat**. Sofern du nicht `--out` angibst, werden die Ergebnisse neben dem Ausgangsvideo gespeichert.
+   *Lieber klicken? Nach dem ersten Befehl: Schaltfläche **+** → **Plugins** → **Add plugin** → **perso-dubbing**.*
+3. Fordere eine Synchronisation an — *„Synchronisiere dieses Video ins Englische — C:\videos\clip.mp4"*. Eine YouTube-URL oder ein Ordner funktionieren ebenfalls. Die Ergebnisse werden neben dem Ausgangsvideo gespeichert, sofern du nicht `--out` angibst.
 
-> 💡 Die Skill selbst läuft mit **Node.js 18+**. Falls dein PC das nicht hat, meldet der Agent, dass `node` nicht gefunden wurde — antworte einfach mit *„installiere Node.js für mich"* (oder lade die LTS-Version von <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a> herunter) und versuche es erneut.
+**Claude Code CLI:** Verwende stattdessen `/plugin marketplace add perso-ai/perso-dubbing-plugin` und `/plugin install perso-dubbing@perso-ai`.
 
-In der **Claude Code CLI** verwenden Sie stattdessen `/plugin marketplace add perso-ai/perso-dubbing-plugin` und `/plugin install perso-dubbing@perso-ai`.
-
----
-
-## Installation auf anderen Hosts
-
-Die Abkürzung, die überall funktioniert: Füge die URL dieses Repositorys in deinen Agenten ein und sage *„installiere das"*.
-
-> **🤖 An den Agenten:** Wenn dir nur die URL dieses Repositorys gegeben wurde, wähle den passenden Weg für deinen Host:
->
-> - **Claude Code (Desktop-App oder CLI):** Führe **nicht** sofort npx aus — selbst wenn der Nutzer „installiere das" sagt. Zeige dem Nutzer die beiden -Befehle aus dem Abschnitt *Claude-Desktop-App* oben und bitte ihn, die Befehle selbst einzugeben, einen pro Nachricht (es handelt sich um vom Nutzer einzugebende Slash-Befehle, die du nicht ausführen kannst). Erwähne auch den Klick-Weg in der Desktop-App: Nach dem ersten Befehl **+-Schaltfläche → Plugins → Add plugin**. Falls du die Formulierung anpassen musst: `CLAUDE_CODE_ENTRYPOINT=cli` in deiner Shell-Umgebung deutet auf eine Terminal-Sitzung hin (undokumentiertes Signal — im Zweifel beide Wege zeigen). Greife nur dann auf npx zurück, wenn der Nutzer, nachdem er sie gesehen hat, weiterhin möchte, dass du die Installation übernimmst.
-> - **Codex · Cursor · Antigravity, oder der Nutzer hat dir die Installation übertragen:** Führe diesen einen Befehl aus — er lädt das Paket herunter, erkennt automatisch alle installierten Hosts und installiert die Skill in jeden davon:
->
-> ```bash
-> npx perso-dubbing
-> ```
->
-> Falls das Repository bereits geklont ist, führe stattdessen `node scripts/install.mjs` im Root-Verzeichnis des Repositorys aus (keine Netzwerkverbindung nötig).
-
-<details>
-<summary><b>Codex</b></summary>
-
-Codex liest Skills aus dem gemeinsamen Agent-Skills-Ordner. Führe `npx perso-dubbing --codex` aus oder kopiere manuell:
-
-```text
-~/.agents/skills/dubbing/        # persönlich (alle Repos) — aktuelles Codex
-~/.codex/skills/dubbing/         # ältere Codex-Versionen (der Installer schreibt beide)
-<repo>/.agents/skills/dubbing/   # nur dieses Repository
-```
-
-Das Repository enthält außerdem ein Codex-Plugin-Manifest (`.codex-plugin/plugin.json`) für Installationen über den Marketplace.
-
-</details>
-
-<details>
-<summary><b>Cursor</b></summary>
-
-Führe `npx perso-dubbing --cursor` aus oder kopiere in:
-
-```text
-~/.cursor/skills/dubbing/        # global
-.cursor/skills/dubbing/          # nur dieses Projekt
-```
-
-Das Repository enthält ein Cursor-Plugin-Manifest (`.cursor-plugin/plugin.json`) für den Cursor-Plugin-Marketplace.
-
-</details>
-
-<details>
-<summary><b>Antigravity</b></summary>
-
-Führe `npx perso-dubbing --antigravity` aus oder kopiere in einen der beiden Orte:
-
-```text
-~/.antigravity/skills/dubbing/   # Antigravity 1.x
-~/.agents/skills/dubbing/        # Antigravity 2.0+ (gemeinsamer Agent-Skills-Ordner)
-```
-
-</details>
-
-<details>
-<summary><b>⚡ Ein-Zeilen-Installer (beliebiger Host)</b></summary>
-
-Erkennt, welche Hosts du nutzt, und installiert die Skill in alle — kein Klonen nötig:
+### Alle anderen Hosts
 
 ```bash
 npx perso-dubbing
 ```
 
-- Nur ein bestimmter Host: `--claude` / `--antigravity` / `--codex` / `--cursor` · alle: `--all`
-- Nur das aktuelle Projekt (`./.claude`, `./.agents`, …): `--project`
+Erkennt, welche Hosts du hast, installiert beide Skills in jeden davon und gibt aus, wo sie jeweils gelandet sind. Ergänze `--claude` / `--codex` / `--cursor` / `--antigravity` für einen einzelnen Host, `--all` für alle Hosts oder `--project` nur für das aktuelle Projekt. Repository bereits geklont? `node scripts/install.mjs` im Root-Verzeichnis des Repositorys macht dasselbe, ganz ohne Netzwerk.
 
-Hast du das Repository bereits geklont? `node scripts/install.mjs` im Root-Verzeichnis des Repositorys macht dasselbe, ganz ohne Netzwerk.
+> **🤖 An den Agenten:** Wenn dir nur die URL dieses Repositorys gegeben wurde:
+>
+> - **Claude Code (Desktop-App oder CLI)** — führe **kein** npx aus, selbst wenn der Nutzer „installiere das" gesagt hat. Zeige ihm die beiden `claude …`-Befehle oben und bitte ihn, jeden davon selbst einzutippen (es sind vom Nutzer einzugebende Slash-Befehle, die du nicht ausführen kannst), plus den Klick-Weg: Schaltfläche **+** → **Plugins** → **Add plugin**. Greife nur dann auf npx zurück, wenn er weiterhin möchte, dass du die Installation übernimmst.
+> - **Codex · Cursor · Antigravity, oder der Nutzer hat dir die Installation übertragen** — führe `npx perso-dubbing` aus (oder `node scripts/install.mjs`, falls das Repository bereits geklont ist).
 
-</details>
+### Erster Durchlauf — dein API-Schlüssel
 
-<details>
-<summary><b>🔧 Manuelle Installation</b></summary>
+Es öffnet sich eine Browser-Seite: Melde dich an und klicke einmal, dann wird dein Schlüssel ausgestellt und verschlüsselt auf diesem Rechner gespeichert. Nichts zu kopieren. Falls sich kein Browser öffnen lässt, öffnet sich stattdessen eine Schlüsseldatei — füge den Schlüssel dort ein und speichere; die Datei wird verschlüsselt und gelöscht.
 
-Kopiere **beide** Skill-Ordner nebeneinander in das Skills-Verzeichnis deines Hosts (die `srt`-Skill importiert die Bibliotheken der `dubbing`-Skill aus dem benachbarten Ordner). Vom Root-Verzeichnis des Repositorys aus:
-
-```bash
-# macOS / Linux
-mkdir -p <skills_folder> && cp -r skills/dubbing skills/srt <skills_folder>/
-```
-
-> 💡 Windows (PowerShell): `New-Item -ItemType Directory -Force <skills_folder>; Copy-Item .\skills\dubbing,.\skills\srt <skills_folder>\ -Recurse`
-
-</details>
-
-Tippe nach der Installation **`/dubbing`** in deinen Agenten ein oder sage einfach **„synchronisiere dieses Video für mich"**, um es auszuführen — oder **`/srt`** / **„erstelle mir ein englisches SRT für dieses Video"** für Untertitel. (Jede der obigen Installationsmethoden installiert beide Skills.)
+**Füge deinen API-Schlüssel niemals in den Chat ein.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">API-Schlüssel holen</a> · jederzeit prüfbar mit `npm run key:check`
 
 ---
 
-## Beispiele
+## Nutzung
 
-Der einfachste Weg — sag es einfach deinem Agenten:
+Sag deinem Agenten einfach, was du willst:
 
 > „Synchronisiere dieses Video ins Englische — C:\videos\clip.mp4"
+>
+> „Synchronisiere jedes Video in diesem Ordner ins Japanische und Spanische"
+>
+> „Synchronisiere diesen YouTube-Link ins Englische, mit Lippensynchronisation"
+>
+> „Trenne Stimme und Hintergrundmusik aus diesem Clip heraus"
+>
+> „Erstelle mir ein englisches SRT für dieses Video"
 
-Du kannst die CLI auch direkt vom Root-Verzeichnis des Repositorys aus ausführen:
-
-```bash
-# Ein Video (automatische Erkennung der Ausgangssprache → Englisch)
-npm run dub -- "clip.mp4" --target en --out result.mp4
-
-# Mehrere Sprachen auf einmal (wird einmal hochgeladen/aufgeteilt und pro Sprache wiederverwendet)
-npm run dub -- "clip.mp4" --target en,ja,zh
-
-# Mehrere Eingaben auf einmal (URLs, Dateien und Ordner lassen sich mischen)
-npm run dub -- "https://youtu.be/..." "clip2.mp4" "C:\videos" --target en
-
-# Synchronisation + Lippensynchronisation (Mund an das synchronisierte Audio angepasst; zusätzliche Credits)
-npm run dub -- "clip.mp4" --target en --lipsync
-
-# Stimme / Hintergrundton trennen (ohne Synchronisation)
-npm run dub -- "clip.mp4" --separate
-
-# Untertitel extrahieren und vom Agenten übersetzen lassen (/srt-Skill)
-npm run srt -- "clip.mp4" --target en,ja
-
-# Nur Transkript — SRT in der Originalsprache, ohne Übersetzung
-npm run srt -- "clip.mp4" --transcribe-only
-```
-
-*(Entsprechender direkter Aufruf: `node skills/dubbing/scripts/dubbing.mjs …` — oder `node scripts/dubbing.mjs …` innerhalb eines installierten Skill-Ordners.)*
+Oder tippe **`/dubbing`** / **`/srt`**, um zu starten. Die vollständige Liste der CLI-Optionen erhältst du von deinem Agenten oder mit `npm run dub -- --help`.
 
 ---
 
@@ -177,33 +91,33 @@ Weitere Fragen? Sieh dir die **[FAQ](FAQ.md)** an.
 
 | Symptom | Lösung |
 |---|---|
+| `node` nicht gefunden | Installiere die LTS-Version von <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a> (oder bitte deinen Agenten: *„installiere Node.js für mich"*) und versuche es erneut. |
 | Die Claude-Desktop-App fragt nach Git (Windows) | Der Code-Tab benötigt bei der ersten Nutzung <a href="https://git-scm.com/downloads/win" target="_blank" rel="noopener noreferrer">Git für Windows</a>. Installiere es und starte die App neu. |
-| `claude`-Befehle oder das Plugins-Menü reagieren nicht | Du befindest dich in einer **Cloud-Sitzung** — Plugins funktionieren nur in **Local**- (und SSH-)Sitzungen. Wechsle die Umgebung zu Local und versuche es erneut. |
-| `node` nicht gefunden / Installation oder Ausführung schlägt fehl | Die Skill läuft mit **Node.js 18+** — prüfe das mit `node -v`. Falls es fehlt, installiere die LTS-Version von <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a>, oder bitte Claude in der Sitzung einfach, sie für dich zu installieren, und starte die App dann neu. |
-| Noch kein API-Schlüssel | Führe einfach einen beliebigen Synchronisations-Befehl aus — eine Schlüsseldatei öffnet sich automatisch; füge deinen Schlüssel ein und speichere (er wird verschlüsselt und die Datei wird gelöscht). Manuelle Prüfung: `npm run key:check`. **Füge den Schlüssel nicht in den Chat ein.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">API-Schlüssel holen</a> |
-| Fehler im Zusammenhang mit ffmpeg | ffmpeg wird normalerweise automatisch installiert. Falls es fehlschlägt, führe `npm run doctor` aus. |
-| Bricht mittendrin ab (Credits aufgebraucht, Absturz, abgebrochener Prozess) | Der Fortschritt wird während des gesamten Laufs in einer Zustandsdatei gespeichert (`*.dubresume.json` für `/dubbing`, `*.srtresume.json` für `/srt`). Führe den in der Meldung angezeigten Befehl **`--resume "<state-file>"`** aus, um nur die verbleibenden Teile fertigzustellen (bereits abgeschlossene Teile werden automatisch übersprungen). |
+| `claude`-Befehle oder das Plugins-Menü reagieren nicht | Du befindest dich in einer **Cloud-Sitzung** — Plugins benötigen eine **Local**- (oder SSH-)Sitzung. |
+| Schlüssel abgelehnt oder nicht vorhanden | Registriere ihn erneut: `node skills/dubbing/scripts/connect.mjs`. Prüfe den gespeicherten Schlüssel mit `npm run key:check`. |
+| Fehler im Zusammenhang mit ffmpeg | ffmpeg wird normalerweise automatisch installiert; falls es fehlschlägt, führe `npm run doctor` aus. |
+| Bricht mittendrin ab (Credits aufgebraucht, Absturz, abgebrochener Prozess) | Der Fortschritt wird laufend gespeichert. Führe den in der Meldung angezeigten Befehl **`--resume "<state-file>"`** aus — fertige Teile werden übersprungen und nie erneut berechnet. |
 
 ---
 
 ## Datenschutz & Telemetrie
 
-`/dubbing` und `/srt` senden **anonyme** Nutzungsereignisse, um die Skills zu verbessern — zum Beispiel, welche Aktion ausgeführt wurde (Synchronisation / Lippensynchronisation / Trennung / Untertitel-Extraktion), ob sie erfolgreich war, das Sprachpaar, die Medienlänge, die App-Version und das Betriebssystem. Sie werden nur mit einer zufälligen, installationsspezifischen ID versehen und enthalten niemals deinen API-Schlüssel, Dateinamen oder Medieninhalte, Konto/E-Mail oder Workspace-IDs. Mit der Umgebungsvariable `PERSO_NO_TELEMETRY` kannst du dies jederzeit deaktivieren.
+`/dubbing` und `/srt` senden Nutzungsereignisse, um die Skills zu verbessern — zum Beispiel, welche Aktion ausgeführt wurde, ob sie erfolgreich war, die Medienlänge, die App-Version und das Betriebssystem. Jedes Ereignis enthält eine zufällige, installationsspezifische ID und deine Workspace-Nummer. Dein API-Schlüssel und deine Medien sind niemals enthalten. Mit `PERSO_NO_TELEMETRY` kannst du dies jederzeit deaktivieren.
 
 ---
 
 ## Repository-Struktur
 
 ```text
-.claude-plugin/    Claude Code Plugin- und Marketplace-Manifeste
+.claude-plugin/    Claude-Code-Plugin + Marketplace-Manifeste
 .codex-plugin/     Codex-Plugin-Manifest
 .cursor-plugin/    Cursor-Plugin-Manifest
-docs/              GitHub-Pages-Landingpage + übersetzte README und FAQ (12 Sprachen)
+docs/              GitHub-Pages-Landingpage + übersetzte READMEs · FAQ (12 Sprachen)
 skills/dubbing/    Die Dubbing-Skill (SKILL.md · lib/ · scripts/) — eigenständig
 skills/srt/        Die SRT-Untertitel-Skill (SKILL.md · scripts/) — nutzt die lib/ der Dubbing-Skill
-scripts/           Installer auf Repo-Ebene (install.mjs)
+scripts/           Installer auf Repository-Ebene (install.mjs)
 ```
 
 ## Lizenz
 
-Der Code dieser Skill wird unter der **[MIT-Lizenz](../../LICENSE)** vertrieben. Die eigentliche Synchronisation erfolgt über die Perso Dubbing API, daher unterliegt die API-Nutzung selbst den [Nutzungsbedingungen von Perso AI](https://perso.ai) und deren Preisgestaltung.
+Der Code dieser Skill steht unter der **[MIT-Lizenz](../../LICENSE)**. Die eigentliche Synchronisation läuft über die Perso Dubbing API, daher unterliegt die API-Nutzung den [Nutzungsbedingungen von Perso AI](https://perso.ai) und deren Preisgestaltung.

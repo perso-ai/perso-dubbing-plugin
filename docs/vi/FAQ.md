@@ -10,15 +10,15 @@ Node.js 18+ và một API key của Perso Dubbing. Cài đặt skill, sau đó c
 
 ### Làm thế nào để đăng ký API key?
 
-Ở lần chạy đầu tiên, một tệp key sẽ tự động mở ra — chỉ dán **API key của bạn** vào tệp đó rồi lưu (tệp được mã hóa và sau đó bị xóa). **Không bao giờ dán key vào khung chat.** Kiểm tra thủ công: `npm run key:check`.
+Ở lần chạy đầu tiên, một trang trình duyệt sẽ mở ra — đăng nhập và nhấn một lần, key của bạn sẽ được cấp và lưu trên máy này ở dạng mã hóa. Không cần sao chép gì cả. Nếu không mở được trình duyệt, một tệp key sẽ mở ra thay thế: chỉ dán **API key của bạn** vào đó rồi lưu (tệp được mã hóa và sau đó bị xóa). **Không bao giờ dán key vào khung chat.** Kiểm tra thủ công: `npm run key:check`.
 
 ### Có tốn phí không?
 
-Mã nguồn của skill là miễn phí (MIT), nhưng việc lồng tiếng chạy qua Perso API, vốn tính phí theo credit: lồng tiếng ≈ 1 credit/giây, lip-sync ≈ ×2, tách âm thanh ≈ ×0,5. Nguồn 4K bị tính ×3 trên các gói pro/business/enterprise. Mức tính phí trên server là căn cứ chính xác cuối cùng.
+Mã nguồn của skill là miễn phí (MIT), nhưng việc lồng tiếng chạy qua Perso API, vốn tính phí theo credit.
 
 ### Tôi có thể đưa vào những gì?
 
-Một tệp cục bộ, cả một thư mục (xử lý hàng loạt), hoặc một URL — bao gồm YouTube, TikTok, Google Drive, và Vimeo. Video quá lớn hoặc quá dài sẽ được tự động chia nhỏ, xử lý, rồi ghép lại.
+Một tệp cục bộ, một thư mục cục bộ, hoặc một URL (YouTube, TikTok, Google Drive). Video quá lớn hoặc quá dài sẽ được tự động chia nhỏ, xử lý, rồi ghép lại.
 
 ### Có thể lồng tiếng sang nhiều ngôn ngữ, hoặc xử lý nhiều tệp cùng lúc không?
 
@@ -38,7 +38,7 @@ Tính năng này tách nguồn thành các track giọng nói / âm thanh nền 
 
 ### Nó có thể tạo phụ đề (SRT) thay vì lồng tiếng không?
 
-Có — gói này còn cài đặt thêm skill **`/srt`**. Skill này trích xuất phụ đề ở ngôn ngữ gốc từ video/audio/URL thông qua công nghệ speech-to-text của Perso, sau đó agent của bạn sẽ dịch chúng sang các ngôn ngữ bạn yêu cầu (lưu dưới dạng `<name>_<lang>_Subtitle.srt` cạnh tệp gốc). Chỉ muốn bản ghi thôi? Cứ nói vậy và chạy với `--transcribe-only` — không dịch. Mỗi lần trích xuất phụ đề tốn credit tỷ lệ với thời lượng media (theo từng ngôn ngữ).
+Skill **`/srt`** trích xuất phụ đề ở ngôn ngữ gốc từ video/audio/URL thông qua công nghệ speech-to-text của Perso. Nếu bạn cũng muốn dịch chúng, hãy yêu cầu tệp SRT kèm theo các ngôn ngữ bạn muốn.
 
 ### Quá trình dừng giữa chừng (hết credit, gặp lỗi, hoặc shell bị kill). Giờ phải làm sao?
 
@@ -62,4 +62,4 @@ Skill cần Node.js 18+. Kiểm tra bằng `node -v`; cài bản LTS từ <https
 
 ### Skill thu thập những dữ liệu nào?
 
-Chỉ các sự kiện sử dụng ẩn danh — hành động nào đã chạy, có thành công hay không, số liệu thống kê ở mức tổng quát, phiên bản ứng dụng, và hệ điều hành — được gắn nhãn bằng một ID ngẫu nhiên theo từng lượt cài đặt. Dữ liệu không bao giờ bao gồm API key, tên tệp hay nội dung media, tài khoản/email, hoặc workspace ID của bạn.
+Chỉ các sự kiện sử dụng — hành động nào đã chạy, có thành công hay không, số liệu thống kê ở mức tổng quát, phiên bản ứng dụng, và hệ điều hành — được gắn nhãn bằng một ID ngẫu nhiên theo từng lượt cài đặt và số workspace của bạn. API key và nội dung media của bạn không bao giờ được đưa vào.

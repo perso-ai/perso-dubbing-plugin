@@ -65,14 +65,20 @@ export function preloadKeyEnv() {
   } catch { /* fallback: resolveKey decrypts directly */ }
 }
 
-/** Registration guidance when no key is present. Interactive input (Read-Host) yields empty values in agent environments without a TTY, so the file-based path (--import) is recommended first. */
+/** Registration guidance when no key is present. The browser flow (connect.mjs) needs no copy/paste;
+ *  the file-based paths remain for headless/SSH environments where a local browser can't open. */
 export function onboardingHelp() {
   const self = fileURLToPath(import.meta.url).replace(/\\/g, '/'); // forward-slash path, shell-agnostic
+  const connect = join(dirname(self), 'connect.mjs').replace(/\\/g, '/');
   const example = join(dirname(CRED_DIR), 'perso_key.txt').replace(/\\/g, '/');
   return [
     'No API key found. Do not paste the key into the chat — register it as below:',
     '',
-    `  Recommended) Run:  ! node "${self}" --watch`,
+    `  Recommended) Run:  ! node "${connect}"`,
+    '     → Opens the Perso portal in your browser: sign in and click once — the key is issued',
+    '       and delivered straight to this machine (stored encrypted, nothing to copy).',
+    '',
+    `  File-based) Run:  ! node "${self}" --watch   (headless/SSH, or if the browser flow fails)`,
     '     → Creates the key file and opens it in your editor automatically.',
     '       Paste just the key and save — it is encrypted on the fly and the file is auto-deleted.',
     '',
@@ -81,14 +87,12 @@ export function onboardingHelp() {
     `     2) Run:  ! node "${self}" --import "${example}"`,
     '        → The key is stored encrypted and the key file is auto-deleted.',
     '',
-    `  (If you opened a real terminal window yourself, interactive entry also works: node "${self}" --set)`,
-    '',
     'Get an API key: https://developers.perso.ai/api-keys',
   ].join('\n');
 }
 
 /** Takes a known key string: ensure directory → encrypt (Windows DPAPI) → save as ascii → read back to verify. The key is passed only via stdin (avoids command-line exposure). */
-function storeKey(key) {
+export function storeKey(key) {
   const k = (key ?? '').trim();
   if (!k) { console.error('❌ The key is empty.'); process.exit(1); }
   mkdirSync(CRED_DIR, { recursive: true });

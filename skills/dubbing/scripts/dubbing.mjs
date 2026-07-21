@@ -18,7 +18,7 @@ import { download, getStatus, upload, requestAudioSeparation, downloadSeparation
 import { mergeGroups } from '../lib/merge.mjs';
 import { messages, withUtm, SUBSCRIPTION_URL } from '../lib/messages.mjs';
 import { checkForUpdate } from '../lib/update_check.mjs';
-import { track, initTelemetry } from '../lib/telemetry.mjs';
+import { track, initTelemetry, setTelemetrySpace, primeTelemetrySpace } from '../lib/telemetry.mjs';
 import { cleanupTempDirs, makeTempDir } from '../lib/tmp.mjs';
 import { probe } from '../lib/ffmpeg.mjs';
 import { AUDIO_EXT, CREDIT_RATE_DUB, CREDIT_RATE_LIPSYNC, UHD_CREDIT_MULT, UHD_BILLED_TIERS, POLL_INTERVAL_MS, MAX_IDLE_MS } from '../lib/config.mjs';
@@ -552,6 +552,7 @@ async function creditPreflight(perInput, spaceSeq, targetCount) {
 async function runResume(file) {
   await ensureKey();
   const m = JSON.parse(readFileSync(file, 'utf8'));
+  setTelemetrySpace(m.spaceSeq); // resume bypasses ensureSpace — attach the workspace from the manifest
   if (m.kind === 'separation') return runResumeSeparation(m, file); // separation has its own (scheduler-less) resume
   if (m.version !== 4 && m.version !== 5) throw new Error('Unsupported state-file format — run again from the original.');
   const targets = m.targets ?? [m.opts?.target ?? 'en'];
@@ -729,6 +730,7 @@ async function runLipsyncOnly(args) {
   const file = resumePath({ out: args.out, inputs: [inp], multiInput: false });
   guardExistingState(file); // an interrupted earlier run owns this state file — resume it instead of re-billing
   const spaceSeq = Number(ref.space) || await ensureSpace(args);
+  setTelemetrySpace(spaceSeq); // a project-ref carrying `space` skips ensureSpace, which is what normally sets this
   const ctx = { spaceSeq, source: 'auto', targets: [target], out: args.out, multiInput: false, file, prevDone: {}, lipsync: true, lipsyncOnly: true };
   track('lipsync_only_started', { ...await spacePlanProps(spaceSeq), input_count: 1, parts: parts.length, duration_sec: lsMs > 0 ? Math.round(lsMs / 1000) : null });
 
@@ -993,14 +995,30 @@ async function waitForProject(projectSeq, spaceSeq) {
 // Pure helper exports for testing (when run directly, only main below executes).
 export { parseArgs, targetPaths, buildManifest, doneEntry, manifestSaver, finishPool, refOf, resumePath, explicitOutPath, remainingMinutes, guardExistingState, splitConfirmMessage, buildSepManifest, sepSaver };
 
+// The workspace as far as argv alone reveals it, for the events that fire before the space gate.
+// --resume and --lipsync-only both carry it in their own payload, so no network call is needed.
+function earlySpaceHint(args) {
+  if (/^\d+$/.test(String(args.space ?? '').trim())) return args.space; // raw seq; a space NAME needs the gate
+  if (args.resume) {
+    try { return JSON.parse(readFileSync(args.resume, 'utf8')).spaceSeq; } catch { /* unreadable → no hint */ }
+  }
+  const ref = String(args.lipsyncOnly ?? '').trim();
+  if (ref.startsWith('{')) {
+    try { return JSON.parse(ref).space; } catch { /* malformed → no hint */ }
+  }
+  return null;
+}
+
 async function main() {
   let exitCode = 0;
   let updateNotice = null; // daily version check, kicked off in the background and printed after the work finishes
   try {
     preloadKeyEnv(); // pre-inject the key into env before async (at a clean point) → avoid a synchronous powershell call/crash in the main process
+    primeTelemetrySpace(); // env pin / previous run — parseArgs itself can emit lang_invalid
     const args = parseArgs(process.argv.slice(2));
     if (!args.help) {
       updateNotice = checkForUpdate().catch(() => null); // non-blocking; never fails the run
+      primeTelemetrySpace(earlySpaceHint(args));
       initTelemetry(); // emits first_run once per install
       track('run_started', {
         mode: args.resume ? 'resume' : args.separate ? 'separate' : args.lipsyncOnly ? 'lipsync-only' : args.lipsync ? 'lipsync' : 'dub',

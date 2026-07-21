@@ -10,15 +10,15 @@ Node.js 18+ and a Perso Dubbing API key. Install the skill, then just say *"dub 
 
 ### How do I register my API key?
 
-On the first run a key file opens automatically — paste **only your API key** into that file and save (it is encrypted and the file is deleted). **Never paste the key into the chat.** Manual check: `npm run key:check`.
+On the first run a browser page opens — sign in and click once, and your key is issued and stored on this machine, encrypted. Nothing to copy. If no browser can open, a key file opens instead: paste **only your API key** into it and save (it is encrypted and the file is deleted). **Never paste the key into the chat.** Manual check: `npm run key:check`.
 
 ### Does it cost money?
 
-The skill's code is free (MIT), but the dubbing runs through the Perso API, which bills credits: dubbing ≈ 1 credit/sec, lip-sync ≈ ×2, audio separation ≈ ×0.5. 4K sources are billed ×3 on pro/business/enterprise plans. The server's billing is authoritative.
+The skill's code is free (MIT), but the dubbing runs through the Perso API, which bills credits.
 
 ### What can I feed it?
 
-A local file, a whole folder (batch), or a URL — including YouTube, TikTok, Google Drive, and Vimeo. Oversized or very long videos are automatically split, processed, and merged back together.
+A local file, a local folder, or a URL (YouTube, TikTok, Google Drive). Oversized or very long videos are automatically split, processed, and merged back together.
 
 ### Can it dub into several languages, or process many files at once?
 
@@ -38,7 +38,7 @@ It splits the source into voice / background / sub-background tracks — no dubb
 
 ### Can it make subtitles (SRT) instead of dubbing?
 
-Yes — the package also installs the **`/srt`** skill. It extracts the original-language subtitles from a video/audio/URL via Perso's speech-to-text, and your agent then translates them into the languages you ask for (saved as `<name>_<lang>_Subtitle.srt` next to the original). Want just the transcript? Say so and it runs with `--transcribe-only` — no translation. Each subtitle extraction consumes credits in proportion to the media length (per language).
+The **`/srt`** skill extracts original-language subtitles from a video/audio/URL via Perso's speech-to-text. If you also want them translated, ask for the SRT along with the languages you want.
 
 ### It stopped midway (out of credits, a crash, or a killed shell). Now what?
 
@@ -62,4 +62,4 @@ The skill needs Node.js 18+. Check with `node -v`; install the LTS from <https:/
 
 ### What data does the skill collect?
 
-Anonymous usage events only — which action ran, whether it succeeded, coarse counts, app version, and OS — tagged with a random per-install ID. It never includes your API key, file names or media content, account/email, or workspace IDs.
+Usage events only — which action ran, whether it succeeded, coarse counts, app version, and OS — tagged with a random per-install ID and your workspace number. Your API key and your media are never included.

@@ -1,4 +1,4 @@
-# 🎬 /dubbing — Perso AI 動画自動吹き替え
+# 🎬 /dubbing — Perso Dubbing 動画翻訳
 
 [![Powered by Perso AI](https://img.shields.io/badge/Powered%20by-Perso%20AI-5A4FF3)](https://perso.ai)
 ![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A518-339933?logo=node.js&logoColor=white)
@@ -8,26 +8,30 @@
 
 [English](../../README.md) ｜ [한국어](../ko/README.md) ｜ [Español](../es/README.md) ｜ [Português](../pt/README.md) ｜ [Русский](../ru/README.md) ｜ [Bahasa Indonesia](../id/README.md) ｜ [Deutsch](../de/README.md) ｜ [ไทย](../th/README.md) ｜ **日本語** ｜ [繁體中文](../zh-TW/README.md) ｜ [简体中文](../zh-CN/README.md) ｜ [Tiếng Việt](../vi/README.md) ｜ [Français](../fr/README.md)
 
-コーディングエージェント向けのスキルで、[Perso AI](https://perso.ai) の**吹き替え（AI吹き替え）**機能をエージェントにもたらします。動画を他の言語に**自動吹き替え**します — 単一ファイルでもフォルダ全体でも対応し、サイズが大きすぎる動画や非常に長い動画でも自動的に分割・処理され、最後に結合されます。吹き替えた動画の**リップシンク（口の動きの同期）**や、**音声と背景音の分離**も可能です。
+[Perso Dubbing](https://perso.ai/dubbing) のAI吹き替えをエージェントにもたらすコーディングエージェント向けスキルです。一度インストールすれば、あとは*「この動画を英語に吹き替えて」*と言うだけです。
 
-このパッケージには **`/srt`** も同梱されています — Persoの音声認識（speech-to-text）を使って動画・音声・URLから**SRT字幕**を抽出し、指定した任意の言語にエージェントが翻訳する、もう一つのスキルです（翻訳せず、元言語のままの文字起こしを受け取ることもできます）。
+- **吹き替え** — 単一ファイル、フォルダ全体、URLのいずれからでも他の言語へ
+- **リップシンク** — 吹き替えた動画の口の動きを新しい音声に合わせます
+- **音声分離** — 音声と背景音を分離します
+- **字幕**（`/srt`）— 音声認識でSRTを抽出し、続けてエージェントが翻訳します
+- サイズが大きすぎるメディアや非常に長いメディアは、自動的に分割・処理され、最後に結合されます
 
-内部で Perso Dubbing API を呼び出すため、**Perso Dubbing API キーが必要です**（1つのキーで両方のスキルをカバーします）。 → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">APIキーを取得</a>
-
-すべてのホストが同じ **Agent Skills** 標準（`SKILL.md`）を使用しているため、どこにインストールしても同じように動作します — `/dubbing` を実行するか、「この動画を吹き替えて」と言うだけです（または `/srt` — 「この動画の英語字幕を作って」）。
+**Node.js 18以上**で動作し、**Perso Dubbing APIキー**が必要です。Agent Skills標準（`SKILL.md`）に基づいているため、Claude・Codex・Cursor・Antigravity のいずれでもまったく同じように動作します。
 
 ![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
 
 ---
 
-## 🖥️ 最も簡単な方法 — Claude デスクトップアプリ（約3分）
+## インストール
 
-> 📖 **画面付きの手順が必要ですか？** **[インストールチュートリアル →](https://dubbing-plugin.perso.ai/en/)** でエージェント別のコマンドをコピーできます。
+> 📖 **[画面付きの手順 →](https://dubbing-plugin.perso.ai/en/)** — エージェントを選んでコマンドをコピーできます。
 
-ターミナルは不要です。<a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude デスクトップアプリ</a>（有料プラン）で:
+### Claude デスクトップアプリ — 最も簡単、ターミナル不要（約3分）
 
-1. **Code タブを開き**（画面上部中央）、任意のフォルダを選びます — **Local** 環境を選択してください（プラグインはクラウドセッションでは利用できません）。
-2. **各コマンドをプロンプト欄に貼り付け**て、一つずつ Enter を押します。
+<a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude デスクトップアプリ</a>（有料プラン）で:
+
+1. **Code タブ**（画面上部中央）を開き、任意のフォルダを選んで、**Local** 環境を選択します — プラグインはクラウドセッションでは動作しません。
+2. 各コマンドをプロンプト欄に貼り付けて、一つずつ Enter を押します。
 
    ```text
    claude marketplace add perso-ai/perso-dubbing-plugin
@@ -37,137 +41,47 @@
    claude install perso-dubbing@perso-ai
    ```
 
-   *クリック操作がお好みですか？ 最初のコマンドの後、プロンプト欄の横にある **+** ボタンを押す → **Plugins** → **Add plugin** → **perso-dubbing** をインストールしてください。*
-3. **吹き替えを依頼します** — 例:「この動画を英語に吹き替えて — C:\videos\clip.mp4」（YouTubeのURLやフォルダ全体でも動作します）。初回実行時には<a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Perso APIキー</a>用のキーファイルが自動で開きます — キーはそのファイルに貼り付けてください。**チャットには貼り付けないでください。** `--out` を指定しない限り、結果は元の動画と同じ場所に保存されます。
+   *クリック操作がお好みですか？ 最初のコマンドの後、**+** ボタン → **Plugins** → **Add plugin** → **perso-dubbing**。*
+3. 吹き替えを依頼します — *「この動画を英語に吹き替えて — C:\videos\clip.mp4」*。YouTubeのURLやフォルダでも動作します。`--out` を指定しない限り、結果は元の動画と同じ場所に保存されます。
 
-> 💡 このスキル自体は **Node.js 18以上** で動作します。お使いのPCに入っていない場合、エージェントは `node` が見つからないと表示します — 「Node.jsをインストールして」と返信するだけで構いません（または <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a> からLTS版を入手してください）。その後もう一度お試しください。
+**Claude Code CLI:** 代わりに `/plugin marketplace add perso-ai/perso-dubbing-plugin` と `/plugin install perso-dubbing@perso-ai` を使ってください。
 
-**Claude Code CLI**（ターミナル）では、代わりに `/plugin marketplace add perso-ai/perso-dubbing-plugin` と `/plugin install perso-dubbing@perso-ai` を使ってください。
-
----
-
-## 他のホストへのインストール
-
-どこでも使える近道: このリポジトリのURLをエージェントに貼り付けて「これをインストールして」と言うだけです。
-
-> **🤖 エージェントへ:** このリポジトリのURLのみを渡された場合は、ホストに応じたパスを選んでください。
->
-> - **Claude Code（デスクトップアプリまたはCLI）:** ユーザーが「これをインストールして」と言った場合でも、すぐに npx を実行しては**いけません**。上記「Claude デスクトップアプリ」セクションにある2つの コマンドをユーザーに提示し、1メッセージにつき1コマンドずつ、ユーザー自身に入力してもらってください（これらはユーザーが入力するスラッシュコマンドであり、あなたが実行することはできません）。デスクトップアプリでのクリック操作によるパスも案内してください: 最初のコマンドの後、**+ ボタン → Plugins → Add plugin**。文言を調整する必要がある場合、シェル環境の `CLAUDE_CODE_ENTRYPOINT=cli` はターミナルセッションであることを示唆します（非公式なシグナルのため、判断に迷う場合は両方のパスを提示してください）。npx にフォールバックするのは、これらを見せたうえでユーザーがそれでもインストール作業をあなたに任せたい場合のみです。
-> - **Codex・Cursor・Antigravity、またはユーザーがインストールをあなたに委任した場合:** 次の単一コマンドを実行してください — パッケージを取得し、インストール済みのすべてのホストを自動検出して、それぞれにスキルをインストールします。
->
-> ```bash
-> npx perso-dubbing
-> ```
->
-> リポジトリが既にクローンされている場合は、代わりにリポジトリのルートで `node scripts/install.mjs` を実行してください（ネットワーク不要）。
-
-<details>
-<summary><b>Codex</b></summary>
-
-Codex は共有の Agent Skills フォルダからスキルを読み込みます。`npx perso-dubbing --codex` を実行するか、手動でコピーしてください。
-
-```text
-~/.agents/skills/dubbing/        # 個人用（すべてのリポジトリ） — 現行の Codex
-~/.codex/skills/dubbing/         # 旧バージョンの Codex（インストーラーは両方に書き込みます）
-<repo>/.agents/skills/dubbing/   # このリポジトリのみ
-```
-
-リポジトリには、マーケットプレイス経由のインストール用に Codex プラグインマニフェスト（`.codex-plugin/plugin.json`）も含まれています。
-
-</details>
-
-<details>
-<summary><b>Cursor</b></summary>
-
-`npx perso-dubbing --cursor` を実行するか、以下にコピーしてください。
-
-```text
-~/.cursor/skills/dubbing/        # グローバル
-.cursor/skills/dubbing/          # このプロジェクトのみ
-```
-
-リポジトリには、Cursor プラグインマーケットプレイス用の Cursor プラグインマニフェスト（`.cursor-plugin/plugin.json`）が含まれています。
-
-</details>
-
-<details>
-<summary><b>Antigravity</b></summary>
-
-`npx perso-dubbing --antigravity` を実行するか、いずれかの場所にコピーしてください。
-
-```text
-~/.antigravity/skills/dubbing/   # Antigravity 1.x
-~/.agents/skills/dubbing/        # Antigravity 2.0+（共有の Agent Skills フォルダ）
-```
-
-</details>
-
-<details>
-<summary><b>⚡ ワンライン・インストーラー（すべてのホスト対応）</b></summary>
-
-使用しているホストを検出し、すべてにインストールします — クローン不要です。
+### その他のすべてのホスト
 
 ```bash
 npx perso-dubbing
 ```
 
-- 特定のホストのみ: `--claude` / `--antigravity` / `--codex` / `--cursor` ・すべて: `--all`
-- 現在のプロジェクトのみ（`./.claude`、`./.agents` など）: `--project`
+インストール済みのホストを検出して、それぞれに両方のスキルをインストールし、どこに配置されたかを表示します。特定のホストのみなら `--claude` / `--codex` / `--cursor` / `--antigravity`、すべてのホストなら `--all`、現在のプロジェクトのみなら `--project` を追加してください。リポジトリを既にクローン済みですか？ リポジトリのルートで `node scripts/install.mjs` を実行すれば、ネットワーク不要で同じことができます。
 
-リポジトリを既にクローン済みの場合は、リポジトリのルートで `node scripts/install.mjs` を実行すると、ネットワーク不要で同じことができます。
+> **🤖 エージェントへ:** このリポジトリのURLのみを渡された場合:
+>
+> - **Claude Code（デスクトップまたはCLI）** — ユーザーが「これをインストールして」と言った場合でも、npx を実行しては**いけません**。上記の2つの `claude …` コマンドを提示し、ユーザー自身に一つずつ入力してもらってください（これらはユーザーが入力するスラッシュコマンドであり、あなたが実行することはできません）。あわせてクリック操作のパスも案内します: **+** ボタン → **Plugins** → **Add plugin**。そのうえでユーザーがなお作業を任せたいと言った場合にのみ、npx を使ってください。
+> - **Codex・Cursor・Antigravity、またはユーザーがインストールを委任した場合** — `npx perso-dubbing` を実行してください（リポジトリが既にクローン済みの場合は `node scripts/install.mjs`）。
 
-</details>
+### 初回実行 — APIキー
 
-<details>
-<summary><b>🔧 手動インストール</b></summary>
+ブラウザのページが開きます。サインインして一度クリックするだけで、キーが発行され、このマシンに暗号化して保存されます。コピーする必要はありません。ブラウザを開けない場合は、代わりにキーファイルが開きます — そこにキーを貼り付けて保存すると、暗号化されファイルは削除されます。
 
-**両方の**スキルフォルダを、ホストのスキルディレクトリ内に並べてコピーしてください（`srt` スキルは、隣接フォルダにある `dubbing` スキルのライブラリをインポートします）。リポジトリのルートから:
-
-```bash
-# macOS / Linux
-mkdir -p <skills_folder> && cp -r skills/dubbing skills/srt <skills_folder>/
-```
-
-> 💡 Windows（PowerShell）: `New-Item -ItemType Directory -Force <skills_folder>; Copy-Item .\skills\dubbing,.\skills\srt <skills_folder>\ -Recurse`
-
-</details>
-
-インストール後、エージェントで **`/dubbing`** と入力するか、**「この動画を吹き替えて」**と言うだけで実行できます — 字幕には **`/srt`** / **「この動画の英語字幕を作って」**をお使いください。（上記のどのインストール方法でも、両方のスキルが一緒にインストールされます。）
+**APIキーをチャットに貼り付けないでください。** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">APIキーを取得</a> ・ `npm run key:check` でいつでも確認できます
 
 ---
 
-## 使用例
+## 使い方
 
-最も簡単な方法 — エージェントに伝えるだけです:
+やりたいことをエージェントに伝えるだけです:
 
 > 「この動画を英語に吹き替えて — C:\videos\clip.mp4」
+>
+> 「このフォルダ内のすべての動画を日本語とスペイン語に吹き替えて」
+>
+> 「このYouTubeリンクを英語に吹き替えて、リップシンクも付けて」
+>
+> 「このクリップから音声と背景音楽を分離して」
+>
+> 「この動画の英語のSRTを作って」
 
-リポジトリのルートから直接CLIを実行することもできます。
-
-```bash
-# 動画1本（元言語を自動検出 → 英語）
-npm run dub -- "clip.mp4" --target en --out result.mp4
-
-# 複数言語を一度に（アップロードと分割は一度だけ行い、言語ごとに再利用）
-npm run dub -- "clip.mp4" --target en,ja,zh
-
-# 複数の入力を一度に（URL・ファイル・フォルダを混在可能）
-npm run dub -- "https://youtu.be/..." "clip2.mp4" "C:\videos" --target en
-
-# 吹き替え + リップシンク（口の動きを吹き替え音声に同期; 追加クレジットが必要）
-npm run dub -- "clip.mp4" --target en --lipsync
-
-# 音声/背景音トラックの分離（吹き替えなし）
-npm run dub -- "clip.mp4" --separate
-
-# 字幕を抽出し、エージェントに翻訳させる（/srt スキル）
-npm run srt -- "clip.mp4" --target en,ja
-
-# 文字起こしのみ — 元言語のSRT、翻訳なし
-npm run srt -- "clip.mp4" --transcribe-only
-```
-
-*（同等の直接呼び出し: `node skills/dubbing/scripts/dubbing.mjs …` — またはインストール済みのスキルフォルダ内から `node scripts/dubbing.mjs …`。）*
+または **`/dubbing`** / **`/srt`** と入力して開始します。CLIオプションの全一覧は、エージェントに使い方を尋ねるか、`npm run dub -- --help` を実行してください。
 
 ---
 
@@ -177,33 +91,33 @@ npm run srt -- "clip.mp4" --transcribe-only
 
 | 症状 | 対処法 |
 |---|---|
+| `node` が見つからない | <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a> からLTS版をインストールし（またはエージェントに*「Node.jsをインストールして」*と依頼し）、再試行してください。 |
 | Claude デスクトップアプリがGitを要求する（Windows） | Code タブは初回利用時に <a href="https://git-scm.com/downloads/win" target="_blank" rel="noopener noreferrer">Git for Windows</a> を必要とします。インストール後、アプリを再起動してください。 |
-| `claude` コマンドやPluginsメニューが反応しない | **クラウドセッション**にいます — プラグインは **Local**（およびSSH）セッションでのみ動作します。環境をLocalに切り替えて再試行してください。 |
-| `node` が見つからない／インストールや実行が失敗する | このスキルは **Node.js 18以上** で動作します — `node -v` で確認してください。入っていない場合は <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a> からLTS版をインストールするか、セッション内のClaudeにインストールを依頼してから、アプリを再起動してください。 |
-| APIキーがまだない | 吹き替えコマンドを実行するだけで、キーファイルが自動的に開きます。キーを貼り付けて保存してください（暗号化され、ファイルは削除されます）。手動確認: `npm run key:check`。**キーをチャットに貼り付けないでください。** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">APIキーを取得</a> |
+| `claude` コマンドやPluginsメニューが反応しない | **クラウドセッション**にいます — プラグインには **Local**（またはSSH）セッションが必要です。 |
+| キーが拒否される、または存在しない | もう一度登録してください: `node skills/dubbing/scripts/connect.mjs`。保存されているキーは `npm run key:check` で確認できます。 |
 | ffmpeg関連のエラー | ffmpegは通常自動的にインストールされます。失敗する場合は `npm run doctor` を実行してください。 |
-| 途中で停止する（クレジット切れ、クラッシュ、プロセスの強制終了） | 実行中は進捗が状態ファイルに保存され続けます（`/dubbing` の場合は `*.dubresume.json`、`/srt` の場合は `*.srtresume.json`）。通知に表示される **`--resume "<state-file>"`** コマンドを実行すると、残りの部分だけを完了できます（完了済みの部分は自動的にスキップされます）。 |
+| 途中で停止した（クレジット切れ、クラッシュ、プロセスの強制終了） | 進捗は継続的に保存されています。通知に表示される **`--resume "<state-file>"`** コマンドを実行してください — 完了済みの部分はスキップされ、再課金されることはありません。 |
 
 ---
 
 ## プライバシーとテレメトリー
 
-`/dubbing` と `/srt` は、スキルを改善するために**匿名**の利用イベントを送信します — 例えば、実行されたアクション（吹き替え／リップシンク／分離／字幕抽出）、成功したかどうか、言語ペア、メディアの長さ、アプリバージョン、OSなどです。インストールごとのランダムなIDのみでタグ付けされ、APIキー、ファイル名やメディアの内容、アカウント／メールアドレス、ワークスペースIDは一切含まれません。`PERSO_NO_TELEMETRY` 環境変数でいつでもオプトアウトできます。
+`/dubbing` と `/srt` は、スキルを改善するために利用イベントを送信します — 例えば、実行されたアクション、成功したかどうか、メディアの長さ、アプリバージョン、OSなどです。各イベントには、インストールごとのランダムなIDとワークスペース番号が付与されます。APIキーとメディアが含まれることは一切ありません。`PERSO_NO_TELEMETRY` でいつでもオプトアウトできます。
 
 ---
 
 ## リポジトリ構成
 
 ```text
-.claude-plugin/    Claude Code プラグイン + マーケットプレイスマニフェスト
-.codex-plugin/     Codex プラグインマニフェスト
-.cursor-plugin/    Cursor プラグインマニフェスト
-docs/              GitHub Pages ランディング + 翻訳版 README・FAQ（12言語）
-skills/dubbing/    吹き替えスキル本体（SKILL.md・lib/・scripts/） — 自己完結型
-skills/srt/        SRT字幕スキル（SKILL.md・scripts/） — dubbingスキルのlib/を利用
-scripts/           リポジトリレベルのインストーラー（install.mjs）
+.claude-plugin/    Claude Code プラグイン + マーケットプレイス マニフェスト
+.codex-plugin/     Codex プラグイン マニフェスト
+.cursor-plugin/    Cursor プラグイン マニフェスト
+docs/              GitHub Pages ランディング + 翻訳版 README · FAQ（12言語）
+skills/dubbing/    吹き替えスキル本体 (SKILL.md · lib/ · scripts/) — 単体で完結
+skills/srt/        SRT字幕スキル (SKILL.md · scripts/) — dubbing スキルの lib/ を使用
+scripts/           リポジトリレベルのインストーラー (install.mjs)
 ```
 
 ## ライセンス
 
-このスキルのコードは **[MITライセンス](../../LICENSE)** の下で配布されています。実際の吹き替えはPerso Dubbing APIを通じて実行されるため、API自体の利用は [Perso AI利用規約](https://perso.ai) および料金体系に従います。
+このスキルのコードは **[MIT](../../LICENSE)** です。実際の吹き替えは Perso Dubbing API を通じて実行されるため、APIの利用は [Perso AI利用規約](https://perso.ai) および料金体系に従います。

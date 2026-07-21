@@ -10,15 +10,15 @@ Node.js 18+ y una clave de API de Perso Dubbing. Instala la skill y luego solo d
 
 ### ¿Cómo registro mi clave de API?
 
-En la primera ejecución se abre un archivo de clave automáticamente: pega **solo tu clave de API** en ese archivo y guarda (se cifra y el archivo se elimina). **Nunca pegues la clave en el chat.** Comprobación manual: `npm run key:check`.
+En la primera ejecución se abre una página del navegador: inicia sesión y haz un clic, y tu clave se emite y se guarda cifrada en este equipo. No hay nada que copiar. Si no puede abrirse ningún navegador, se abre en su lugar un archivo de clave: pega en él **solo tu clave de API** y guarda (se cifra y el archivo se elimina). **Nunca pegues la clave en el chat.** Comprobación manual: `npm run key:check`.
 
 ### ¿Tiene coste?
 
-El código de la skill es gratuito (MIT), pero el doblaje se realiza a través de la API de Perso, que cobra créditos: doblaje ≈ 1 crédito/s, sincronización labial ≈ ×2, separación de audio ≈ ×0,5. Las fuentes 4K se cobran ×3 en los planes pro/business/enterprise. La facturación del servidor es la definitiva.
+El código de la skill es gratuito (MIT), pero el doblaje se realiza a través de la API de Perso, que cobra créditos.
 
 ### ¿Qué puedo darle como entrada?
 
-Un archivo local, una carpeta entera (por lotes) o una URL, incluidos YouTube, TikTok, Google Drive y Vimeo. Los vídeos demasiado grandes o muy largos se dividen, se procesan y se vuelven a unir automáticamente.
+Un archivo local, una carpeta local o una URL (YouTube, TikTok, Google Drive). Los vídeos demasiado grandes o muy largos se dividen, se procesan y se vuelven a unir automáticamente.
 
 ### ¿Puede doblar a varios idiomas o procesar muchos archivos a la vez?
 
@@ -38,7 +38,7 @@ Divide la fuente en pistas de voz / fondo / fondo secundario, sin doblaje. Añad
 
 ### ¿Puede generar subtítulos (SRT) en lugar de doblar?
 
-Sí — el paquete también instala la skill **`/srt`**. Extrae los subtítulos en el idioma original de un vídeo, audio o URL mediante el reconocimiento de voz de Perso, y tu agente los traduce después a los idiomas que le pidas (guardados como `<name>_<lang>_Subtitle.srt` junto al original). ¿Solo quieres la transcripción? Dilo y se ejecuta con `--transcribe-only`, sin traducción. Cada extracción de subtítulos consume créditos en proporción a la duración del contenido multimedia (por idioma).
+La skill **`/srt`** extrae los subtítulos en el idioma original de un vídeo, audio o URL mediante el reconocimiento de voz de Perso. Si además los quieres traducidos, pide el SRT indicando los idiomas que quieres.
 
 ### Se detuvo a mitad (sin créditos, un fallo o un shell terminado). ¿Y ahora qué?
 
@@ -62,4 +62,4 @@ La skill necesita Node.js 18+. Compruébalo con `node -v`; instala la LTS desde 
 
 ### ¿Qué datos recopila la skill?
 
-Solo eventos de uso anónimos —qué acción se ejecutó, si tuvo éxito, recuentos aproximados, versión de la app y sistema operativo— etiquetados con un ID aleatorio por instalación. Nunca incluye tu clave de API, nombres de archivo ni contenido multimedia, cuenta/correo, ni IDs de espacio de trabajo.
+Solo eventos de uso —qué acción se ejecutó, si tuvo éxito, recuentos aproximados, versión de la app y sistema operativo— etiquetados con un ID aleatorio por instalación y tu número de espacio de trabajo. Tu clave de API y tu contenido multimedia nunca se incluyen.
