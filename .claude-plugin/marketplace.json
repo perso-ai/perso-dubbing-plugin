@@ -12,7 +12,7 @@
         "package": "perso-dubbing"
       },
       "description": "Auto-dub videos into other languages with lip-sync (Perso AI Dubbing), plus voice/background audio separation and SRT subtitle extraction & translation (/srt). Single files, folders, URLs, auto split & merge for long media, multi-language output, resume.",
-      "version": "0.7.0",
+      "version": "0.7.1",
       "author": {
         "name": "Perso AI"
       },
