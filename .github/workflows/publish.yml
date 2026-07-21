@@ -1,0 +1,55 @@
+name: publish
+
+# Releases only when the content npm actually ships changes — the landing pages under docs/ are
+# served by GitHub Pages and are deliberately absent from package.json's "files", so editing them
+# must not mint a new package version.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'skills/**'
+      - 'scripts/**'
+      - '.claude-plugin/**'
+      - '.codex-plugin/**'
+      - '.cursor-plugin/**'
+      - 'package.json'
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump'
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+
+jobs:
+  publish:
+    # `npm version` pushes a release commit that touches package.json, which would re-trigger this
+    # workflow; the [skip ci] marker it carries is what breaks the loop.
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # push the version commit and its tag
+      id-token: write   # npm provenance attestation
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}   # check out the branch, not a detached SHA, so the bump can push
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Verify the manifests are in sync
+        run: node scripts/sync-version.mjs --check
+
+      - name: Bump the version and tag
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          npm version "${{ inputs.bump || 'patch' }}" -m "chore: release v%s [skip ci]"
+          git push --follow-tags
+
+      - name: Publish to npm
+        run: npm publish --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
