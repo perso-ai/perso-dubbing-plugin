@@ -7,7 +7,6 @@
 // Falls back to the file-based flow (resolve_key.mjs --watch) on timeout or when no browser opens.
 import { createServer } from 'node:http';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
-import { hostname } from 'node:os';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { realpathSync } from 'node:fs';
@@ -20,6 +19,7 @@ const PORTAL_BASE = persoBaseUrl('PERSO_PORTAL_BASE', process.env.PERSO_PORTAL_B
 const PORTAL_ORIGIN = new URL(PORTAL_BASE).origin;
 const TIMEOUT_MS = 5 * 60_000;
 const MAX_BODY_BYTES = 16 * 1024;
+const CALLBACK_PATHS = ['/callback', '/key'];
 
 // Constant-time state comparison — the state is the only thing authenticating the callback.
 function sameState(expected, got) {
@@ -59,7 +59,9 @@ function awaitCallback(state) {
         res.writeHead(status, { 'Content-Type': 'application/json', ...CORS_HEADERS });
         res.end(JSON.stringify(body));
       };
-      if (!req.url?.startsWith('/callback')) return respond(404, { ok: false });
+      // The portal posts to /key; the spec named it /callback. Accept both so the flow works
+      // whichever one the deployed page uses.
+      if (!CALLBACK_PATHS.some((p) => req.url?.startsWith(p))) return respond(404, { ok: false });
       if (req.method === 'OPTIONS') { res.writeHead(204, CORS_HEADERS); return res.end(); }
       if (req.method !== 'POST') return respond(405, { ok: false });
       let size = 0;
@@ -76,13 +78,16 @@ function awaitCallback(state) {
         res.on('finish', () => {
           server.close();
           server.closeAllConnections?.(); // don't wait out the keep-alive socket
-          resolve({ apiKey, expireAt: body.expireAt ?? null });
+          // The portal sends the API response field name (expireDate); the spec called it expireAt.
+          resolve({ apiKey, expireAt: body.expireAt ?? body.expireDate ?? null });
         });
       });
     });
     server.listen(0, '127.0.0.1', () => {
       const { port } = server.address();
-      const name = `perso-dubbing @ ${hostname()}`.slice(0, 64);
+      // The portal prefills its key-name input with this, truncated to 16 chars — anything longer
+      // (a hostname suffix, say) gets cut mid-word, so keep it short enough to survive intact.
+      const name = 'perso-dubbing';
       const url = `${PORTAL_BASE}/connect?port=${port}&state=${state}&name=${encodeURIComponent(name)}`;
       console.log('Opening the Perso developer portal — sign in and click [Issue key for this device]:');
       console.log(`  ${url}`);
