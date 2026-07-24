@@ -23,7 +23,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Perso Dubbing — Duble pastas inteiras com o Claude">
 <meta name="twitter:description" content="Duble vários vídeos em vários idiomas de uma vez. Do upload à organização dos arquivos, tudo em uma conversa.">
-<link rel="icon" href="../perso-mark.svg">
+<link rel="icon" href="/perso-mark.svg">
 <script>window.__pdlang="pt";</script>
 <!-- Google Tag Manager — perso.ai 동일 컨테이너 -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-WT7QJR3V');</script>
@@ -35,9 +35,9 @@
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WT7QJR3V" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <style>
-  @font-face{font-family:Pretendard; font-weight:400; font-display:swap; src:url(../fonts/Pretendard-Regular.woff2) format("woff2");}
-  @font-face{font-family:Pretendard; font-weight:600; font-display:swap; src:url(../fonts/Pretendard-SemiBold.woff2) format("woff2");}
-  @font-face{font-family:Pretendard; font-weight:700; font-display:swap; src:url(../fonts/Pretendard-Bold.woff2) format("woff2");}
+  @font-face{font-family:Pretendard; font-weight:400; font-display:swap; src:url(/fonts/Pretendard-Regular.woff2) format("woff2");}
+  @font-face{font-family:Pretendard; font-weight:600; font-display:swap; src:url(/fonts/Pretendard-SemiBold.woff2) format("woff2");}
+  @font-face{font-family:Pretendard; font-weight:700; font-display:swap; src:url(/fonts/Pretendard-Bold.woff2) format("woff2");}
   :root{
     --ink:#100c20; --body:#4e4a5c; --mut:#8c8a94; --line:#e2e2e4; --line-soft:#ececed;
     --bg:#ffffff; --bg-soft:#f6f6f7; --accent:#644aff; --accent-ink:#4a34d8; --accent-soft:#efecfe; --ok:#1a9e6c;
@@ -417,15 +417,7 @@
     try { localStorage.setItem("pd-lang", lang); } catch(e) {}
   }
   var MULTIPAGE = (typeof window.__pdlang !== "undefined");
-  // 배포 베이스 경로를 런타임에 추론 — 루트/서브경로(/dubbing/agents/) 모두에서 동작
-  function langBase(){
-    var p = location.pathname;
-    var cur = MULTIPAGE ? window.__pdlang : "ko";
-    if (cur !== "ko") p = p.replace(new RegExp("/" + cur + "/?$"), "/");
-    if (p.charAt(p.length - 1) !== "/") p += "/";
-    return p;
-  }
-  function langPath(l){ var b = langBase(); return l === "ko" ? b : b + l + "/"; }
+  function langPath(l){ return l === "ko" ? "/" : "/" + l + "/"; }
   var langbtn = document.getElementById("langbtn"), langmenu = document.getElementById("langmenu");
   langbtn.addEventListener("click", function(e){
     e.stopPropagation();
