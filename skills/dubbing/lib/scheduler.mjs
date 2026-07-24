@@ -52,6 +52,27 @@ export async function runSchedule(chunks, spaceSeq, opts = {}, hooks = {}) {
   const submitted = new Map(); // projectId → task (input × chunk × language)
   const results = new Map(); // taskKey → result
   const mediaByKey = new Map(); // `${inputId}|${index}` → {seq, kind}: uploaded once per chunk, shared across languages
+
+  // [status] heartbeat (stdout): stage + part counts only — no %, no elapsed, no ETA (user-facing rule).
+  // First line ~3 min in (matches the agent's first check), then every statusEvery ms; the `next check`
+  // hint tells the relaying agent when to look again (10 min for short videos, 30 min for long ones).
+  const statusEvery = opts.statusEvery ?? 10 * 60_000;
+  const statusHint = `next check ~${Math.round(statusEvery / 60_000)}m`;
+  let nextStatusAt = Date.now() + 3 * 60_000;
+  const totalByTarget = new Map(); // task units per language, fixed at start (a lip-sync re-queue is the same unit)
+  for (const t of pending) totalByTarget.set(t.target, (totalByTarget.get(t.target) ?? 0) + 1);
+  const emitStatus = () => {
+    const parts = [];
+    for (const [target, total] of totalByTarget) {
+      let done = 0;
+      for (const r of results.values()) if (r.target === target && (r.status === 'OK' || r.status === 'PASSTHROUGH')) done++;
+      parts.push(`${target} ${done}/${total}`);
+    }
+    if (!parts.length) return;
+    const ls = [...submitted.values()].some((t) => t.stage === 'lipsync') ? ' · lip-sync running' : '';
+    console.log(`[status] ${parts.join(' · ')}${ls} | ${statusHint}`);
+  };
+
   let stopAll = false;
   let stopReason = null;
   let engineError = null; // unrecoverable engine error message (for reporting upward)
@@ -83,6 +104,7 @@ export async function runSchedule(chunks, spaceSeq, opts = {}, hooks = {}) {
 
   // On stop_all, stop new submissions and only finalize in-flight (submitted) ones → exit when empty (pending is preserved).
   while ((submitted.size || (!stopAll && pending.length)) && !timeUp()) {
+    if (Date.now() >= nextStatusAt) { emitStatus(); nextStatusAt = Date.now() + statusEvery; }
     let progressed = false;
     let blocked = false; // no free slots (external/prior jobs occupy the queue), so new submissions are impossible
 

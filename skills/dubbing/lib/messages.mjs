@@ -1,8 +1,14 @@
 // User-facing guidance message templates.
 import { CLIENT_HOST, CLIENT_VERSION } from './client_info.mjs';
 
-export const SUBSCRIPTION_URL = 'https://portal.perso.ai/en/workspace/space-settings?tab=Subscription';
+export const SUBSCRIPTION_URL = 'https://perso.ai/en/workspace/space-settings?tab=Subscription';
 export const PRICING_URL = 'https://perso.ai/en/workspace/vt?pricing';
+
+// The Video-Translator workspace (where every run's project lives) and a direct link to one project.
+// Project path by kind: dubbing/lip-sync → detail, STT → stt, audio separation → audio-separation.
+export const WORKSPACE_URL = 'https://perso.ai/en/workspace/vt';
+const PROJECT_PATH = { dub: 'detail', lipsync: 'detail', stt: 'stt', separation: 'audio-separation' };
+export const projectUrl = (seq, kind = 'dub') => `${WORKSPACE_URL}/${PROJECT_PATH[kind] ?? 'detail'}/${seq}`;
 
 // UTM identity — mirrors the API-call identity (User-Agent perso-dubbing/<version> (host=agents)):
 // one unified 'agents' channel across all hosts; the skill version is carried in utm_content.

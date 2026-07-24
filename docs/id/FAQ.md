@@ -26,7 +26,7 @@ Bisa. Masukkan beberapa bahasa dalam satu perintah (`--target en,ja,zh`) — sum
 
 ### Di mana hasilnya disimpan?
 
-Secara default di sebelah video sumber, atau di folder yang Anda tentukan dengan `--out`. Setiap eksekusi juga menjadi sebuah proyek di portal Perso Anda (<https://portal.perso.ai>), tempat Anda bisa mengunduhnya kembali atau mendapatkan format lain.
+Secara default di sebelah video sumber, atau di folder yang Anda tentukan dengan `--out`. Setiap eksekusi juga menjadi sebuah proyek di portal Perso Anda (<https://perso.ai/en/workspace/vt>), tempat Anda bisa mengunduhnya kembali atau mendapatkan format lain.
 
 ### Apa itu lip-sync?
 

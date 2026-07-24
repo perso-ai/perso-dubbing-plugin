@@ -3,7 +3,7 @@
 [![Powered by Perso AI](https://img.shields.io/badge/Powered%20by-Perso%20AI-5A4FF3)](https://perso.ai)
 ![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A518-339933?logo=node.js&logoColor=white)
 ![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-1f6feb)
-![Platforms](https://img.shields.io/badge/platforms-Claude%20%C2%B7%20Antigravity%20%C2%B7%20Codex%20%C2%B7%20Cursor-555)
+![Platforms](https://img.shields.io/badge/platforms-Claude%20%C2%B7%20Antigravity%20%C2%B7%20Codex-555)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](../../LICENSE)
 
 [English](../../README.md) ｜ [한국어](../ko/README.md) ｜ [Español](../es/README.md) ｜ [Português](../pt/README.md) ｜ [Русский](../ru/README.md) ｜ **Bahasa Indonesia** ｜ [Deutsch](../de/README.md) ｜ [ไทย](../th/README.md) ｜ [日本語](../ja/README.md) ｜ [繁體中文](../zh-TW/README.md) ｜ [简体中文](../zh-CN/README.md) ｜ [Tiếng Việt](../vi/README.md) ｜ [Français](../fr/README.md)
@@ -16,7 +16,7 @@ Skill agen coding yang menghadirkan dubbing AI dari [Perso Dubbing](https://pers
 - **Subtitle** (`/srt`) — ekstrak SRT melalui speech-to-text, lalu agen Anda menerjemahkannya
 - Media yang berukuran terlalu besar dan sangat panjang otomatis dipecah, diproses, dan digabungkan kembali
 
-Berjalan di atas **Node.js 18+** dan membutuhkan **kunci API Perso Dubbing**. Dibangun di atas standar Agent Skills (`SKILL.md`), sehingga berperilaku sama persis di Claude, Codex, Cursor, dan Antigravity.
+Berjalan di atas **Node.js 18+** dan membutuhkan **kunci API Perso Dubbing**. Dibangun di atas standar Agent Skills (`SKILL.md`), sehingga berperilaku sama persis di Claude, Codex, dan Antigravity.
 
 ![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
 
@@ -41,7 +41,6 @@ Di <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer
    claude install perso-dubbing@perso-ai
    ```
 
-   *Lebih suka mengeklik? Setelah perintah pertama: tombol **+** → **Plugins** → **Add plugin** → **perso-dubbing**.*
 3. Minta dubbing — *"Dubbing video ini ke bahasa Inggris — C:\videos\clip.mp4"*. URL YouTube atau sebuah folder juga bisa. Hasilnya disimpan di sebelah video sumber kecuali Anda menyertakan `--out`.
 
 **Claude Code CLI:** gunakan `/plugin marketplace add perso-ai/perso-dubbing-plugin` dan `/plugin install perso-dubbing@perso-ai` sebagai gantinya.
@@ -52,18 +51,29 @@ Di <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer
 npx perso-dubbing
 ```
 
-Mendeteksi host mana yang Anda miliki dan menginstal kedua skill ke masing-masing host, sambil menampilkan lokasi pemasangannya. Tambahkan `--claude` / `--codex` / `--cursor` / `--antigravity` untuk satu host, `--all` untuk semua host, atau `--project` hanya untuk proyek saat ini. Sudah meng-clone repositorinya? `node scripts/install.mjs` dari root repositori melakukan hal yang sama, tanpa jaringan.
+Mendeteksi host mana yang Anda miliki dan menginstal kedua skill ke masing-masing host, sambil menampilkan lokasi pemasangannya. Tambahkan `--claude` / `--codex` / `--antigravity` untuk satu host, `--all` untuk semua host, atau `--project` hanya untuk proyek saat ini. Sudah meng-clone repositorinya? `node scripts/install.mjs` dari root repositori melakukan hal yang sama, tanpa jaringan.
 
-> **🤖 Untuk agen:** jika Anda hanya diberi URL repositori ini:
->
-> - **Claude Code (aplikasi desktop atau CLI)** — **jangan** jalankan npx, meskipun pengguna berkata "instal ini". Tunjukkan kepada mereka kedua perintah `claude …` di atas dan minta mereka mengetikkannya sendiri satu per satu (perintah tersebut adalah slash command yang diketik pengguna dan tidak bisa Anda jalankan), beserta jalur kliknya: tombol **+** → **Plugins** → **Add plugin**. Gunakan npx hanya jika setelah itu mereka tetap ingin Anda yang menanganinya.
-> - **Codex · Cursor · Antigravity, atau pengguna mendelegasikan instalasinya** — jalankan `npx perso-dubbing` (atau `node scripts/install.mjs` jika repositorinya sudah di-clone).
+<details>
+<summary><b>🤖 Untuk agen</b> — jika Anda hanya diberi URL repositori ini</summary>
+
+- **Claude Code (aplikasi desktop atau CLI)** — jalankan sendiri satu baris perintah instalasi ini (non-interaktif dan idempoten, aman dijalankan ulang):
+
+  ```bash
+  claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
+  ```
+
+  Setelah keduanya berhasil, minta pengguna memulai sesi baru (atau memulai ulang Claude Code) — `/dubbing` dan `/srt` dimuat mulai sesi berikutnya. Hanya jika CLI `claude` tidak tersedia di shell Anda, kembali ke cara menunjukkan perintah di atas agar pengguna mengetikkannya sendiri.
+- **Codex · Antigravity, atau pengguna mendelegasikan instalasinya** — jalankan `npx perso-dubbing` (atau `node scripts/install.mjs` jika repositorinya sudah di-clone).
+- **ChatGPT (web/aplikasi — tanpa terminal di komputer pengguna)** — baca https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/chatgpt-setup.md dan ikuti: pertama jalankan **Codex** di komputer pengguna — instalasi berlanjut di sana. (Sudah di dalam Codex dengan terminal? Gunakan poin di atas.)
+- **Gemini (web/aplikasi — tanpa terminal di komputer pengguna)** — baca https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/gemini-setup.md dan ikuti: pertama instal **Antigravity** — instalasi berlanjut di sana. (Sudah di dalam Antigravity? Gunakan poin di atas.)
+
+</details>
 
 ### Eksekusi pertama — kunci API Anda
 
 Sebuah halaman browser akan terbuka: masuk dan klik sekali, lalu kunci Anda diterbitkan dan disimpan terenkripsi di komputer ini. Tidak ada yang perlu disalin. Jika tidak ada browser yang bisa dibuka, sebuah file kunci akan terbuka sebagai gantinya — tempelkan kunci di sana lalu simpan, dan file tersebut dienkripsi kemudian dihapus.
 
-**Jangan pernah menempelkan kunci API Anda ke dalam chat.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Dapatkan kunci API</a> · periksa kapan saja dengan `npm run key:check`
+<a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Dapatkan kunci API</a> · periksa kapan saja dengan `npm run key:check`
 
 ---
 
@@ -111,7 +121,6 @@ Punya pertanyaan lain? Lihat **[FAQ](FAQ.md)**.
 ```text
 .claude-plugin/    Plugin Claude Code + manifest marketplace
 .codex-plugin/     Manifest plugin Codex
-.cursor-plugin/    Manifest plugin Cursor
 docs/              Landing GitHub Pages + README terjemahan · FAQ (12 bahasa)
 skills/dubbing/    Skill dubbing (SKILL.md · lib/ · scripts/) — mandiri
 skills/srt/        Skill subtitle SRT (SKILL.md · scripts/) — memakai lib/ dari skill dubbing

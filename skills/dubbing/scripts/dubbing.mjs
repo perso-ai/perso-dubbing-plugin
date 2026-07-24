@@ -16,9 +16,10 @@ import { resolveChunks, recutChunk, SplitConfirmNeeded } from '../lib/split.mjs'
 import { runSchedule } from '../lib/scheduler.mjs';
 import { download, getStatus, upload, requestAudioSeparation, downloadSeparation } from '../lib/api_adapter.mjs';
 import { mergeGroups } from '../lib/merge.mjs';
-import { messages, withUtm, SUBSCRIPTION_URL } from '../lib/messages.mjs';
+import { messages, withUtm, SUBSCRIPTION_URL, projectUrl } from '../lib/messages.mjs';
 import { checkForUpdate } from '../lib/update_check.mjs';
-import { track, initTelemetry, setTelemetrySpace, primeTelemetrySpace } from '../lib/telemetry.mjs';
+import { track, initTelemetry, setTelemetrySpace, primeTelemetrySpace, setAgentHost } from '../lib/telemetry.mjs';
+import { makeStatusTicker, statusIntervalMs } from '../lib/status.mjs';
 import { cleanupTempDirs, makeTempDir } from '../lib/tmp.mjs';
 import { probe } from '../lib/ffmpeg.mjs';
 import { AUDIO_EXT, CREDIT_RATE_DUB, CREDIT_RATE_LIPSYNC, UHD_CREDIT_MULT, UHD_BILLED_TIERS, POLL_INTERVAL_MS, MAX_IDLE_MS } from '../lib/config.mjs';
@@ -80,7 +81,7 @@ const USAGE = [
 
 function parseArgs(argv) {
   const a = { source: 'auto', target: 'en', inputs: [] };
-  const VALUE_FLAGS = { '--resume': 'resume', '--source': 'source', '--target': 'target', '--space': 'space', '--out': 'out', '--lipsync-only': 'lipsyncOnly' };
+  const VALUE_FLAGS = { '--resume': 'resume', '--source': 'source', '--target': 'target', '--space': 'space', '--out': 'out', '--lipsync-only': 'lipsyncOnly', '--host': 'host' };
   for (let i = 0; i < argv.length; i++) {
     const t = argv[i];
     if (t === '--help' || t === '-h') a.help = true;
@@ -182,14 +183,15 @@ function resumePath({ out, inputs, multiInput }) {
 
 // A state file at the target path means an earlier run for this input never finished (it is deleted on
 // success). Starting fresh would overwrite it and re-bill work the server already completed, so stop before
-// any network/billing and hand the choice to the user (exit 3 = "ask the user", like [space-select]).
+// any network/billing and hand the choice to the user (a normal "ask the user" pause, exit 0 — the
+// [resume-check] lines say what to ask; a non-zero exit would misread as a failure).
 function guardExistingState(file) {
   if (!existsSync(file)) return;
   console.log(`[resume-check] An earlier run for this input did not finish — its state file still exists: ${file}`);
   console.log('[resume-check] To finish it without paying again for the completed parts, run:');
   console.log(`[resume-check]   node scripts/dubbing.mjs --resume "${file}"`);
   console.log('[resume-check] To discard it and start over instead (completed parts will be billed again), delete that state file and re-run this command.');
-  throw new ExitCode(3);
+  throw new ExitCode(0);
 }
 
 // --out single input: add a language suffix if multilingual (single language stays as-is).
@@ -367,7 +369,7 @@ async function finishPool(allResults, perInput, ctx) {
       }
       if (mergeable.length && mergeable.every((r) => r.serverOnly)) {
         // --no-save: the dubbed result was left on the server and never downloaded → report + reference, don't merge/save.
-        lines.push(`Kept on server, not saved: ${tlab} → project ${mergeable[0].projectId}`);
+        lines.push(`Kept on server, not saved: ${tlab} → ${projectUrl(mergeable[0].projectId, 'dub')}`);
         okCount++;
         emitProjectRef(pin, tRes, target, ctx, { lipsync: false });
         continue;
@@ -479,7 +481,7 @@ async function runPool(args) {
         console.log(splitConfirmMessage(e.details, tag));
         // Nothing is billed yet at the split stage, so discard any partial state so the --allow-split re-run isn't blocked by the resume guard.
         try { if (existsSync(file)) unlinkSync(file); } catch { /* ignore */ }
-        throw new ExitCode(3);
+        throw new ExitCode(0); // stop and ask the user — a normal pause, not a failure
       }
       if (isAuthError(e)) { track('error', { error_class: 'auth' }); console.log(`\n${friendlyError(e)}`); return; } // key issues abort everything
       if (e?.name === 'UnsupportedMediaError') { notify(skipMsg(labelOf(inp), e)); continue; } // unsupported → skip
@@ -504,7 +506,7 @@ async function runPool(args) {
   });
   notify(`Translating${targets.length > 1 ? ` (${targets.join(', ')})` : ''}`);
   // Fill all inputs×parts×languages into one queue for concurrent processing. Submit as many as there are empty slots and add more every 5 minutes.
-  const sched = await runSchedule(pool, spaceSeq, { source, targets, lipsync: !!args.lipsync }, { log, notify, onResult: saver.onResult, onSubmit: saver.onSubmit });
+  const sched = await runSchedule(pool, spaceSeq, { source, targets, lipsync: !!args.lipsync, statusEvery: statusIntervalMs(totalDurationSec(perInput)) }, { log, notify, onResult: saver.onResult, onSubmit: saver.onSubmit });
 
   await finishPool([...sched.results.values()], perInput, { ...ctx, sched });
 }
@@ -544,7 +546,7 @@ async function creditPreflight(perInput, spaceSeq, targetCount) {
   console.log(`[credit-check] Estimated credits for dubbing + lip-sync: ~${needed}${anyUhd ? ` (includes the ×${UHD_CREDIT_MULT} 4K surcharge)` : ''}. Credits left: ${remaining}.`);
   console.log('[credit-check] The run would stop part-way. Ask the user to top up first, or approve continuing anyway — then re-run the same command with --force (whatever completes is kept; the rest resumes later):');
   console.log(`  → ${withUtm(SUBSCRIPTION_URL)}`);
-  throw new ExitCode(3);
+  throw new ExitCode(0); // [credit-check]: stop and ask the user to top up or --force — not a failure
 }
 
 // Resume: completed parts (OK) are re-downloaded from the server via projectSeq; the rest (PASSTHROUGH/unprocessed) are re-cut from the original and processed → merged.
@@ -700,7 +702,7 @@ async function runResume(file) {
 
   if (pool.length) notify('Translating (resume)');
   const sched = pool.length
-    ? await runSchedule(pool, m.spaceSeq, { source: m.opts?.source ?? 'auto', targets, done: skip, lipsync }, { log, notify, onResult: saver.onResult, onSubmit: saver.onSubmit })
+    ? await runSchedule(pool, m.spaceSeq, { source: m.opts?.source ?? 'auto', targets, done: skip, lipsync, statusEvery: statusIntervalMs(totalDurationSec(perInput)) }, { log, notify, onResult: saver.onResult, onSubmit: saver.onSubmit })
     : { results: new Map(), stopped: false, pendingLeft: [] };
 
   await finishPool([...downloaded, ...sched.results.values()], perInput, { ...ctx, sched });
@@ -757,7 +759,7 @@ async function runLipsyncOnly(args) {
   }
   saver.writeNow();
   notify('Requesting lip-sync for the existing dubbed project — no re-dubbing, no re-upload.');
-  const sched = await runSchedule(pool, spaceSeq, { targets: [target], lipsync: true }, { log, notify, onResult: saver.onResult, onSubmit: saver.onSubmit });
+  const sched = await runSchedule(pool, spaceSeq, { targets: [target], lipsync: true, statusEvery: statusIntervalMs(lsMs > 0 ? Math.round(lsMs / 1000) : null) }, { log, notify, onResult: saver.onResult, onSubmit: saver.onSubmit });
   await finishPool([...downloaded, ...sched.results.values()], perInput, { ...ctx, sched });
 }
 
@@ -823,7 +825,7 @@ async function runSeparation(args) {
         track('split_confirm_needed', splitConfirmProps(e.details));
         console.log(splitConfirmMessage(e.details, multiInput ? labelOf(inp) : null, 'separate'));
         try { if (existsSync(file)) unlinkSync(file); } catch { /* nothing billed yet → safe to discard */ }
-        throw new ExitCode(3);
+        throw new ExitCode(0); // stop and ask the user — a normal pause, not a failure
       }
       if (e?.name === 'UnsupportedMediaError') { notify(skipMsg(labelOf(inp), e)); continue; }
       notify(`Could not prepare: ${labelOf(inp)} — ${friendlyError(e)}`); continue;
@@ -876,39 +878,41 @@ async function runResumeSeparation(m, file) {
 // Returns true when some paid part is still owed (undelivered) → the caller must keep the state file for resume.
 async function separationProcess(perInput, spaceSeq, ctx, saver, materializeFor, isResume = false) {
   const usedByDir = new Map();
-  const lines = [];
   let ok = 0, fail = 0;
   const flags = { pending: false };
   const tmp = await makeTempDir('dubbing-sep-');
-  for (const pin of perInput) {
+  const total = perInput.length;
+  const ticker = makeStatusTicker(statusIntervalMs(totalDurationSec(perInput)));
+  for (let i = 0; i < perInput.length; i++) {
+    const pin = perInput[i];
     try {
-      const byTrack = await separateChunks(pin, spaceSeq, tmp, saver, materializeFor, flags);
+      const byTrack = await separateChunks(pin, spaceSeq, tmp, saver, materializeFor, flags, { ticker, index: i, total });
       const line = await saveSeparationTracks(pin, byTrack, { out: ctx.out, usedByDir });
-      lines.push(line);
+      notify(total > 1 ? `${line} (${i + 1}/${total})` : line); // stream each finished input, don't buffer to the end
       if (line.startsWith('Done')) ok++; else fail++;
     } catch (e) {
-      if (e?.httpStatus === 402) { // out of credits — deliver what finished + top-up/resume path, then stop
-        if (lines.length) console.log('\n' + lines.join('\n'));
+      if (e?.httpStatus === 402) { // out of credits — finished inputs already streamed above → just the top-up/resume path
         const plan = await getPlanStatus(spaceSeq);
         console.log(messages.quotaExceeded({ planTier: plan?.planTier, remainingQuota: plan?.remainingQuota, resumeHint: `node scripts/dubbing.mjs --resume "${ctx.file}"` }));
-        throw new ExitCode(1);
+        throw new ExitCode(0); // credits ran out but finished work was delivered + resume is available — a recoverable stop, not a failure (matches the dub path)
       }
       if (e?.name === 'UnsupportedMediaError') { notify(skipMsg(labelOf(pin.inp ?? pin.ref), e)); continue; }
       flags.pending = true; // errored after some chunks may have been billed → keep state so resume re-downloads them
       fail++;
-      lines.push(`Could not separate: ${labelOf(pin.inp ?? pin.ref)} — ${friendlyError(e)}`);
+      notify(`Could not separate: ${labelOf(pin.inp ?? pin.ref)} — ${friendlyError(e)}`);
     }
   }
-  console.log('\n' + lines.join('\n'));
-  if (perInput.length > 1) console.log(`\nSummary: ${ok} done · ${fail} failed`);
+  if (total > 1) console.log(`\nSummary: ${ok} done · ${fail} failed`);
   track('separation_completed', { ...await spacePlanProps(spaceSeq), input_count: perInput.length, ok_count: ok, fail_count: fail, duration_sec: totalDurationSec(perInput), is_resume: isResume });
   return flags.pending;
 }
 
 // Separate one input's chunks. A chunk with a recorded projectId is polled/re-downloaded (no re-submit); the rest are
 // (re-cut/uploaded and) submitted, checkpointing the projectId the instant it exists.
-async function separateChunks(pin, spaceSeq, tmp, saver, materializeFor, flags) {
+async function separateChunks(pin, spaceSeq, tmp, saver, materializeFor, flags, status = {}) {
   const byTrack = new Map(SEPARATION_TRACKS.map((t) => [t, []]));
+  const heartbeat = (c) => status.ticker?.tick(() =>
+    `separating — file ${(status.index ?? 0) + 1}/${status.total ?? 1}${pin.chunks.length > 1 ? `, part ${c.index + 1}/${pin.chunks.length}` : ''}`);
   const gap = (index, reason) => { for (const t of SEPARATION_TRACKS) byTrack.get(t).push({ index, status: 'HARD_FAIL', reason }); };
   for (const c of pin.chunks) {
     const prev = saver.done[`${pin.inputId}|${c.index}`];
@@ -929,7 +933,7 @@ async function separateChunks(pin, spaceSeq, tmp, saver, materializeFor, flags) 
         if (pin.chunks.length > 1) log(`part ${c.index + 1}/${pin.chunks.length}: separation submitted`);
       }
       if (prev?.status !== 'OK') { // RUN (resume) or freshly submitted → wait for completion
-        const st = await waitForProject(projectId, spaceSeq);
+        const st = await waitForProject(projectId, spaceSeq, () => heartbeat(c));
         if (st.state !== 'complete') {
           if (st.timedOut) { flags.pending = true; gap(c.index, st.message ?? 'timed out'); continue; } // may still be running (paid) → keep the RUN checkpoint so resume re-polls it
           saver.onFail(pin.inputId, c.index, st.message ?? st.failureReason ?? 'failed'); // genuine server failure → terminal
@@ -978,7 +982,8 @@ async function saveSeparationTracks(pin, byTrack, { out, usedByDir }) {
 }
 
 // Poll a project until it settles. Progress changes reset the idle window; a stuck job times out.
-async function waitForProject(projectSeq, spaceSeq) {
+// onPoll fires each poll (the [status] heartbeat) — its own failures must never break the wait.
+async function waitForProject(projectSeq, spaceSeq, onPoll) {
   let last = -1;
   let lastChange = Date.now();
   for (;;) {
@@ -988,6 +993,7 @@ async function waitForProject(projectSeq, spaceSeq) {
     const p = st?.progress ?? -1;
     if (p !== last) { last = p; lastChange = Date.now(); if (p > 0) log(`separating... ${p}%`); }
     if (Date.now() - lastChange > MAX_IDLE_MS) return { state: 'failed', timedOut: true, message: 'timed out (no progress)' };
+    try { onPoll?.(); } catch { /* heartbeat must never break the wait */ }
     await sleep(POLL_INTERVAL_MS);
   }
 }
@@ -1016,6 +1022,7 @@ async function main() {
     preloadKeyEnv(); // pre-inject the key into env before async (at a clean point) → avoid a synchronous powershell call/crash in the main process
     primeTelemetrySpace(); // env pin / previous run — parseArgs itself can emit lang_invalid
     const args = parseArgs(process.argv.slice(2));
+    if (args.host) setAgentHost(args.host); // agent self-reports its runtime (telemetry only) — set before any track()
     if (!args.help) {
       updateNotice = checkForUpdate().catch(() => null); // non-blocking; never fails the run
       primeTelemetrySpace(earlySpaceHint(args));

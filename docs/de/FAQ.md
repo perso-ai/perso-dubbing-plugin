@@ -26,7 +26,7 @@ Ja. Gib mehrere Sprachen in einem Befehl an (`--target en,ja,zh`) — die Quelle
 
 ### Wo werden meine Ergebnisse gespeichert?
 
-Standardmäßig neben dem Ausgangsvideo, oder in dem Ordner, den du mit `--out` angibst. Jeder Lauf ist außerdem ein Projekt in deinem Perso-Portal (<https://portal.perso.ai>), wo du es erneut herunterladen oder andere Formate erhalten kannst.
+Standardmäßig neben dem Ausgangsvideo, oder in dem Ordner, den du mit `--out` angibst. Jeder Lauf ist außerdem ein Projekt in deinem Perso-Portal (<https://perso.ai/en/workspace/vt>), wo du es erneut herunterladen oder andere Formate erhalten kannst.
 
 ### Was ist Lippensynchronisation?
 

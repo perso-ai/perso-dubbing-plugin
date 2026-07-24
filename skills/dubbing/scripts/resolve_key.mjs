@@ -221,11 +221,11 @@ if (isMain) {
   } else if (argv.includes('--set')) {
     setKey();
   } else {
+    // --check: a missing key is a normal pre-run state, not an error — the first dubbing/srt run
+    // registers one automatically (browser flow, --watch fallback). Exit 0 either way so agent
+    // harnesses don't surface this probe as a failure; callers branch on the printed line.
     const key = resolveKey();
-    if (!key) {
-      console.error(onboardingHelp());
-      process.exit(2);
-    }
-    console.log(`Key OK: ${maskKey(key)}`);
+    if (!key) console.log('Key not registered yet — the first run will set it up automatically (browser sign-in, nothing to paste).');
+    else console.log(`Key OK: ${maskKey(key)}`);
   }
 }
