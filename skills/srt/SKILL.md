@@ -60,12 +60,32 @@ For each `[srt-original]` line, translate the one file at `path` into **every** 
 
 **Step 2 — translate into each language in `langs`, section by section** (batch long files, but apply the tone and terms fixed in Step 1 to every batch; Step 1 is done once per file, not per language):
 
-- Translate **only the text lines**. Keep cue numbers, timestamp lines (`-->`), blank lines, and the cue count exactly as they are — never alter timestamps or merge/split cues.
+- Translate **only the text lines**. Keep cue numbers, timestamp lines (`-->`), blank lines, and the cue count exactly as they are — never alter timestamps or merge/split cues while translating (retiming is a separate later pass, Step 5).
 - **Meaning and mood come first**: prefer a natural translation that carries the Step-1 tone over a word-for-word one. Render idioms, wordplay, and humor with target-language equivalents.
-- **Stay within each cue's display time**: the subtitle must be readable while the cue is on screen (rough guide: ~15 chars/sec for Latin scripts, ~10 chars/sec for CJK). A natural translation usually fits, so **most cues need no trimming** — shorten only the ones that overflow.
+- **Layout — at most 2 text lines per cue, each line at most 42 characters for Latin scripts (20 for CJK).** A longer line gets force-wrapped by the player into 3+ on-screen lines that cover the picture. Break lines at natural phrase boundaries; if the text cannot fit, shorten it with the priority below.
+- **Stay within each cue's display time**: budget ≈ cue duration × 17 chars/sec for Latin scripts (9 for CJK); beyond ~21/sec (13 CJK) the subtitle disappears before it can be read. A natural translation usually fits, so **most cues need no trimming** — shorten only the ones that overflow.
 - **When you must shorten, keep this priority**: meaning → tone/nuance → length. Cut fillers, redundancy, and repetition first; keep core information, punchlines, and emotional wording until the last. If a pun truly can't fit, replace it with a shorter line that still lands the humor — **flattening it into a bland summary is the last resort**.
 
 **Step 3 — save**: UTF-8, in the same folder, one file per language named `{stem}_{lang}_Subtitle.srt`, where `stem` is the input's file name without its extension — take it from the `input` field of the `[srt-original]` line (e.g. `"input":"video.mp4"` + `["en","ja"]` → `video_en_Subtitle.srt` and `video_ja_Subtitle.srt`; for URL inputs use the media title or a short slug). Do NOT derive the stem from the downloaded file's name — the server builds that from the project title. Keep the original SRT file — don't delete or overwrite it.
+
+**Step 4 — verify each saved file** (offline — no key, no network, no credits):
+
+```
+node scripts/srt.mjs --check "<translated.srt>" --source "<original .srt>"
+```
+
+`[check] FAIL` lines mean the file breaks cue alignment, the 2×42 layout, or the reading-speed cap. Rewrite ONLY the listed cues (same meaning-first priority), save, and re-run until no FAIL remains. WARN lines are optional polish. Run this before Step 5 — after retiming, the cue count no longer matches the source by design.
+
+**Step 5 — readability retiming** (offline; once per delivered file, after the check passes):
+
+```
+node scripts/srt.mjs --retime "<translated.srt>"
+```
+
+It extends too-fast cues into the following silence and merges short neighbouring cues into one 2-line event (Netflix-style), rewriting the file in place — cue numbering may change; the untouched original SRT keeps the 1:1 timing map. Then:
+
+- shorten the text of any cues it still lists as too fast (genuinely fast speech), and
+- for comedy/drama content, review its `[retime] merged` lines: if a merge shows a punchline early or completes an intentionally interrupted line, restore those two cues with their original timings from the pre-merge state.
 
 Report the saved translated file paths to the user, mentioning the originals are kept alongside.
 
