@@ -18,7 +18,8 @@ import { upload, requestStt, downloadAudioScript, getStatus } from '../../dubbin
 import { probe } from '../../dubbing/lib/ffmpeg.mjs';
 import { messages } from '../../dubbing/lib/messages.mjs';
 import { checkForUpdate } from '../../dubbing/lib/update_check.mjs';
-import { track, initTelemetry, setTelemetrySpace, primeTelemetrySpace } from '../../dubbing/lib/telemetry.mjs';
+import { track, initTelemetry, setTelemetrySpace, primeTelemetrySpace, setAgentHost } from '../../dubbing/lib/telemetry.mjs';
+import { makeStatusTicker, statusIntervalMs } from '../../dubbing/lib/status.mjs';
 import { cleanupTempDirs } from '../../dubbing/lib/tmp.mjs';
 import { POLL_INTERVAL_MS, MAX_IDLE_MS } from '../../dubbing/lib/config.mjs';
 
@@ -62,7 +63,7 @@ const TRANSCRIBE = 'original';
 
 function parseArgs(argv) {
   const a = { target: 'en', inputs: [] };
-  const VALUE_FLAGS = { '--resume': 'resume', '--target': 'target', '--space': 'space', '--out': 'out', '--check': 'check', '--source': 'source', '--retime': 'retime' };
+  const VALUE_FLAGS = { '--resume': 'resume', '--target': 'target', '--space': 'space', '--out': 'out', '--check': 'check', '--source': 'source', '--retime': 'retime', '--host': 'host' };
   for (let i = 0; i < argv.length; i++) {
     const t = argv[i];
     if (t === '--help' || t === '-h') a.help = true;
@@ -140,14 +141,15 @@ function statePath({ out, inputs }) {
 
 // A state file at the target path means an earlier run for this input never finished (it is deleted on
 // success). Starting fresh would overwrite it and re-bill work the server already completed, so stop before
-// any network/billing and hand the choice to the user (exit 3 = "ask the user", like [space-select]).
+// any network/billing and hand the choice to the user (a normal "ask the user" pause, exit 0 — the
+// [resume-check] lines say what to ask; a non-zero exit would misread as a failure).
 function guardExistingState(file) {
   if (!existsSync(file)) return;
   console.log(`[resume-check] An earlier run for this input did not finish — its state file still exists: ${file}`);
   console.log('[resume-check] To finish it without paying again for the completed parts, run:');
   console.log(`[resume-check]   node scripts/srt.mjs --resume "${file}"`);
   console.log('[resume-check] To discard it and start over instead (completed parts will be billed again), delete that state file and re-run this command.');
-  throw new ExitCode(3);
+  throw new ExitCode(0);
 }
 
 // Manifest v2 kind 'stt': one STT project per input (all target languages share it) + per-input
@@ -219,7 +221,8 @@ async function ensureMedia(pin, spaceSeq, saver, { forceReupload = false } = {})
 }
 
 // Poll a project until it settles. Progress changes reset the idle window; a stuck job times out.
-async function waitForProject(projectSeq, spaceSeq) {
+// onPoll fires each poll (the [status] heartbeat) — its own failures must never break the wait.
+async function waitForProject(projectSeq, spaceSeq, onPoll) {
   let last = -1;
   let lastChange = Date.now();
   for (;;) {
@@ -229,6 +232,7 @@ async function waitForProject(projectSeq, spaceSeq) {
     const p = st?.progress ?? -1;
     if (p !== last) { last = p; lastChange = Date.now(); if (p > 0) log(`transcribing... ${p}%`); }
     if (Date.now() - lastChange > MAX_IDLE_MS) return { state: 'failed', timedOut: true, message: 'timed out (no progress)' };
+    try { onPoll?.(); } catch { /* heartbeat must never break the wait */ }
     await sleep(POLL_INTERVAL_MS);
   }
 }
@@ -247,8 +251,9 @@ function overLimitMsg(e) {
 
 // One [srt-original] line per finished input — the agent translates the file at `path` into every
 // language in `langs` (null on a --transcribe-only run: deliver the file as-is).
-function emitMapping(inp, langs, savedPath) {
-  console.log('[srt-original] ' + JSON.stringify({ input: labelOf(inp), langs, path: resolve(savedPath) }));
+function emitMapping(inp, langs, savedPath, seq) {
+  // `seq` is the STT projectSeq → the agent can build a project link on demand: …/vt/stt/<seq> (see SKILL.md).
+  console.log('[srt-original] ' + JSON.stringify({ input: labelOf(inp), langs, path: resolve(savedPath), ...(seq != null ? { seq } : {}) }));
 }
 
 // Per input: submit ONE STT project (checkpointed) → wait → download the original SRT → report. All
@@ -259,9 +264,12 @@ async function sttProcess(perInput, ctx, saver, isResume) {
   const transcribeOnly = targets.length === 1 && targets[0] === TRANSCRIBE;
   const langs = transcribeOnly ? null : targets; // translation list carried on every mapping line
   const usedByDir = new Map();
-  const lines = [];
   let ok = 0, fail = 0, noVoice = 0; // per input (one STT project each)
   const flags = { pending: false };
+  const total = perInput.length;
+  const allDur = perInput.map((p) => p.durationSec).filter((d) => d != null);
+  const ticker = makeStatusTicker(statusIntervalMs(allDur.length ? allDur.reduce((a, b) => a + b, 0) : null));
+  const streamDone = (msg) => notify(total > 1 ? `${msg} (${ok + fail + 1}/${total})` : msg); // stream each input as it settles — don't buffer to the end
   // Completed-funnel event — also fired on a quota stop (partial counts), like dubbing_completed.
   const trackCompleted = async () => {
     const knownDur = perInput.map((p) => p.durationSec).filter((d) => d != null);
@@ -281,10 +289,10 @@ async function sttProcess(perInput, ctx, saver, isResume) {
     const name = labelOf(pin.inp ?? pin.ref);
     try {
       const prev = saver.done[pin.inputId];
-      if (prev?.status === 'HARD_FAIL') { fail++; lines.push(`Could not extract: ${name} — ${prev.reason ?? 'failed'}`); continue; }
+      if (prev?.status === 'HARD_FAIL') { streamDone(`Could not extract: ${name} — ${prev.reason ?? 'failed'}`); fail++; continue; }
       if (prev?.status === 'OK' && prev.savedPath && existsSync(prev.savedPath)) {
-        emitMapping(pin.inp ?? pin.ref, langs, prev.savedPath); // re-print so the agent gets the full mapping on resume
-        ok++; lines.push(`Done (subtitle): ${name} → ${basename(prev.savedPath)}`);
+        emitMapping(pin.inp ?? pin.ref, langs, prev.savedPath, prev.projectId); // re-print so the agent gets the full mapping on resume
+        streamDone(`Subtitle ready: ${name} → ${basename(prev.savedPath)}`); ok++;
         continue;
       }
       let projectId = prev?.projectId ?? null;
@@ -302,27 +310,25 @@ async function sttProcess(perInput, ctx, saver, isResume) {
         saver.onSubmit(pin.inputId, projectId); // checkpoint the billed unit before any wait
         log(`${name}: subtitle project submitted`);
       }
-      const st = await waitForProject(projectId, spaceSeq);
+      const st = await waitForProject(projectId, spaceSeq, () => ticker.tick(() => `subtitles ${ok + fail}/${total}`));
       if (st.state !== 'complete') {
-        if (st.timedOut) { flags.pending = true; fail++; lines.push(`Could not extract: ${name} — ${st.message}`); continue; } // may still be running (paid) → keep the RUN checkpoint so resume re-polls it
+        if (st.timedOut) { flags.pending = true; streamDone(`Could not extract: ${name} — ${st.message}`); fail++; continue; } // may still be running (paid) → keep the RUN checkpoint so resume re-polls it
         if (st.noVoice) noVoice++;
         const reason = st.noVoice ? 'no voice detected in the source' : (st.message ?? st.failureReason ?? 'failed');
         saver.onFail(pin.inputId, reason); // genuine server failure → terminal (no automatic retry)
-        fail++; lines.push(`Could not extract: ${name} — ${reason}`);
+        streamDone(`Could not extract: ${name} — ${reason}`); fail++;
         continue;
       }
       const dir = out ?? inputSaveDir(pin.inp?.localPath ? pin.inp : pin.ref);
       mkdirSync(dir, { recursive: true });
       const saved = await downloadAudioScript(projectId, spaceSeq, (serverName) => join(dir, reserve(dir, serverName, usedByDir)));
       saver.onComplete(pin.inputId, projectId, saved.path);
-      emitMapping(pin.inp ?? pin.ref, langs, saved.path);
-      ok++;
-      lines.push(`Done (subtitle): ${name} → ${basename(saved.path)}`);
+      emitMapping(pin.inp ?? pin.ref, langs, saved.path, projectId);
+      streamDone(`Subtitle ready: ${name} → ${basename(saved.path)}`); ok++;
     } catch (e) {
-      if (e?.httpStatus === 402) { // out of credits — deliver what finished + top-up/resume path, then stop
+      if (e?.httpStatus === 402) { // out of credits — finished inputs already streamed above → just the top-up/resume path
         ctx.stopReason = 'quota'; // recorded in the state file → resume telemetry reports why
         saver.writeNow();
-        if (lines.length) console.log('\n' + lines.join('\n'));
         const plan = await getPlanStatus(spaceSeq);
         const settled = Object.values(saver.done).filter((d) => d.status === 'OK' || d.status === 'HARD_FAIL').length;
         track('quota_exceeded', { ...await spacePlanProps(spaceSeq), remaining_inputs: Math.max(0, perInput.length - settled) });
@@ -332,7 +338,7 @@ async function sttProcess(perInput, ctx, saver, isResume) {
           resumeHint: `node scripts/srt.mjs --resume "${ctx.file}"`,
           billingScript: '../dubbing/scripts/billing.mjs',
         }));
-        throw new ExitCode(1);
+        throw new ExitCode(0); // credits ran out but finished work was delivered + resume is available — a recoverable stop, not a failure (matches dubbing)
       }
       if (e?.name === 'UnsupportedMediaError') { notify(skipMsg(name, e)); continue; }
       if (isOverLimit(e)) {
@@ -348,16 +354,13 @@ async function sttProcess(perInput, ctx, saver, isResume) {
           limit_min: Number(e.data?.maxLengthMs) > 0 ? Math.round(Number(e.data.maxLengthMs) / 60000) : null,
           duration_sec: durSec,
         });
-        const msg = `Could not extract: ${name} — ${overLimitMsg(e)}`;
-        notify(msg); fail++; lines.push(msg);
+        streamDone(`Could not extract: ${name} — ${overLimitMsg(e)}`); fail++;
         continue;
       }
       flags.pending = true; // errored after some languages may have been billed → keep state so resume finishes them
-      fail++;
-      lines.push(`Could not extract: ${name} — ${friendlyError(e)}`);
+      streamDone(`Could not extract: ${name} — ${friendlyError(e)}`); fail++;
     }
   }
-  console.log('\n' + lines.join('\n'));
   if (perInput.length > 1) console.log(`\nSummary: ${ok} done · ${fail} failed`);
   if (ok) {
     console.log(transcribeOnly
@@ -593,6 +596,7 @@ async function main() {
     primeTelemetrySpace(); // env pin / previous run — parseArgs itself can throw before any event
     const args = parseArgs(process.argv.slice(2));
     const offline = !!(args.check || args.retime); // local QA — no update check, no telemetry, no key gate
+    if (args.host) setAgentHost(args.host); // agent self-reports its runtime (telemetry only) — set before any track()
     if (!args.help && !offline) {
       updateNotice = checkForUpdate().catch(() => null); // non-blocking; never fails the run
       primeTelemetrySpace(earlySpaceHint(args));

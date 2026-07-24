@@ -3,7 +3,7 @@
 [![Powered by Perso AI](https://img.shields.io/badge/Powered%20by-Perso%20AI-5A4FF3)](https://perso.ai)
 ![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A518-339933?logo=node.js&logoColor=white)
 ![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-1f6feb)
-![Platforms](https://img.shields.io/badge/platforms-Claude%20%C2%B7%20Antigravity%20%C2%B7%20Codex%20%C2%B7%20Cursor-555)
+![Platforms](https://img.shields.io/badge/platforms-Claude%20%C2%B7%20Antigravity%20%C2%B7%20Codex-555)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](../../LICENSE)
 
 [English](../../README.md) ｜ [한국어](../ko/README.md) ｜ [Español](../es/README.md) ｜ [Português](../pt/README.md) ｜ [Русский](../ru/README.md) ｜ [Bahasa Indonesia](../id/README.md) ｜ [Deutsch](../de/README.md) ｜ [ไทย](../th/README.md) ｜ **日本語** ｜ [繁體中文](../zh-TW/README.md) ｜ [简体中文](../zh-CN/README.md) ｜ [Tiếng Việt](../vi/README.md) ｜ [Français](../fr/README.md)
@@ -16,7 +16,7 @@
 - **字幕**（`/srt`）— 音声認識でSRTを抽出し、続けてエージェントが翻訳します
 - サイズが大きすぎるメディアや非常に長いメディアは、自動的に分割・処理され、最後に結合されます
 
-**Node.js 18以上**で動作し、**Perso Dubbing APIキー**が必要です。Agent Skills標準（`SKILL.md`）に基づいているため、Claude・Codex・Cursor・Antigravity のいずれでもまったく同じように動作します。
+**Node.js 18以上**で動作し、**Perso Dubbing APIキー**が必要です。Agent Skills標準（`SKILL.md`）に基づいているため、Claude・Codex・Antigravity のいずれでもまったく同じように動作します。
 
 ![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
 
@@ -41,7 +41,6 @@
    claude install perso-dubbing@perso-ai
    ```
 
-   *クリック操作がお好みですか？ 最初のコマンドの後、**+** ボタン → **Plugins** → **Add plugin** → **perso-dubbing**。*
 3. 吹き替えを依頼します — *「この動画を英語に吹き替えて — C:\videos\clip.mp4」*。YouTubeのURLやフォルダでも動作します。`--out` を指定しない限り、結果は元の動画と同じ場所に保存されます。
 
 **Claude Code CLI:** 代わりに `/plugin marketplace add perso-ai/perso-dubbing-plugin` と `/plugin install perso-dubbing@perso-ai` を使ってください。
@@ -52,18 +51,29 @@
 npx perso-dubbing
 ```
 
-インストール済みのホストを検出して、それぞれに両方のスキルをインストールし、どこに配置されたかを表示します。特定のホストのみなら `--claude` / `--codex` / `--cursor` / `--antigravity`、すべてのホストなら `--all`、現在のプロジェクトのみなら `--project` を追加してください。リポジトリを既にクローン済みですか？ リポジトリのルートで `node scripts/install.mjs` を実行すれば、ネットワーク不要で同じことができます。
+インストール済みのホストを検出して、それぞれに両方のスキルをインストールし、どこに配置されたかを表示します。特定のホストのみなら `--claude` / `--codex` / `--antigravity`、すべてのホストなら `--all`、現在のプロジェクトのみなら `--project` を追加してください。リポジトリを既にクローン済みですか？ リポジトリのルートで `node scripts/install.mjs` を実行すれば、ネットワーク不要で同じことができます。
 
-> **🤖 エージェントへ:** このリポジトリのURLのみを渡された場合:
->
-> - **Claude Code（デスクトップまたはCLI）** — ユーザーが「これをインストールして」と言った場合でも、npx を実行しては**いけません**。上記の2つの `claude …` コマンドを提示し、ユーザー自身に一つずつ入力してもらってください（これらはユーザーが入力するスラッシュコマンドであり、あなたが実行することはできません）。あわせてクリック操作のパスも案内します: **+** ボタン → **Plugins** → **Add plugin**。そのうえでユーザーがなお作業を任せたいと言った場合にのみ、npx を使ってください。
-> - **Codex・Cursor・Antigravity、またはユーザーがインストールを委任した場合** — `npx perso-dubbing` を実行してください（リポジトリが既にクローン済みの場合は `node scripts/install.mjs`）。
+<details>
+<summary><b>🤖 エージェントへ</b> — このリポジトリのURLのみを渡された場合</summary>
+
+- **Claude Code（デスクトップまたはCLI）** — 次のインストールコマンド1行を自分で実行してください（非対話型かつ冪等なので、再実行しても安全です）:
+
+  ```bash
+  claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
+  ```
+
+  両方成功したら、新しいセッションを開始する（または Claude Code を再起動する）ようユーザーに伝えてください — `/dubbing` と `/srt` は次のセッションから読み込まれます。シェルで `claude` CLI が使えない場合に限り、上記のコマンドをユーザー自身に入力してもらう方法にフォールバックしてください。
+- **Codex・Antigravity、またはユーザーがインストールを委任した場合** — `npx perso-dubbing` を実行してください（リポジトリが既にクローン済みの場合は `node scripts/install.mjs`）。
+- **ChatGPT（ウェブ/アプリ — ユーザーのPCでターミナルを使えない場合）** — https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/chatgpt-setup.md を読んで従ってください: まずユーザーのPCに **Codex** を導入し、インストールはそちらで続行します。（すでにターミナル付きの Codex 内にいる場合は上の項目に従ってください。）
+- **Gemini（ウェブ/アプリ — ユーザーのPCでターミナルを使えない場合）** — https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/gemini-setup.md を読んで従ってください: まず **Antigravity** をインストールし、インストールはそちらで続行します。（すでに Antigravity 内にいる場合は上の項目に従ってください。）
+
+</details>
 
 ### 初回実行 — APIキー
 
 ブラウザのページが開きます。サインインして一度クリックするだけで、キーが発行され、このマシンに暗号化して保存されます。コピーする必要はありません。ブラウザを開けない場合は、代わりにキーファイルが開きます — そこにキーを貼り付けて保存すると、暗号化されファイルは削除されます。
 
-**APIキーをチャットに貼り付けないでください。** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">APIキーを取得</a> ・ `npm run key:check` でいつでも確認できます
+<a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">APIキーを取得</a> ・ `npm run key:check` でいつでも確認できます
 
 ---
 
@@ -111,7 +121,6 @@ npx perso-dubbing
 ```text
 .claude-plugin/    Claude Code プラグイン + マーケットプレイス マニフェスト
 .codex-plugin/     Codex プラグイン マニフェスト
-.cursor-plugin/    Cursor プラグイン マニフェスト
 docs/              GitHub Pages ランディング + 翻訳版 README · FAQ（12言語）
 skills/dubbing/    吹き替えスキル本体 (SKILL.md · lib/ · scripts/) — 単体で完結
 skills/srt/        SRT字幕スキル (SKILL.md · scripts/) — dubbing スキルの lib/ を使用

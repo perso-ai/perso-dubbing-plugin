@@ -3,7 +3,7 @@
 [![Powered by Perso AI](https://img.shields.io/badge/Powered%20by-Perso%20AI-5A4FF3)](https://perso.ai)
 ![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A518-339933?logo=node.js&logoColor=white)
 ![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-1f6feb)
-![Platforms](https://img.shields.io/badge/platforms-Claude%20%C2%B7%20Antigravity%20%C2%B7%20Codex%20%C2%B7%20Cursor-555)
+![Platforms](https://img.shields.io/badge/platforms-Claude%20%C2%B7%20Antigravity%20%C2%B7%20Codex-555)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](../../LICENSE)
 
 [English](../../README.md) ｜ [한국어](../ko/README.md) ｜ [Español](../es/README.md) ｜ [Português](../pt/README.md) ｜ [Русский](../ru/README.md) ｜ [Bahasa Indonesia](../id/README.md) ｜ [Deutsch](../de/README.md) ｜ [ไทย](../th/README.md) ｜ [日本語](../ja/README.md) ｜ [繁體中文](../zh-TW/README.md) ｜ **简体中文** ｜ [Tiếng Việt](../vi/README.md) ｜ [Français](../fr/README.md)
@@ -16,7 +16,7 @@
 - **字幕**（`/srt`）——通过语音转文字提取 SRT，再由你的智能体进行翻译
 - 体积过大或时长过长的媒体会被自动拆分、处理并重新合并
 
-运行环境为 **Node.js 18+**，并需要一个 **Perso Dubbing API 密钥**。它基于 Agent Skills 标准（`SKILL.md`）构建，因此在 Claude、Codex、Cursor 和 Antigravity 上的行为完全一致。
+运行环境为 **Node.js 18+**，并需要一个 **Perso Dubbing API 密钥**。它基于 Agent Skills 标准（`SKILL.md`）构建，因此在 Claude、Codex 和 Antigravity 上的行为完全一致。
 
 ![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
 
@@ -41,7 +41,6 @@
    claude install perso-dubbing@perso-ai
    ```
 
-   *更喜欢点击操作？在执行第一条命令后：**+** 按钮 → **Plugins** → **Add plugin** → **perso-dubbing**。*
 3. 发起配音请求——*“把这个视频配音成英语——C:\videos\clip.mp4”*。YouTube 链接或整个文件夹同样适用。除非指定了 `--out`，否则结果会保存在源视频旁边。
 
 **Claude Code CLI：**请改用 `/plugin marketplace add perso-ai/perso-dubbing-plugin` 和 `/plugin install perso-dubbing@perso-ai`。
@@ -52,18 +51,29 @@
 npx perso-dubbing
 ```
 
-它会检测你已安装的宿主环境，把两个技能都安装进去，并打印各自的安装位置。使用 `--claude` / `--codex` / `--cursor` / `--antigravity` 可只安装到某一个宿主，`--all` 安装到全部宿主，`--project` 则仅限当前项目。已经克隆了本仓库？在仓库根目录运行 `node scripts/install.mjs` 可实现同样的效果，且无需联网。
+它会检测你已安装的宿主环境，把两个技能都安装进去，并打印各自的安装位置。使用 `--claude` / `--codex` / `--antigravity` 可只安装到某一个宿主，`--all` 安装到全部宿主，`--project` 则仅限当前项目。已经克隆了本仓库？在仓库根目录运行 `node scripts/install.mjs` 可实现同样的效果，且无需联网。
 
-> **🤖 致智能体：**如果你只拿到了本仓库的 URL：
->
-> - **Claude Code（桌面应用或 CLI）**——即使用户说了“安装这个”，也**不要**运行 npx。请向他们展示上面那两条 `claude …` 命令，并请他们自行逐条输入（这些是需要用户自己输入的斜杠命令，你无法代为执行），同时告知点击路径：**+** 按钮 → **Plugins** → **Add plugin**。只有当他们之后仍希望你代为处理时，才使用 npx。
-> - **Codex · Cursor · Antigravity，或用户已将安装工作交给你处理**——运行 `npx perso-dubbing`（如果仓库已克隆到本地，则运行 `node scripts/install.mjs`）。
+<details>
+<summary><b>🤖 致智能体</b> — 如果你只拿到了本仓库的 URL</summary>
+
+- **Claude Code（桌面应用或 CLI）**——请自行运行以下一行安装命令（非交互且幂等，重复运行也安全）：
+
+  ```bash
+  claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
+  ```
+
+  两条命令都成功后，请告知用户开始新会话（或重启 Claude Code）——`/dubbing` 和 `/srt` 将从下一个会话开始加载。只有当你的 shell 中无法使用 `claude` CLI 时，才回退为向用户展示上面的命令、由其自行输入。
+- **Codex · Antigravity，或用户已将安装工作交给你处理**——运行 `npx perso-dubbing`（如果仓库已克隆到本地，则运行 `node scripts/install.mjs`）。
+- **ChatGPT（网页/应用 — 无法在用户电脑上使用终端）**——阅读 https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/chatgpt-setup.md 并照做：先让用户电脑装上 **Codex**，安装将在那里继续。（已经在带终端的 Codex 里？请按上面那条执行。）
+- **Gemini（网页/应用 — 无法在用户电脑上使用终端）**——阅读 https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/gemini-setup.md 并照做：先安装 **Antigravity**，安装将在那里继续。（已经在 Antigravity 里？请按上面那条执行。）
+
+</details>
 
 ### 首次运行 —— 你的 API 密钥
 
 浏览器会打开一个页面：登录并点击一次，你的密钥便会签发并加密保存在本机。无需复制任何内容。如果无法打开浏览器，则会改为打开一个密钥文件——将密钥粘贴进去并保存，该文件会被加密并随后删除。
 
-**切勿将 API 密钥粘贴到聊天窗口中。** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">获取 API 密钥</a> · 随时可用 `npm run key:check` 进行验证
+<a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">获取 API 密钥</a> · 随时可用 `npm run key:check` 进行验证
 
 ---
 
@@ -111,7 +121,6 @@ npx perso-dubbing
 ```text
 .claude-plugin/    Claude Code 插件 + 市场清单
 .codex-plugin/     Codex 插件清单
-.cursor-plugin/    Cursor 插件清单
 docs/              GitHub Pages 落地页 + 翻译版 README · FAQ（12 种语言）
 skills/dubbing/    配音技能本体（SKILL.md · lib/ · scripts/）——自成一体
 skills/srt/        SRT 字幕技能（SKILL.md · scripts/）——使用 dubbing 技能的 lib/

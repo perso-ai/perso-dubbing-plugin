@@ -26,7 +26,7 @@ Có. Đưa nhiều ngôn ngữ vào cùng một lệnh (`--target en,ja,zh`) —
 
 ### Kết quả của tôi được lưu ở đâu?
 
-Mặc định là cạnh video gốc, hoặc trong thư mục bạn chỉ định bằng `--out`. Mỗi lần chạy cũng tạo ra một dự án trong Perso portal của bạn (<https://portal.perso.ai>), nơi bạn có thể tải lại hoặc lấy các định dạng khác.
+Mặc định là cạnh video gốc, hoặc trong thư mục bạn chỉ định bằng `--out`. Mỗi lần chạy cũng tạo ra một dự án trong Perso portal của bạn (<https://perso.ai/en/workspace/vt>), nơi bạn có thể tải lại hoặc lấy các định dạng khác.
 
 ### Lip-sync là gì?
 

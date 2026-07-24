@@ -7,7 +7,7 @@ import { randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { CRED_DIR, API_BASE } from './config.mjs';
-import { CLIENT_VERSION, CLIENT_HOST } from './client_info.mjs';
+import { CLIENT_VERSION, CLIENT_HOST, AGENT_HOST, AGENT_HOST_SOURCE } from './client_info.mjs';
 
 // Write-only ingestion (project API) key. Public by design — it can only SEND events, never read
 // data; exposure in the repo allows spoofing at worst, not data access. Override via env for testing.
@@ -48,6 +48,16 @@ function loadInstallId() {
 let cached = null;
 const installId = () => (cached ??= loadInstallId());
 
+// Which agent runs this — env/path detection by default (client_info), overridable by a worker's
+// `--host` self-report. `agent_host_source` ('env'|'path'|'self'|'none') is sent so analysis can
+// weight self-reported values (a model may not know its own harness) against detected ones.
+let _agentHost = AGENT_HOST;
+let _agentHostSource = AGENT_HOST_SOURCE;
+export function setAgentHost(host) {
+  const v = String(host ?? '').trim().toLowerCase();
+  if (v) { _agentHost = v; _agentHostSource = 'self'; }
+}
+
 const SPACE_FILE = join(CRED_DIR, 'last-space');
 const validSeq = (v) => { const n = Number(v); return Number.isInteger(n) && n > 0 ? n : null; };
 
@@ -86,7 +96,7 @@ export function primeTelemetrySpace(hint) {
 export async function track(eventType, props = {}) {
   if (process.env.PERSO_NO_TELEMETRY || !API_KEY) return;
   try {
-    const event_properties = { env: API_ENV, ...(NODE_MAJOR ? { node_major: NODE_MAJOR } : {}) };
+    const event_properties = { env: API_ENV, agent_host: _agentHost, agent_host_source: _agentHostSource, ...(NODE_MAJOR ? { node_major: NODE_MAJOR } : {}) };
     if (_spaceSeq != null) {
       event_properties.space_seq = _spaceSeq;
       if (_spaceSource === 'cache') event_properties.space_seq_guess = true;
@@ -103,6 +113,10 @@ export async function track(eventType, props = {}) {
         platform: CLIENT_HOST, // 'agents' — one unified channel
         os_name: process.platform, // win32 | darwin | linux
         event_properties,
+        // Also a user property: enables per-agent user cohorts/MAU. One install can run under several
+        // agents (npx installs to every detected host; install-id is machine-wide), so this reflects
+        // the most recently used agent — per-event attribution stays in event_properties.agent_host.
+        user_properties: { agent_host: _agentHost },
       }],
     });
     const debug = (msg) => { if (process.env.PERSO_TELEMETRY_DEBUG) console.error(`[telemetry] ${eventType} → ${msg}`); };

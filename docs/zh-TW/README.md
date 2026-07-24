@@ -3,7 +3,7 @@
 [![Powered by Perso AI](https://img.shields.io/badge/Powered%20by-Perso%20AI-5A4FF3)](https://perso.ai)
 ![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A518-339933?logo=node.js&logoColor=white)
 ![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-1f6feb)
-![Platforms](https://img.shields.io/badge/platforms-Claude%20%C2%B7%20Antigravity%20%C2%B7%20Codex%20%C2%B7%20Cursor-555)
+![Platforms](https://img.shields.io/badge/platforms-Claude%20%C2%B7%20Antigravity%20%C2%B7%20Codex-555)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](../../LICENSE)
 
 [English](../../README.md) ｜ [한국어](../ko/README.md) ｜ [Español](../es/README.md) ｜ [Português](../pt/README.md) ｜ [Русский](../ru/README.md) ｜ [Bahasa Indonesia](../id/README.md) ｜ [Deutsch](../de/README.md) ｜ [ไทย](../th/README.md) ｜ [日本語](../ja/README.md) ｜ **繁體中文** ｜ [简体中文](../zh-CN/README.md) ｜ [Tiếng Việt](../vi/README.md) ｜ [Français](../fr/README.md)
@@ -16,7 +16,7 @@
 - **字幕**（`/srt`）——透過語音轉文字擷取 SRT，再由你的代理程式進行翻譯
 - 過大或過長的媒體會自動分割、處理後再合併回來
 
-需要 **Node.js 18+** 以及一組 **Perso Dubbing API 金鑰**。基於 Agent Skills 標準（`SKILL.md`）打造，因此在 Claude、Codex、Cursor 與 Antigravity 上的行為完全一致。
+需要 **Node.js 18+** 以及一組 **Perso Dubbing API 金鑰**。基於 Agent Skills 標準（`SKILL.md`）打造，因此在 Claude、Codex 與 Antigravity 上的行為完全一致。
 
 ![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
 
@@ -41,7 +41,6 @@
    claude install perso-dubbing@perso-ai
    ```
 
-   *偏好點選操作？輸入第一個指令後：**+** 按鈕 → **Plugins** → **Add plugin** → **perso-dubbing**。*
 3. 提出配音需求——「把這個影片配音成英文——C:\videos\clip.mp4」。YouTube 網址或整個資料夾也可以。除非指定 `--out`，否則結果會儲存在原始影片旁邊。
 
 **Claude Code CLI：**請改用 `/plugin marketplace add perso-ai/perso-dubbing-plugin` 與 `/plugin install perso-dubbing@perso-ai`。
@@ -52,18 +51,29 @@
 npx perso-dubbing
 ```
 
-它會偵測你已安裝哪些宿主環境，並將兩個技能安裝到每一個環境中，同時印出各自的安裝位置。加上 `--claude` / `--codex` / `--cursor` / `--antigravity` 可只安裝單一宿主環境，`--all` 為全部安裝，`--project` 則僅限目前專案。已經複製好儲存庫了嗎？在儲存庫根目錄執行 `node scripts/install.mjs` 也能達到相同效果，且不需要網路連線。
+它會偵測你已安裝哪些宿主環境，並將兩個技能安裝到每一個環境中，同時印出各自的安裝位置。加上 `--claude` / `--codex` / `--antigravity` 可只安裝單一宿主環境，`--all` 為全部安裝，`--project` 則僅限目前專案。已經複製好儲存庫了嗎？在儲存庫根目錄執行 `node scripts/install.mjs` 也能達到相同效果，且不需要網路連線。
 
-> **🤖 給代理程式的提示：**若你只拿到本儲存庫的網址：
->
-> - **Claude Code（桌面應用程式或 CLI）**——即使使用者說「安裝這個」，也**不要**執行 npx。請將上方兩個 `claude …` 指令展示給使用者，並請他們自行逐一輸入（這些是使用者需親自輸入的斜線指令，你無法代為執行），同時附上點選路徑：**+** 按鈕 → **Plugins** → **Add plugin**。只有在他們看過說明後仍希望由你代為處理時，才使用 npx。
-> - **Codex · Cursor · Antigravity，或使用者已將安裝工作委託給你**——執行 `npx perso-dubbing`（若儲存庫已複製到本機，則執行 `node scripts/install.mjs`）。
+<details>
+<summary><b>🤖 給代理程式的提示</b> — 若你只拿到本儲存庫的網址</summary>
+
+- **Claude Code（桌面應用程式或 CLI）**——請自行執行以下一行安裝指令（非互動且冪等，重複執行也安全）：
+
+  ```bash
+  claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
+  ```
+
+  兩者都成功後，請告知使用者開始新的工作階段（或重新啟動 Claude Code）——`/dubbing` 與 `/srt` 會從下一個工作階段開始載入。只有在你的 shell 無法使用 `claude` CLI 時，才改為向使用者展示上方指令、由其自行輸入。
+- **Codex · Antigravity，或使用者已將安裝工作委託給你**——執行 `npx perso-dubbing`（若儲存庫已複製到本機，則執行 `node scripts/install.mjs`）。
+- **ChatGPT（網頁/應用程式 — 無法在使用者電腦使用終端機）**——閱讀 https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/chatgpt-setup.md 並照做：先在使用者電腦安裝 **Codex**，安裝將在那裡繼續。（已在有終端機的 Codex 中？請改用上方項目。）
+- **Gemini（網頁/應用程式 — 無法在使用者電腦使用終端機）**——閱讀 https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/gemini-setup.md 並照做：先安裝 **Antigravity**，安裝將在那裡繼續。（已在 Antigravity 中？請改用上方項目。）
+
+</details>
 
 ### 首次執行——你的 API 金鑰
 
 瀏覽器頁面會自動開啟：登入後點擊一次，金鑰就會核發並加密儲存在這台電腦上，不需要複製貼上。若無法開啟瀏覽器，則會改為開啟金鑰檔案——請將金鑰貼入並儲存，該檔案會被加密並隨即刪除。
 
-**絕對不要將 API 金鑰貼到聊天視窗中。** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">取得 API 金鑰</a> · 隨時可用 `npm run key:check` 確認
+<a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">取得 API 金鑰</a> · 隨時可用 `npm run key:check` 確認
 
 ---
 
@@ -111,7 +121,6 @@ npx perso-dubbing
 ```text
 .claude-plugin/    Claude Code 外掛程式 + 市集資訊清單
 .codex-plugin/     Codex 外掛程式資訊清單
-.cursor-plugin/    Cursor 外掛程式資訊清單
 docs/              GitHub Pages 導覽頁 + 翻譯版 README · FAQ（12 種語言）
 skills/dubbing/    配音技能本體（SKILL.md · lib/ · scripts/）——自成一體
 skills/srt/        SRT 字幕技能（SKILL.md · scripts/）——使用 dubbing 技能的 lib/

@@ -3,7 +3,7 @@
 [![Powered by Perso AI](https://img.shields.io/badge/Powered%20by-Perso%20AI-5A4FF3)](https://perso.ai)
 ![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A518-339933?logo=node.js&logoColor=white)
 ![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-1f6feb)
-![Platforms](https://img.shields.io/badge/platforms-Claude%20%C2%B7%20Antigravity%20%C2%B7%20Codex%20%C2%B7%20Cursor-555)
+![Platforms](https://img.shields.io/badge/platforms-Claude%20%C2%B7%20Antigravity%20%C2%B7%20Codex-555)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](../../LICENSE)
 
 [English](../../README.md) ｜ [한국어](../ko/README.md) ｜ **Español** ｜ [Português](../pt/README.md) ｜ [Русский](../ru/README.md) ｜ [Bahasa Indonesia](../id/README.md) ｜ [Deutsch](../de/README.md) ｜ [ไทย](../th/README.md) ｜ [日本語](../ja/README.md) ｜ [繁體中文](../zh-TW/README.md) ｜ [简体中文](../zh-CN/README.md) ｜ [Tiếng Việt](../vi/README.md) ｜ [Français](../fr/README.md)
@@ -16,7 +16,7 @@ Una skill para agentes de programación que lleva el doblaje con IA de [Perso Du
 - **Subtítulos** (`/srt`) — extrae un SRT mediante reconocimiento de voz y luego tu agente lo traduce
 - El contenido demasiado grande o muy largo se divide, se procesa y se vuelve a unir automáticamente
 
-Se ejecuta con **Node.js 18+** y necesita una **clave de API de Perso Dubbing**. Está construida sobre el estándar Agent Skills (`SKILL.md`), así que se comporta igual en Claude, Codex, Cursor y Antigravity.
+Se ejecuta con **Node.js 18+** y necesita una **clave de API de Perso Dubbing**. Está construida sobre el estándar Agent Skills (`SKILL.md`), así que se comporta igual en Claude, Codex y Antigravity.
 
 ![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
 
@@ -41,7 +41,6 @@ En la <a href="https://claude.ai/download" target="_blank" rel="noopener norefer
    claude install perso-dubbing@perso-ai
    ```
 
-   *¿Prefieres hacer clic? Tras el primer comando: botón **+** → **Plugins** → **Add plugin** → **perso-dubbing**.*
 3. Pide un doblaje — *«Dobla este vídeo al inglés — C:\videos\clip.mp4»*. También funciona una URL de YouTube o una carpeta. Los resultados se guardan junto al vídeo de origen salvo que uses `--out`.
 
 **CLI de Claude Code:** usa en su lugar `/plugin marketplace add perso-ai/perso-dubbing-plugin` y `/plugin install perso-dubbing@perso-ai`.
@@ -52,18 +51,29 @@ En la <a href="https://claude.ai/download" target="_blank" rel="noopener norefer
 npx perso-dubbing
 ```
 
-Detecta qué hosts tienes e instala ambas skills en cada uno, indicando dónde ha quedado cada una. Añade `--claude` / `--codex` / `--cursor` / `--antigravity` para un solo host, `--all` para todos, o `--project` solo para el proyecto actual. ¿Ya tienes el repositorio clonado? `node scripts/install.mjs` desde la raíz del repositorio hace lo mismo, sin conexión.
+Detecta qué hosts tienes e instala ambas skills en cada uno, indicando dónde ha quedado cada una. Añade `--claude` / `--codex` / `--antigravity` para un solo host, `--all` para todos, o `--project` solo para el proyecto actual. ¿Ya tienes el repositorio clonado? `node scripts/install.mjs` desde la raíz del repositorio hace lo mismo, sin conexión.
 
-> **🤖 Para el agente:** si solo te han dado la URL de este repositorio:
->
-> - **Claude Code (app de escritorio o CLI):** **no** ejecutes npx, aunque el usuario diga «instala esto». Muéstrale los dos comandos `claude …` de arriba y pídele que los escriba él mismo (son comandos de barra que escribe el usuario y que tú no puedes ejecutar), además de la ruta con clics: botón **+** → **Plugins** → **Add plugin**. Recurre a npx solo si, después de verlo, aún quiere que te encargues tú.
-> - **Codex · Cursor · Antigravity, o el usuario te delegó la instalación:** ejecuta `npx perso-dubbing` (o `node scripts/install.mjs` si el repositorio ya está clonado).
+<details>
+<summary><b>🤖 Para el agente</b> — si solo te han dado la URL de este repositorio</summary>
+
+- **Claude Code (app de escritorio o CLI):** ejecuta tú mismo este comando de instalación de una línea (no interactivo e idempotente, seguro de repetir):
+
+  ```bash
+  claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
+  ```
+
+  Cuando ambos terminen con éxito, dile al usuario que inicie una nueva sesión (o reinicie Claude Code): `/dubbing` y `/srt` se cargan a partir de la siguiente sesión. Solo si la CLI `claude` no está disponible en tu shell, recurre a mostrarle el comando de arriba para que lo escriba él mismo.
+- **Codex · Antigravity, o el usuario te delegó la instalación:** ejecuta `npx perso-dubbing` (o `node scripts/install.mjs` si el repositorio ya está clonado).
+- **ChatGPT (web/app — sin terminal en el equipo del usuario):** lee https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/chatgpt-setup.md y síguelo: primero pon **Codex** en marcha en el equipo del usuario — la instalación continúa allí. (¿Ya estás dentro de Codex con terminal? Usa la viñeta de arriba.)
+- **Gemini (web/app — sin terminal en el equipo del usuario):** lee https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/gemini-setup.md y síguelo: primero instala **Antigravity** — la instalación continúa allí. (¿Ya estás dentro de Antigravity? Usa la viñeta de arriba.)
+
+</details>
 
 ### Primera ejecución — tu clave de API
 
 Se abre una página del navegador: inicia sesión y haz un clic, y tu clave se emite y se guarda cifrada en este equipo. No hay nada que copiar. Si no puede abrirse ningún navegador, se abre en su lugar un archivo de clave: pega ahí la clave y guarda, y el archivo se cifra y se elimina.
 
-**Nunca pegues tu clave de API en el chat.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Consigue una clave de API</a> · compruébala cuando quieras con `npm run key:check`
+<a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Consigue una clave de API</a> · compruébala cuando quieras con `npm run key:check`
 
 ---
 
@@ -111,7 +121,6 @@ O escribe **`/dubbing`** / **`/srt`** para empezar. Para la lista completa de op
 ```text
 .claude-plugin/    Plugin de Claude Code + manifiestos del marketplace
 .codex-plugin/     Manifiesto del plugin de Codex
-.cursor-plugin/    Manifiesto del plugin de Cursor
 docs/              Landing de GitHub Pages + README traducidos · FAQ (12 idiomas)
 skills/dubbing/    La skill de doblaje (SKILL.md · lib/ · scripts/) — autónoma
 skills/srt/        La skill de subtítulos SRT (SKILL.md · scripts/) — usa la lib/ de la skill de doblaje

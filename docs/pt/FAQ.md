@@ -26,7 +26,7 @@ Sim. Coloque vários idiomas em um único comando (`--target en,ja,zh`) — a fo
 
 ### Onde meus resultados são salvos?
 
-Por padrão, junto ao vídeo de origem, ou na pasta que você informar com `--out`. Cada execução também vira um projeto no seu portal da Perso (<https://portal.perso.ai>), onde você pode baixá-lo novamente ou obter outros formatos.
+Por padrão, junto ao vídeo de origem, ou na pasta que você informar com `--out`. Cada execução também vira um projeto no seu portal da Perso (<https://perso.ai/en/workspace/vt>), onde você pode baixá-lo novamente ou obter outros formatos.
 
 ### O que é a sincronização labial?
 

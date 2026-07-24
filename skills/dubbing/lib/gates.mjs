@@ -16,6 +16,10 @@ export class UsageError extends Error {
 // Signals "stop with this exit code" after the message was already printed. Thrown instead of calling
 // process.exit() directly: a hard exit while fetch sockets are tearing down hits a Windows libuv assert
 // (async.c) and corrupts the exit code — main() sets process.exitCode and lets the loop drain instead.
+// Exit-code convention: 0 = clean stop — either finished, or a normal "stop and ask the user" pause
+// ([space-select]/[split-confirm]/[credit-check]/[resume-check]) that must NOT read as a failure;
+// 1 = genuine error / bad usage; 2 = no API key (headless fail-fast). The agent acts on the printed
+// marker lines, not the exit code, so these pauses stay exit 0 to avoid a spurious "failed" chip.
 export class ExitCode extends Error {
   constructor(code) { super(`exit ${code}`); this.name = 'ExitCode'; this.code = code; }
 }
@@ -100,11 +104,11 @@ export async function ensureSpace(args) {
     if (hits.length > 1) {
       console.log(`[space-select] Several spaces share the name "${wanted}" — rename one in Perso, or pin PERSO_SPACE_SEQ:`);
       for (const s of await enrich(hits)) console.log(`  PERSO_SPACE_SEQ=${s.seq}  →  ${label(s)}`);
-      throw new ExitCode(3);
+      throw new ExitCode(0); // [space-select]: stop and ask the user — not a failure
     }
     console.log(`[space-select] No space named "${wanted}". Ask the user to pick one of these:`);
     for (const s of await enrich(spaces)) console.log(`  - ${label(s)}`);
-    throw new ExitCode(3);
+    throw new ExitCode(0); // [space-select]: stop and ask the user — not a failure
   }
 
   if (spaces.length === 1) { setTelemetrySpace(spaces[0].seq); track('space_resolved', { plan_tier: spaces[0].tier ?? null, plan_name: spaces[0].planName ?? null }); return spaces[0].seq; }
@@ -124,5 +128,5 @@ export async function ensureSpace(args) {
   }
   console.log('[space-select] Several spaces are available — show the user ONLY these options (name | plan | credits left), ask which one to run in, then re-run the same command with --space "<space name>":');
   for (const s of options) console.log(`  - ${label(s)}`);
-  throw new ExitCode(3);
+  throw new ExitCode(0); // [space-select]: stop and ask the user — not a failure
 }

@@ -26,7 +26,7 @@ Oui. Indiquez plusieurs langues dans une seule commande (`--target en,ja,zh`) �
 
 ### Où mes résultats sont-ils enregistrés ?
 
-Par défaut, à côté de la vidéo source, ou dans le dossier indiqué avec `--out`. Chaque exécution est aussi un projet dans votre portail Perso (<https://portal.perso.ai>), où vous pouvez le retélécharger ou obtenir d'autres formats.
+Par défaut, à côté de la vidéo source, ou dans le dossier indiqué avec `--out`. Chaque exécution est aussi un projet dans votre portail Perso (<https://perso.ai/en/workspace/vt>), où vous pouvez le retélécharger ou obtenir d'autres formats.
 
 ### Qu'est-ce que la synchronisation labiale ?
 
