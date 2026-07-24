@@ -705,53 +705,53 @@
 </script>
 <script>
 (function(){
-  var AGENT = {"l-cl":"claude","l-gpt":"chatgpt","l-cu":"cursor","l-an":"gemini"};
+  var TAB_AGENT = {cc:"claude_code", cx:"codex", ag:"antigravity"};
+  var DL = {
+    "dl-cc":        {agent:"claude_code", method:"app"},
+    "dl-cc-term":   {agent:"claude_code", method:"terminal"},
+    "dl-cc-vscode": {agent:"claude_code", method:"vscode"},
+    "dl-cx":        {agent:"codex",       method:"app"},
+    "dl-ag":        {agent:"antigravity", method:"app"}
+  };
   function lang(){ return document.documentElement.lang || "ko"; }
   function track(name, params){
-    try {
-      if (typeof pdGtag !== "function") return;
-      var p = params || {};
-      p.ui_lang = lang();
-      p.page_lang = (typeof window.__pdlang !== "undefined") ? window.__pdlang : "spa";
-      pdGtag("event", name, p);
-    } catch(e) {}
+    var p = params || {};
+    p.ui_lang = lang();
+    try { if (typeof pdGtag === "function") pdGtag("event", name, p); } catch(e) {}       // GA4
+    try { (window.dataLayer = window.dataLayer || []).push(Object.assign({event:name}, p)); } catch(e) {} // GTM
   }
-  function ctaOf(a){
+  function outboundTarget(a){
     var h = a.getAttribute("href") || "";
-    if (a.classList.contains("brand")) return "perso_brand";
-    if (h.charAt(0) === "#") return "install_hero";
-    if (a.hasAttribute("data-faq")) return a.closest("footer") ? "faq_footer" : "faq_inline";
-    if (h.indexOf("github.com") >= 0) return a.closest("footer") ? "github_footer" : "github_nav";
-    if (h.indexOf("claude.ai") >= 0) return "agent_claude_dl";
-    if (h.indexOf("chatgpt.com") >= 0) return "agent_chatgpt";
-    if (h.indexOf("cursor.com") >= 0) return "agent_cursor_dl";
-    if (h.indexOf("gemini.google") >= 0) return "agent_gemini";
-    if (h.indexOf("perso.ai") >= 0) return "perso_footer";
+    if (a.hasAttribute("data-faq")) return "faq";
+    if (h.indexOf("github.com") >= 0) return "github";
+    if (h.indexOf("perso.ai") >= 0) return "perso";
     return null;
   }
   document.addEventListener("click", function(e){
     var t = e.target;
     if (!t || !t.closest) return;
+    // 1) install deep-link buttons (app / terminal / vscode)
+    var dl = t.closest("a[id^='dl-']");
+    if (dl && DL[dl.id]) { track("install_click", {agent: DL[dl.id].agent, method: DL[dl.id].method}); return; }
+    // 2) install command copy (inside an agent panel)
+    var cmdBtn = t.closest(".cmd button[data-cmd]");
+    if (cmdBtn) {
+      var panel = cmdBtn.closest(".panel[data-tab]");
+      track("install_copy", {agent: panel ? (TAB_AGENT[panel.getAttribute("data-tab")] || "generic") : "generic", source: "card"});
+      return;
+    }
+    // 3) sticky "copy install prompt"
     var promptBtn = t.closest("[data-copyprompt]");
-    if (promptBtn) {
-      track("plugin_copy_click", {agent: "claude", placement: promptBtn.getAttribute("data-copyprompt")});
-      return;
-    }
-    var copyBtn = t.closest("[data-copy]");
-    if (copyBtn) {
-      track("plugin_copy_click", {agent: AGENT[copyBtn.getAttribute("data-copy")] || "unknown", placement: "hero"});
-      return;
-    }
-    var langBtn = t.closest(".langmenu button");
-    if (langBtn) {
-      track("plugin_lang_change", {from_lang: lang(), to_lang: langBtn.getAttribute("data-lang") || ""});
-      return;
-    }
+    if (promptBtn) { track("install_copy", {agent: "generic", source: "sticky"}); return; }
+    // 4) agent tab select
+    var tab = t.closest(".tabs[data-group='setup'] .tab[data-tab]");
+    if (tab) { track("agent_select", {agent: TAB_AGENT[tab.getAttribute("data-tab")] || tab.getAttribute("data-tab")}); return; }
+    // 5) language change
+    var langBtn = t.closest(".langmenu button[data-lang]");
+    if (langBtn) { track("lang_change", {from: lang(), to: langBtn.getAttribute("data-lang") || ""}); return; }
+    // 6) outbound links (faq / github / perso)
     var a = t.closest("a[href]");
-    if (a) {
-      var cta = ctaOf(a);
-      if (cta) track("plugin_cta_click", {cta: cta});
-    }
+    if (a) { var tg = outboundTarget(a); if (tg) track("outbound_click", {target: tg}); }
   }, true);
 })();
 </script>
@@ -888,31 +888,6 @@
     });
   });
 
-  // ── GA4 (pdGtag) + GTM (dataLayer) event tracking on install CTAs ──
-  function pdTrack(name, params){
-    var p = params || {};
-    try { if (window.pdGtag) pdGtag("event", name, p); } catch(e){}
-    try { (window.dataLayer = window.dataLayer || []).push(Object.assign({event: name}, p)); } catch(e){}
-  }
-  var TAB_AGENT = {cc:"claude-code", cx:"codex", ag:"antigravity"};
-  var DL_AGENT = {"dl-cc":"claude-code","dl-cx":"codex","dl-ag":"antigravity","dl-cc-term":"claude-code","dl-cc-vscode":"claude-code"};
-  var DL_METHOD = {"dl-cc":"app","dl-cx":"app","dl-ag":"app","dl-cc-term":"terminal","dl-cc-vscode":"vscode"};
-  Object.keys(DL_AGENT).forEach(function(id){
-    var el = document.getElementById(id); if (!el) return;
-    el.addEventListener("click", function(){ pdTrack("install_open", {agent: DL_AGENT[id], method: DL_METHOD[id]}); });
-  });
-  document.querySelectorAll(".cmd button[data-cmd]").forEach(function(b){
-    b.addEventListener("click", function(){
-      var panel = b.closest(".panel");
-      pdTrack("install_copy", {agent: panel ? (TAB_AGENT[panel.getAttribute("data-tab")] || panel.getAttribute("data-tab")) : "", location: "step"});
-    });
-  });
-  document.querySelectorAll("[data-copyprompt]").forEach(function(b){
-    b.addEventListener("click", function(){ pdTrack("install_copy", {location: b.getAttribute("data-copyprompt")}); });
-  });
-  document.querySelectorAll('.tabs[data-group="setup"] .tab').forEach(function(t){
-    t.addEventListener("click", function(){ pdTrack("agent_select", {agent: TAB_AGENT[t.getAttribute("data-tab")] || t.getAttribute("data-tab")}); });
-  });
 })();
 </script>
 </body>
