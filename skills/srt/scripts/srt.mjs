@@ -18,7 +18,8 @@ import { upload, requestStt, downloadAudioScript, getStatus } from '../../dubbin
 import { probe } from '../../dubbing/lib/ffmpeg.mjs';
 import { messages } from '../../dubbing/lib/messages.mjs';
 import { checkForUpdate } from '../../dubbing/lib/update_check.mjs';
-import { track, initTelemetry, setTelemetrySpace, primeTelemetrySpace } from '../../dubbing/lib/telemetry.mjs';
+import { track, initTelemetry, setTelemetrySpace, primeTelemetrySpace, setAgentHost } from '../../dubbing/lib/telemetry.mjs';
+import { makeStatusTicker, statusIntervalMs } from '../../dubbing/lib/status.mjs';
 import { cleanupTempDirs } from '../../dubbing/lib/tmp.mjs';
 import { POLL_INTERVAL_MS, MAX_IDLE_MS } from '../../dubbing/lib/config.mjs';
 
@@ -38,6 +39,8 @@ const USAGE = [
   'Usage: node scripts/srt.mjs "<file|folder|URL>" ["<another input>" ...] [--target en,ja] [--space "space name"] [--out folder] [--recursive]',
   '       node scripts/srt.mjs "<file|folder|URL>" ["<another input>" ...] --transcribe-only [--space "space name"] [--out folder] [--recursive]',
   '       node scripts/srt.mjs --resume "<state-file>"',
+  '       node scripts/srt.mjs --check "<translated.srt>" --source "<original.srt>"',
+  '       node scripts/srt.mjs --retime "<translated.srt>"',
   '',
   '  --target     comma-separated language codes the subtitles will be translated into (default: en).',
   '               One subtitle project is created per input; every target shares its original SRT.',
@@ -47,6 +50,11 @@ const USAGE = [
   '  --out        folder that collects the extracted .srt files (default: next to each source)',
   '  --recursive  when an input is a folder, include its subfolders',
   '  --resume     continue an interrupted run from its state file (already-submitted work is not billed again)',
+  '  --check      offline QA of a translated SRT against its source: cue/timestamp integrity, line',
+  '               layout (max 2 lines × 42 chars, 20 for CJK) and reading speed. No key, no billing.',
+  '  --source     the original SRT the translation must stay aligned with (required by --check)',
+  '  --retime     offline readability pass: extends too-fast cues into following gaps and merges short',
+  '               neighbours (Netflix-style), rewriting the file in place. No key, no billing.',
 ].join('\n');
 
 // Sentinel "language" for --transcribe-only runs. parseTargets can never produce it (codes are 2-3
@@ -55,7 +63,7 @@ const TRANSCRIBE = 'original';
 
 function parseArgs(argv) {
   const a = { target: 'en', inputs: [] };
-  const VALUE_FLAGS = { '--resume': 'resume', '--target': 'target', '--space': 'space', '--out': 'out' };
+  const VALUE_FLAGS = { '--resume': 'resume', '--target': 'target', '--space': 'space', '--out': 'out', '--check': 'check', '--source': 'source', '--retime': 'retime', '--host': 'host' };
   for (let i = 0; i < argv.length; i++) {
     const t = argv[i];
     if (t === '--help' || t === '-h') a.help = true;
@@ -72,6 +80,11 @@ function parseArgs(argv) {
   }
   if (a.transcribeOnly && a.targetSet) {
     throw new UsageError('--transcribe-only cannot be combined with --target (it skips translation and delivers the original-language subtitles).');
+  }
+  if (a.check && !a.source) throw new UsageError('--check needs --source "<original.srt>" to compare against.');
+  if (a.source && !a.check) throw new UsageError('--source only makes sense together with --check.');
+  if ((a.check || a.retime) && (a.inputs.length || a.targetSet || a.transcribeOnly || a.resume)) {
+    throw new UsageError('--check/--retime are offline QA commands — run them on their own, without inputs or other modes.');
   }
   return a;
 }
@@ -128,14 +141,15 @@ function statePath({ out, inputs }) {
 
 // A state file at the target path means an earlier run for this input never finished (it is deleted on
 // success). Starting fresh would overwrite it and re-bill work the server already completed, so stop before
-// any network/billing and hand the choice to the user (exit 3 = "ask the user", like [space-select]).
+// any network/billing and hand the choice to the user (a normal "ask the user" pause, exit 0 — the
+// [resume-check] lines say what to ask; a non-zero exit would misread as a failure).
 function guardExistingState(file) {
   if (!existsSync(file)) return;
   console.log(`[resume-check] An earlier run for this input did not finish — its state file still exists: ${file}`);
   console.log('[resume-check] To finish it without paying again for the completed parts, run:');
   console.log(`[resume-check]   node scripts/srt.mjs --resume "${file}"`);
   console.log('[resume-check] To discard it and start over instead (completed parts will be billed again), delete that state file and re-run this command.');
-  throw new ExitCode(3);
+  throw new ExitCode(0);
 }
 
 // Manifest v2 kind 'stt': one STT project per input (all target languages share it) + per-input
@@ -207,7 +221,8 @@ async function ensureMedia(pin, spaceSeq, saver, { forceReupload = false } = {})
 }
 
 // Poll a project until it settles. Progress changes reset the idle window; a stuck job times out.
-async function waitForProject(projectSeq, spaceSeq) {
+// onPoll fires each poll (the [status] heartbeat) — its own failures must never break the wait.
+async function waitForProject(projectSeq, spaceSeq, onPoll) {
   let last = -1;
   let lastChange = Date.now();
   for (;;) {
@@ -217,6 +232,7 @@ async function waitForProject(projectSeq, spaceSeq) {
     const p = st?.progress ?? -1;
     if (p !== last) { last = p; lastChange = Date.now(); if (p > 0) log(`transcribing... ${p}%`); }
     if (Date.now() - lastChange > MAX_IDLE_MS) return { state: 'failed', timedOut: true, message: 'timed out (no progress)' };
+    try { onPoll?.(); } catch { /* heartbeat must never break the wait */ }
     await sleep(POLL_INTERVAL_MS);
   }
 }
@@ -235,8 +251,9 @@ function overLimitMsg(e) {
 
 // One [srt-original] line per finished input — the agent translates the file at `path` into every
 // language in `langs` (null on a --transcribe-only run: deliver the file as-is).
-function emitMapping(inp, langs, savedPath) {
-  console.log('[srt-original] ' + JSON.stringify({ input: labelOf(inp), langs, path: resolve(savedPath) }));
+function emitMapping(inp, langs, savedPath, seq) {
+  // `seq` is the STT projectSeq → the agent can build a project link on demand: …/vt/stt/<seq> (see SKILL.md).
+  console.log('[srt-original] ' + JSON.stringify({ input: labelOf(inp), langs, path: resolve(savedPath), ...(seq != null ? { seq } : {}) }));
 }
 
 // Per input: submit ONE STT project (checkpointed) → wait → download the original SRT → report. All
@@ -247,9 +264,12 @@ async function sttProcess(perInput, ctx, saver, isResume) {
   const transcribeOnly = targets.length === 1 && targets[0] === TRANSCRIBE;
   const langs = transcribeOnly ? null : targets; // translation list carried on every mapping line
   const usedByDir = new Map();
-  const lines = [];
   let ok = 0, fail = 0, noVoice = 0; // per input (one STT project each)
   const flags = { pending: false };
+  const total = perInput.length;
+  const allDur = perInput.map((p) => p.durationSec).filter((d) => d != null);
+  const ticker = makeStatusTicker(statusIntervalMs(allDur.length ? allDur.reduce((a, b) => a + b, 0) : null));
+  const streamDone = (msg) => notify(total > 1 ? `${msg} (${ok + fail + 1}/${total})` : msg); // stream each input as it settles — don't buffer to the end
   // Completed-funnel event — also fired on a quota stop (partial counts), like dubbing_completed.
   const trackCompleted = async () => {
     const knownDur = perInput.map((p) => p.durationSec).filter((d) => d != null);
@@ -269,10 +289,10 @@ async function sttProcess(perInput, ctx, saver, isResume) {
     const name = labelOf(pin.inp ?? pin.ref);
     try {
       const prev = saver.done[pin.inputId];
-      if (prev?.status === 'HARD_FAIL') { fail++; lines.push(`Could not extract: ${name} — ${prev.reason ?? 'failed'}`); continue; }
+      if (prev?.status === 'HARD_FAIL') { streamDone(`Could not extract: ${name} — ${prev.reason ?? 'failed'}`); fail++; continue; }
       if (prev?.status === 'OK' && prev.savedPath && existsSync(prev.savedPath)) {
-        emitMapping(pin.inp ?? pin.ref, langs, prev.savedPath); // re-print so the agent gets the full mapping on resume
-        ok++; lines.push(`Done (subtitle): ${name} → ${basename(prev.savedPath)}`);
+        emitMapping(pin.inp ?? pin.ref, langs, prev.savedPath, prev.projectId); // re-print so the agent gets the full mapping on resume
+        streamDone(`Subtitle ready: ${name} → ${basename(prev.savedPath)}`); ok++;
         continue;
       }
       let projectId = prev?.projectId ?? null;
@@ -290,27 +310,25 @@ async function sttProcess(perInput, ctx, saver, isResume) {
         saver.onSubmit(pin.inputId, projectId); // checkpoint the billed unit before any wait
         log(`${name}: subtitle project submitted`);
       }
-      const st = await waitForProject(projectId, spaceSeq);
+      const st = await waitForProject(projectId, spaceSeq, () => ticker.tick(() => `subtitles ${ok + fail}/${total}`));
       if (st.state !== 'complete') {
-        if (st.timedOut) { flags.pending = true; fail++; lines.push(`Could not extract: ${name} — ${st.message}`); continue; } // may still be running (paid) → keep the RUN checkpoint so resume re-polls it
+        if (st.timedOut) { flags.pending = true; streamDone(`Could not extract: ${name} — ${st.message}`); fail++; continue; } // may still be running (paid) → keep the RUN checkpoint so resume re-polls it
         if (st.noVoice) noVoice++;
         const reason = st.noVoice ? 'no voice detected in the source' : (st.message ?? st.failureReason ?? 'failed');
         saver.onFail(pin.inputId, reason); // genuine server failure → terminal (no automatic retry)
-        fail++; lines.push(`Could not extract: ${name} — ${reason}`);
+        streamDone(`Could not extract: ${name} — ${reason}`); fail++;
         continue;
       }
       const dir = out ?? inputSaveDir(pin.inp?.localPath ? pin.inp : pin.ref);
       mkdirSync(dir, { recursive: true });
       const saved = await downloadAudioScript(projectId, spaceSeq, (serverName) => join(dir, reserve(dir, serverName, usedByDir)));
       saver.onComplete(pin.inputId, projectId, saved.path);
-      emitMapping(pin.inp ?? pin.ref, langs, saved.path);
-      ok++;
-      lines.push(`Done (subtitle): ${name} → ${basename(saved.path)}`);
+      emitMapping(pin.inp ?? pin.ref, langs, saved.path, projectId);
+      streamDone(`Subtitle ready: ${name} → ${basename(saved.path)}`); ok++;
     } catch (e) {
-      if (e?.httpStatus === 402) { // out of credits — deliver what finished + top-up/resume path, then stop
+      if (e?.httpStatus === 402) { // out of credits — finished inputs already streamed above → just the top-up/resume path
         ctx.stopReason = 'quota'; // recorded in the state file → resume telemetry reports why
         saver.writeNow();
-        if (lines.length) console.log('\n' + lines.join('\n'));
         const plan = await getPlanStatus(spaceSeq);
         const settled = Object.values(saver.done).filter((d) => d.status === 'OK' || d.status === 'HARD_FAIL').length;
         track('quota_exceeded', { ...await spacePlanProps(spaceSeq), remaining_inputs: Math.max(0, perInput.length - settled) });
@@ -320,7 +338,7 @@ async function sttProcess(perInput, ctx, saver, isResume) {
           resumeHint: `node scripts/srt.mjs --resume "${ctx.file}"`,
           billingScript: '../dubbing/scripts/billing.mjs',
         }));
-        throw new ExitCode(1);
+        throw new ExitCode(0); // credits ran out but finished work was delivered + resume is available — a recoverable stop, not a failure (matches dubbing)
       }
       if (e?.name === 'UnsupportedMediaError') { notify(skipMsg(name, e)); continue; }
       if (isOverLimit(e)) {
@@ -336,16 +354,13 @@ async function sttProcess(perInput, ctx, saver, isResume) {
           limit_min: Number(e.data?.maxLengthMs) > 0 ? Math.round(Number(e.data.maxLengthMs) / 60000) : null,
           duration_sec: durSec,
         });
-        const msg = `Could not extract: ${name} — ${overLimitMsg(e)}`;
-        notify(msg); fail++; lines.push(msg);
+        streamDone(`Could not extract: ${name} — ${overLimitMsg(e)}`); fail++;
         continue;
       }
       flags.pending = true; // errored after some languages may have been billed → keep state so resume finishes them
-      fail++;
-      lines.push(`Could not extract: ${name} — ${friendlyError(e)}`);
+      streamDone(`Could not extract: ${name} — ${friendlyError(e)}`); fail++;
     }
   }
-  console.log('\n' + lines.join('\n'));
   if (perInput.length > 1) console.log(`\nSummary: ${ok} done · ${fail} failed`);
   if (ok) {
     console.log(transcribeOnly
@@ -413,8 +428,156 @@ async function runResume(fileArg) {
   finishState(ctx.file, pending);
 }
 
+// ---- Offline subtitle QA (--check / --retime): local file work only — no key, no network, no billing ----
+
+// Display limits per script family. A rendered line longer than `lineChars` is force-wrapped by the
+// player into 3+ on-screen lines that cover the picture; reading speed beyond `cpsFail` chars/sec
+// disappears before it can be read (`cpsWarn` is the comfortable budget).
+const LIMITS = {
+  latin: { lineChars: 42, cpsWarn: 17, cpsFail: 21 },
+  cjk: { lineChars: 20, cpsWarn: 9, cpsFail: 13 },
+};
+const CJK_RE = /[ᄀ-ᇿ　-鿿가-힯豈-﫿]/g;
+const limitsFor = (text) => {
+  const t = text.replace(/\s/g, '');
+  return ((t.match(CJK_RE) ?? []).length / Math.max(t.length, 1)) > 0.3 ? LIMITS.cjk : LIMITS.latin;
+};
+const RETIME_GAP_GUARD_S = 0.08; // keep this much silence before the next cue when extending
+const RETIME_MERGE_MAX_GAP_S = 1; // never bridge a longer silence — merged text would hang over it
+const RETIME_MERGE_MAX_DUR_S = 7; // industry cap for a single subtitle event
+const LAST_CUE_EXTEND_S = 2; // the last cue has no successor to bound it — extend at most this much
+
+function parseSrtCues(raw) {
+  const cues = [];
+  for (const block of raw.replace(/^﻿/, '').trim().split(/\r?\n\s*\r?\n/)) {
+    const lines = block.split(/\r?\n/).map((l) => l.trimEnd()).filter((l) => l !== '');
+    if (lines.length < 2 || !lines[1].includes('-->')) continue;
+    const m = lines[1].match(/(\d+):(\d+):(\d+)[,.](\d+)\s*-->\s*(\d+):(\d+):(\d+)[,.](\d+)/);
+    if (!m) continue;
+    const g = m.slice(1).map(Number);
+    cues.push({
+      start: g[0] * 3600 + g[1] * 60 + g[2] + g[3] / 1000,
+      end: g[4] * 3600 + g[5] * 60 + g[6] + g[7] / 1000,
+      ts: lines[1].trim(),
+      text: lines.slice(2),
+    });
+  }
+  return cues;
+}
+const cpsOf = (c) => c.text.join('').length / Math.max(c.end - c.start, 0.001);
+function srtTime(t) {
+  const ms = Math.round(t * 1000);
+  const h = Math.floor(ms / 3600000), m = Math.floor(ms / 60000) % 60, s = Math.floor(ms / 1000) % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')},${String(ms % 1000).padStart(3, '0')}`;
+}
+// Greedy word wrap into at most 2 lines of `width` chars; null when the text simply doesn't fit.
+function wrapTwoLines(text, width) {
+  const lines = [];
+  let cur = '';
+  for (const w of text.split(/\s+/).filter(Boolean)) {
+    if (!cur) cur = w;
+    else if (cur.length + 1 + w.length <= width) cur += ' ' + w;
+    else { lines.push(cur); cur = w; }
+  }
+  if (cur) lines.push(cur);
+  return lines.length <= 2 && lines.every((l) => l.length <= width) ? lines : null;
+}
+
+// Compare a translated SRT against its source: structure must match 1:1 (the translation step never
+// retimes), and every cue must respect the layout and reading-speed limits above.
+function checkCues(cues, src) {
+  const problems = [];
+  if (cues.length !== src.length) {
+    problems.push({ level: 'FAIL', cue: 0, why: `cue count is ${cues.length} but the source has ${src.length} — cues were merged, dropped, or renumbered` });
+  } else {
+    src.forEach((s, i) => {
+      if (cues[i].ts !== s.ts) problems.push({ level: 'FAIL', cue: i + 1, why: `timestamp differs from the source ("${cues[i].ts}" vs "${s.ts}")` });
+    });
+  }
+  cues.forEach((c, i) => {
+    const lim = limitsFor(c.text.join(''));
+    if (c.text.length > 2) problems.push({ level: 'FAIL', cue: i + 1, why: `${c.text.length} text lines (max 2)` });
+    for (const l of c.text) {
+      if (l.length > lim.lineChars) problems.push({ level: 'FAIL', cue: i + 1, why: `line is ${l.length} chars (max ${lim.lineChars}): "${l}"` });
+    }
+    const cps = cpsOf(c);
+    if (cps > lim.cpsFail) problems.push({ level: 'FAIL', cue: i + 1, why: `reading speed ${cps.toFixed(1)} chars/sec (cap ${lim.cpsFail}) — shorten the text` });
+    else if (cps > lim.cpsWarn) problems.push({ level: 'WARN', cue: i + 1, why: `reading speed ${cps.toFixed(1)} chars/sec (comfortable is ≤${lim.cpsWarn}) — shorten if it costs no meaning` });
+  });
+  return problems;
+}
+
+// Netflix-style readability pass: (1) extend a too-fast cue's out-time into the silence before the
+// next cue — only as far as the comfortable budget needs; (2) merge a still-too-fast cue with its
+// neighbour when the combined text re-wraps into one 2×42 event. Merging is skipped when the first
+// cue ends interrupted (…/-) or either side is a dialogue-dash line — an intentionally unfinished
+// line must stay unfinished, and two speakers must not collapse into one event. CJK text is never
+// merged (re-wrapping needs language-aware segmentation); it only gets the extension.
+function retimeCues(cues) {
+  const out = cues.map((c) => ({ ...c, text: [...c.text] }));
+  let extended = 0;
+  for (let i = 0; i < out.length; i++) {
+    const c = out[i];
+    const lim = limitsFor(c.text.join(''));
+    if (cpsOf(c) <= lim.cpsFail) continue;
+    const room = i + 1 < out.length ? out[i + 1].start - RETIME_GAP_GUARD_S : c.end + LAST_CUE_EXTEND_S;
+    const comfy = c.start + c.text.join('').length / lim.cpsWarn;
+    const end = Math.min(room, comfy);
+    if (end > c.end) { c.end = end; extended++; }
+  }
+  const merged = [];
+  const res = [];
+  for (let i = 0; i < out.length; i++) {
+    const c = out[i];
+    const lim = limitsFor(c.text.join(''));
+    if (cpsOf(c) > lim.cpsFail && i + 1 < out.length) {
+      const nxt = out[i + 1];
+      const first = c.text.join(' ');
+      const second = nxt.text.join(' ');
+      const combined = `${first} ${second}`;
+      const interrupted = /(\.\.\.|…|[-–—])$/.test(first.trim());
+      const dialogue = /^[-–—]/.test(first.trim()) || /^[-–—]/.test(second.trim());
+      const dur = nxt.end - c.start;
+      const wrapped = limitsFor(combined) === LIMITS.latin ? wrapTwoLines(combined, LIMITS.latin.lineChars) : null;
+      if (!interrupted && !dialogue && wrapped
+          && nxt.start - c.end <= RETIME_MERGE_MAX_GAP_S && dur <= RETIME_MERGE_MAX_DUR_S
+          && wrapped.join('').length / dur <= LIMITS.latin.cpsFail) {
+        res.push({ start: c.start, end: nxt.end, text: wrapped });
+        merged.push({ a: i + 1, b: i + 2, preview: wrapped.join(' ') });
+        i++; // the partner is consumed
+        continue;
+      }
+    }
+    res.push(c);
+  }
+  // Whatever is still too fast is genuinely fast speech — only a shorter translation can fix it.
+  const still = [];
+  res.forEach((c, i) => { if (cpsOf(c) > limitsFor(c.text.join('')).cpsFail) still.push(i + 1); });
+  return { cues: res, extended, merged, still };
+}
+
+function runCheck(file, sourceFile) {
+  const problems = checkCues(parseSrtCues(readFileSync(file, 'utf8')), parseSrtCues(readFileSync(sourceFile, 'utf8')));
+  for (const p of problems) console.log(`[check] ${p.level} cue ${p.cue}: ${p.why}`);
+  const fails = problems.filter((p) => p.level === 'FAIL').length;
+  console.log(fails
+    ? `[check] ${file}: ${fails} FAIL · ${problems.length - fails} WARN — rewrite ONLY the failing cues and re-run.`
+    : `[check] ${file}: PASS (${problems.length} WARN) — structure and layout are within delivery limits.`);
+}
+
+function runRetime(file) {
+  const before = parseSrtCues(readFileSync(file, 'utf8'));
+  const { cues, extended, merged, still } = retimeCues(before);
+  for (const m of merged) console.log(`[retime] merged cues ${m.a}+${m.b}: "${m.preview}"`);
+  writeFileSync(file, cues.map((c, i) => `${i + 1}\n${srtTime(c.start)} --> ${srtTime(c.end)}\n${c.text.join('\n')}`).join('\n\n') + '\n', 'utf8');
+  console.log(`[retime] ${file}: ${before.length} → ${cues.length} cues · extended ${extended} · merged ${merged.length}`);
+  console.log(still.length
+    ? `[retime] ${still.length} cues still read too fast — shorten their text (meaning first): ${still.join(', ')}`
+    : '[retime] every cue is within the reading-speed cap.');
+}
+
 // Pure helper exports for testing (when run directly, only main below executes).
-export { parseArgs, parseTargets, statePath, guardExistingState, buildManifest, sttSaver, migrateDoneV1, overLimitMsg, TRANSCRIBE };
+export { parseArgs, parseTargets, statePath, guardExistingState, buildManifest, sttSaver, migrateDoneV1, overLimitMsg, TRANSCRIBE, parseSrtCues, checkCues, retimeCues };
 
 // The workspace as far as argv alone reveals it, for the events that fire before the space gate.
 function earlySpaceHint(args) {
@@ -432,7 +595,9 @@ async function main() {
     preloadKeyEnv(); // pre-inject the key into env before async (at a clean point) → avoid a synchronous powershell call/crash in the main process
     primeTelemetrySpace(); // env pin / previous run — parseArgs itself can throw before any event
     const args = parseArgs(process.argv.slice(2));
-    if (!args.help) {
+    const offline = !!(args.check || args.retime); // local QA — no update check, no telemetry, no key gate
+    if (args.host) setAgentHost(args.host); // agent self-reports its runtime (telemetry only) — set before any track()
+    if (!args.help && !offline) {
       updateNotice = checkForUpdate().catch(() => null); // non-blocking; never fails the run
       primeTelemetrySpace(earlySpaceHint(args));
       initTelemetry(); // emits first_run once per install
@@ -444,6 +609,8 @@ async function main() {
       });
     }
     if (args.help) console.log(USAGE);
+    else if (args.check) runCheck(args.check, args.source);
+    else if (args.retime) runRetime(args.retime);
     else if (args.resume) await runResume(args.resume);
     else if (!args.inputs.length) {
       console.error(USAGE);

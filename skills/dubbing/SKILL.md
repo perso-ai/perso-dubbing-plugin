@@ -1,6 +1,7 @@
 ---
 name: dubbing
 description: Auto-dub (voice-translate) videos into other languages, with lip-sync (Perso AI Dubbing).
+allowed-tools: Bash(node scripts/dubbing.mjs *), Bash(node scripts/resolve_key.mjs *), Bash(node scripts/connect.mjs), Bash(node scripts/billing.mjs *), Bash(node scripts/languages.mjs), Bash(node scripts/check_deps.mjs), Bash(node ${CLAUDE_SKILL_DIR}/scripts/*)
 ---
 
 # /dubbing
@@ -15,11 +16,14 @@ A skill that auto-dubs videos via the Perso AI Dubbing API.
 - Languages unspecified → source `auto`, target `en`.
 - **Multiple languages go in one command** (`--target en,zh,ja`) — upload/split happens once and is reused per language. Never run once per language (re-uploads the source each time).
 - **Relay progress faithfully.** Surface the worker's stdout `[progress]` lines to chat, verbatim or summarized — and don't announce steps that didn't appear (splitting/merging exist only for over-limit videos). The indented stderr detail logs don't need relaying.
+- **Keep the user informed while it runs.** Dubbing, lip-sync, and audio separation all print a `[status]` heartbeat (stage + item counts, e.g. `ja 4/6 · en 1/6` or `separating — file 2/5`, with a `next check ~Nm` hint), and each finished item streams as a `[progress]` line. Check the background output ~3 minutes after launch, then on the hinted interval (10 min for media ≤10 min, 30 min for longer): relay any new `[progress]` line right away, otherwise post the latest `[status]` line as a one-line update. Never invent percentages, elapsed time, or ETAs — relay only what the lines say. Stops that need the user (`[space-select]`, `[split-confirm]`, `[resume-check]`, `[credit-check]`, credit-out, completion) end the process, so they surface without polling.
+- **Name your runtime for telemetry (silent).** Add `--host <claude-code|codex|cursor|antigravity|gemini>` to the worker command, naming the agent you are running as, if you can tell. It only tags usage telemetry — never surface it to the user and never ask them about it. Omit it if unsure.
 - **Unsupported formats are skipped automatically** and the rest keep processing — relay the skip notice.
+- **A pause is not a failure.** A `[space-select]`, `[split-confirm]`, `[credit-check]`, or `[resume-check]` line means the run **stopped to ask you something** — it exits 0 (so it never looks like an error), but the job is **not** complete. Whenever one of these lines is present, never report the run as done: relay it and act on it. The lines are the signal, not the exit code.
 
 ## One-time setup
 
-1. **API key** — no separate step: with no key registered, `dubbing.mjs` opens a browser page on first run — the user signs in and clicks once; the key is issued and delivered straight to the plugin (nothing to copy). If the browser can't open (headless/SSH) or the page fails, a key file opens instead — show the user the printed key-file path (clickable) and tell them to paste just the key and save (it's encrypted and the file deleted). Pre-check: `node scripts/resolve_key.mjs --check` (exit 2 = missing; `node scripts/connect.mjs` starts the browser flow, `resolve_key.mjs --watch` the file flow — never start either while a run is already waiting for the key). Never paste the key into chat. Get a key: https://developers.perso.ai/api-keys
+1. **API key** — none needed up front: the first run opens a browser page (sign in, one click — the key is stored encrypted). If no browser can open, the worker prints file-based instructions instead — relay them to the user. While a run is waiting for the key, don't start `connect.mjs` or `resolve_key.mjs --watch` yourself. Never paste the key into chat. Status check: `node scripts/resolve_key.mjs --check` (a missing key is not an error). Get a key: https://developers.perso.ai/api-keys
 2. **ffmpeg/ffprobe** — auto-installed only when a video exceeds the plan limit and must be split (approve if permission is requested). Manual check: `node scripts/check_deps.mjs`.
 
 ## Run
@@ -30,9 +34,11 @@ After the key gate, collect the input (local path or URL — re-ask if missing) 
 - Multi-language / multi-input (one or more inputs; URLs and files can be mixed): `node scripts/dubbing.mjs "<URL>" "<file>" --target en,ja` — one output per input × language, saved next to each source (`--out <folder>` collects them).
 - Folder (batch): `node scripts/dubbing.mjs "<folder>" [--target en,zh] [--recursive] [--out output-folder]`
 
-**Space selection** — with several workspaces the worker stops before uploading, prints `[space-select]` lines (**name | (plan) | remaining credits**) and exits (code 3). Show the user ONLY those options (no internal numbers), ask which one, and re-run with `--space "<space name>"`. One space → no question; `PERSO_SPACE_SEQ` pins it.
+**Save location** — default is next to each source file; don't ask. On the session's first job, state it in the kickoff line (e.g. "Results will be saved next to the originals — tell me now if you'd like a different folder") and start right away, without waiting for an answer. If the user names a folder — with this request or any time later in this session — run with `--out "<folder>"` and keep using that folder for every later job until they change it. If they redirect after a run already started, move the finished files there when the run completes. Exception: when every input is a URL (no local source folder), ask where to save before starting.
 
-**Split confirmation** — if the input exceeds the length or size limit and must be auto split & merged (dubbing, dub+lip-sync, or audio separation), the worker stops (exit 3) and prints `[split-confirm]` lines. Relay them and ask the user: it exceeds the length/size limit, so it needs **automatic split → process → merge**, which can come out **less polished than splitting it up themselves** — proceed automatically? On a yes, re-run the **same command with `--allow-split`** (nothing is billed until this point, so re-running is free). Batch runs: `--allow-split` authorizes every split in the run.
+**Space selection** — with several workspaces the worker stops before uploading, prints `[space-select]` lines (**name | (plan) | remaining credits**) and stops. Show the user ONLY those options (no internal numbers), ask which one, and re-run with `--space "<space name>"`. One space → no question; `PERSO_SPACE_SEQ` pins it.
+
+**Split confirmation** — if the input exceeds the length or size limit and must be auto split & merged (dubbing, dub+lip-sync, or audio separation), the worker stops and prints `[split-confirm]` lines. Relay them and ask the user: it exceeds the length/size limit, so it needs **automatic split → process → merge**, which can come out **less polished than splitting it up themselves** — proceed automatically? On a yes, re-run the **same command with `--allow-split`** (nothing is billed until this point, so re-running is free). Batch runs: `--allow-split` authorizes every split in the run.
 
 **Don't save (server-only)** — when the user wants the video dubbed but **not** saved as a local file, add `--no-save`: the worker leaves the result in the user's Perso workspace and skips the download, printing `Kept on server, not saved: … → project <seq>` (the `[project-ref]` line is still emitted, so the dub can be lip-synced or retrieved later). **Single/unsplit videos only** — a split video's merged file needs a local download, so it is saved normally and the worker says so. Cannot be combined with `--lipsync` (the lip-synced video must be downloaded).
 
@@ -50,7 +56,7 @@ Pick the flow by what exists:
 
 1. **New video + lip-sync** — one command runs the whole chain (dub → lip-sync → save); warn that both stages bill:
    `node scripts/dubbing.mjs "<file|URL>" --target en --lipsync`
-   If `[credit-check]` lines print and it exits (code 3), the estimate exceeds the remaining credits: show those lines (top-up URL included), and re-run with `--force` only after the user tops up or approves continuing anyway.
+   If `[credit-check]` lines print and it stops, the estimate exceeds the remaining credits: show those lines (top-up URL included), and re-run with `--force` only after the user tops up or approves continuing anyway.
 2. **Dubbed earlier in this session** — every finished run prints a `[project-ref] {...}` line. **Keep it; never show it to the user.** Lip-sync without re-dubbing (×2, no dubbing charge):
    `node scripts/dubbing.mjs --lipsync-only '<that [project-ref] JSON>'`
 3. **No [project-ref] in this session** — ask if the user knows the project number from the Perso portal (`--lipsync-only <number>`, ×2). Otherwise the video must be dubbed again (`--lipsync`, ×3) — confirm before re-dubbing.
@@ -70,7 +76,7 @@ To split voice from background sound (no dubbing involved), run **in the backgro
 - Outputs per input, next to the source (`--out` is a folder here): `<name>.voice.wav` · `<name>.background.wav` · `<name>.sub_background.wav`.
 - Credits ≈ seconds ×0.5. No language options; cannot combine with lip-sync flags.
 - Auto-split/merge, key gate, `[space-select]` and `[progress]` rules apply unchanged.
-- **Resume** — separation saves the same `*.dubresume.json` state with a per-part checkpoint, so an interrupted run (credits, crash, killed shell) continues with `node scripts/dubbing.mjs --resume "<state-file>"` **without re-submitting already-paid parts**. Re-running the original command is blocked (`[resume-check]`, exit 3) — run the printed `--resume` instead.
+- **Resume** — separation saves the same `*.dubresume.json` state with a per-part checkpoint, so an interrupted run (credits, crash, killed shell) continues with `node scripts/dubbing.mjs --resume "<state-file>"` **without re-submitting already-paid parts**. Re-running the original command is blocked (`[resume-check]`) — run the printed `--resume` instead.
 
 ## Interruption & resume
 
@@ -82,7 +88,7 @@ node scripts/dubbing.mjs --resume "<state-file>"
 
 Completed parts are skipped automatically; the state file is deleted when everything finishes.
 
-**Re-running the original command while a state file exists is blocked** — the worker prints `[resume-check]` lines (exit 3) instead of re-billing. Relay the printed `--resume` command and run that. Delete the state file **only** if the user explicitly chooses to pay for the completed parts again — never on your own.
+**Re-running the original command while a state file exists is blocked** — the worker prints `[resume-check]` lines instead of re-billing. Relay the printed `--resume` command and run that. Delete the state file **only** if the user explicitly chooses to pay for the completed parts again — never on your own.
 
 **On an insufficient-credits stop**: deliver the completed parts, then relay the worker's guidance and resume command **verbatim** — plain stdout (not `[progress]`), so don't drop it while summarizing. The guidance points to `scripts/billing.mjs` for a payment link — see **Plan upgrade & credits** below.
 
@@ -110,7 +116,13 @@ Hand the returned link to the user to complete payment in their browser; after t
 
 ## Perso portal (answer only when asked)
 
-Every run is also a project in the user's Perso portal account. If the user wants more than the delivered files (subtitles, audio-only, other formats) or to browse/re-download earlier projects, point them to https://portal.perso.ai — projects live in the workspace used for the run; split parts are numbered `_01`, `_02`, …. Never add this to progress relays or final reports.
+Every run is also a project in the user's Perso workspace. If the user wants to open a result on Perso (more than the delivered files — subtitles, audio-only, other formats — or to browse/re-download), give them the project link, built from the project's seq:
+
+- **dubbing / lip-sync** → `https://perso.ai/en/workspace/vt/detail/<seq>` (seq = a part's `seq` from the run's `[project-ref]` line)
+- **subtitles (STT)** → `https://perso.ai/en/workspace/vt/stt/<seq>` (seq from the `[srt-original]` line)
+- **audio separation** → `https://perso.ai/en/workspace/vt/audio-separation/<seq>`
+
+A split or multi-language run spans several projects (split parts numbered `_01`, `_02`, …) — link the one the user asked about, or the whole workspace `https://perso.ai/en/workspace/vt` if they just want to browse. Never add any of this to progress relays or final reports — only when the user asks.
 
 ## Version updates
 

@@ -3,7 +3,7 @@
 [![Powered by Perso AI](https://img.shields.io/badge/Powered%20by-Perso%20AI-5A4FF3)](https://perso.ai)
 ![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A518-339933?logo=node.js&logoColor=white)
 ![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-1f6feb)
-![Platforms](https://img.shields.io/badge/platforms-Claude%20%C2%B7%20Antigravity%20%C2%B7%20Codex%20%C2%B7%20Cursor-555)
+![Platforms](https://img.shields.io/badge/platforms-Claude%20%C2%B7%20Antigravity%20%C2%B7%20Codex-555)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](../../LICENSE)
 
 [English](../../README.md) ｜ [한국어](../ko/README.md) ｜ [Español](../es/README.md) ｜ [Português](../pt/README.md) ｜ [Русский](../ru/README.md) ｜ [Bahasa Indonesia](../id/README.md) ｜ [Deutsch](../de/README.md) ｜ **ไทย** ｜ [日本語](../ja/README.md) ｜ [繁體中文](../zh-TW/README.md) ｜ [简体中文](../zh-CN/README.md) ｜ [Tiếng Việt](../vi/README.md) ｜ [Français](../fr/README.md)
@@ -16,7 +16,7 @@
 - **คำบรรยาย** (`/srt`) — ดึงไฟล์ SRT ผ่านระบบแปลงเสียงพูดเป็นข้อความ จากนั้นเอเจนต์ของคุณจะแปลให้
 - สื่อที่มีขนาดใหญ่เกินไปหรือยาวมากจะถูกแบ่ง ประมวลผล และรวมกลับเข้าด้วยกันโดยอัตโนมัติ
 
-ทำงานบน **Node.js 18+** และต้องมี**คีย์ API ของ Perso Dubbing** สร้างบนมาตรฐาน Agent Skills (`SKILL.md`) จึงทำงานเหมือนกันทั้งบน Claude, Codex, Cursor และ Antigravity
+ทำงานบน **Node.js 18+** และต้องมี**คีย์ API ของ Perso Dubbing** สร้างบนมาตรฐาน Agent Skills (`SKILL.md`) จึงทำงานเหมือนกันทั้งบน Claude, Codex และ Antigravity
 
 ![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
 
@@ -41,7 +41,6 @@
    claude install perso-dubbing@perso-ai
    ```
 
-   *ชอบคลิกมากกว่า? หลังจากคำสั่งแรก ให้กดปุ่ม **+** → **Plugins** → **Add plugin** → **perso-dubbing***
 3. ขอให้พากย์เสียง — *"พากย์วิดีโอนี้เป็นภาษาอังกฤษ — C:\videos\clip.mp4"* URL ของ YouTube หรือทั้งโฟลเดอร์ก็ใช้ได้เช่นกัน หากไม่ได้ระบุ `--out` ผลลัพธ์จะถูกบันทึกไว้ข้างวิดีโอต้นฉบับ
 
 **Claude Code CLI:** ให้ใช้ `/plugin marketplace add perso-ai/perso-dubbing-plugin` และ `/plugin install perso-dubbing@perso-ai` แทน
@@ -52,18 +51,29 @@
 npx perso-dubbing
 ```
 
-ตรวจจับโฮสต์ที่คุณติดตั้งไว้ แล้วติดตั้งสกิลทั้งสองลงในแต่ละโฮสต์ พร้อมแสดงตำแหน่งที่ติดตั้งของแต่ละตัว เพิ่ม `--claude` / `--codex` / `--cursor` / `--antigravity` เพื่อเลือกเฉพาะโฮสต์เดียว `--all` สำหรับทุกโฮสต์ หรือ `--project` สำหรับเฉพาะโปรเจกต์ปัจจุบัน โคลนรีโพซิทอรีไว้แล้วใช่ไหม? `node scripts/install.mjs` จากรากของรีโพซิทอรีทำสิ่งเดียวกันโดยไม่ต้องใช้เครือข่าย
+ตรวจจับโฮสต์ที่คุณติดตั้งไว้ แล้วติดตั้งสกิลทั้งสองลงในแต่ละโฮสต์ พร้อมแสดงตำแหน่งที่ติดตั้งของแต่ละตัว เพิ่ม `--claude` / `--codex` / `--antigravity` เพื่อเลือกเฉพาะโฮสต์เดียว `--all` สำหรับทุกโฮสต์ หรือ `--project` สำหรับเฉพาะโปรเจกต์ปัจจุบัน โคลนรีโพซิทอรีไว้แล้วใช่ไหม? `node scripts/install.mjs` จากรากของรีโพซิทอรีทำสิ่งเดียวกันโดยไม่ต้องใช้เครือข่าย
 
-> **🤖 ถึงเอเจนต์:** หากคุณได้รับเพียง URL ของรีโพซิทอรีนี้:
->
-> - **Claude Code (แอปเดสก์ท็อปหรือ CLI)** — **อย่า** รัน npx แม้ผู้ใช้จะบอกว่า "install this" ก็ตาม ให้แสดงคำสั่ง `claude …` ทั้งสองคำสั่งด้านบนแก่ผู้ใช้ และขอให้ผู้ใช้พิมพ์เองทีละคำสั่ง (คำสั่งเหล่านี้เป็นคำสั่งสแลชที่ผู้ใช้ต้องพิมพ์เอง คุณไม่สามารถรันแทนได้) พร้อมทั้งบอกแนวทางการคลิกด้วย: ปุ่ม **+** → **Plugins** → **Add plugin** ใช้ npx ก็ต่อเมื่อผู้ใช้ยังต้องการให้คุณจัดการให้หลังจากนั้นเท่านั้น
-> - **Codex · Cursor · Antigravity หรือผู้ใช้มอบหมายให้คุณติดตั้ง** — ให้รัน `npx perso-dubbing` (หรือ `node scripts/install.mjs` หากโคลนรีโพซิทอรีไว้แล้ว)
+<details>
+<summary><b>🤖 ถึงเอเจนต์</b> — หากคุณได้รับเพียง URL ของรีโพซิทอรีนี้</summary>
+
+- **Claude Code (แอปเดสก์ท็อปหรือ CLI)** — รันคำสั่งติดตั้งบรรทัดเดียวนี้ด้วยตัวคุณเอง (ไม่ต้องโต้ตอบและเป็น idempotent รันซ้ำได้อย่างปลอดภัย):
+
+  ```bash
+  claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
+  ```
+
+  เมื่อทั้งสองคำสั่งสำเร็จ ให้แจ้งผู้ใช้ให้เริ่มเซสชันใหม่ (หรือรีสตาร์ต Claude Code) — `/dubbing` และ `/srt` จะโหลดตั้งแต่เซสชันถัดไป เฉพาะกรณีที่ใช้ CLI `claude` ในเชลล์ของคุณไม่ได้เท่านั้น จึงค่อยเปลี่ยนไปแสดงคำสั่งด้านบนให้ผู้ใช้พิมพ์เอง
+- **Codex · Antigravity หรือผู้ใช้มอบหมายให้คุณติดตั้ง** — ให้รัน `npx perso-dubbing` (หรือ `node scripts/install.mjs` หากโคลนรีโพซิทอรีไว้แล้ว)
+- **ChatGPT (เว็บ/แอป — ใช้เทอร์มินัลบนเครื่องผู้ใช้ไม่ได้)** — อ่าน https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/chatgpt-setup.md แล้วทำตาม: ให้ติดตั้ง **Codex** บนเครื่องผู้ใช้ก่อน — การติดตั้งจะดำเนินต่อที่นั่น (อยู่ใน Codex ที่มีเทอร์มินัลแล้ว? ใช้ข้อด้านบนแทน)
+- **Gemini (เว็บ/แอป — ใช้เทอร์มินัลบนเครื่องผู้ใช้ไม่ได้)** — อ่าน https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/gemini-setup.md แล้วทำตาม: ให้ติดตั้ง **Antigravity** ก่อน — การติดตั้งจะดำเนินต่อที่นั่น (อยู่ใน Antigravity แล้ว? ใช้ข้อด้านบนแทน)
+
+</details>
 
 ### การรันครั้งแรก — คีย์ API ของคุณ
 
 หน้าเว็บจะเปิดขึ้นในเบราว์เซอร์: ลงชื่อเข้าใช้แล้วคลิกเพียงครั้งเดียว คีย์ของคุณจะถูกออกให้และจัดเก็บไว้บนเครื่องนี้แบบเข้ารหัส ไม่ต้องคัดลอกอะไรทั้งสิ้น หากไม่สามารถเปิดเบราว์เซอร์ได้ ไฟล์คีย์จะเปิดขึ้นมาแทน — วางคีย์ลงในไฟล์นั้นแล้วบันทึก คีย์จะถูกเข้ารหัสและไฟล์จะถูกลบทิ้ง
 
-**อย่าวางคีย์ API ของคุณลงในแชทเด็ดขาด** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">รับคีย์ API</a> · ตรวจสอบได้ทุกเมื่อด้วย `npm run key:check`
+<a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">รับคีย์ API</a> · ตรวจสอบได้ทุกเมื่อด้วย `npm run key:check`
 
 ---
 
@@ -111,7 +121,6 @@ npx perso-dubbing
 ```text
 .claude-plugin/    ไฟล์ manifest ของปลั๊กอินและมาร์เก็ตเพลสของ Claude Code
 .codex-plugin/     ไฟล์ manifest ของปลั๊กอิน Codex
-.cursor-plugin/    ไฟล์ manifest ของปลั๊กอิน Cursor
 docs/              หน้า Landing ของ GitHub Pages + README และ FAQ ฉบับแปล (12 ภาษา)
 skills/dubbing/    สกิลพากย์เสียง (SKILL.md · lib/ · scripts/) — ครบในตัว
 skills/srt/        สกิลคำบรรยาย SRT (SKILL.md · scripts/) — ใช้ lib/ ของสกิลพากย์เสียง

@@ -3,7 +3,7 @@
 [![Powered by Perso AI](https://img.shields.io/badge/Powered%20by-Perso%20AI-5A4FF3)](https://perso.ai)
 ![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A518-339933?logo=node.js&logoColor=white)
 ![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-1f6feb)
-![Platforms](https://img.shields.io/badge/platforms-Claude%20%C2%B7%20Antigravity%20%C2%B7%20Codex%20%C2%B7%20Cursor-555)
+![Platforms](https://img.shields.io/badge/platforms-Claude%20%C2%B7%20Antigravity%20%C2%B7%20Codex-555)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](../../LICENSE)
 
 [English](../../README.md) ｜ [한국어](../ko/README.md) ｜ [Español](../es/README.md) ｜ [Português](../pt/README.md) ｜ **Русский** ｜ [Bahasa Indonesia](../id/README.md) ｜ [Deutsch](../de/README.md) ｜ [ไทย](../th/README.md) ｜ [日本語](../ja/README.md) ｜ [繁體中文](../zh-TW/README.md) ｜ [简体中文](../zh-CN/README.md) ｜ [Tiếng Việt](../vi/README.md) ｜ [Français](../fr/README.md)
@@ -16,7 +16,7 @@
 - **Субтитры** (`/srt`) — извлечение SRT через распознавание речи, после чего ваш агент их переводит
 - Слишком большие и очень длинные материалы автоматически разбиваются на части, обрабатываются и снова объединяются
 
-Работает на **Node.js 18+** и требует **API-ключ Perso Dubbing**. Построен на стандарте Agent Skills (`SKILL.md`), поэтому ведёт себя одинаково в Claude, Codex, Cursor и Antigravity.
+Работает на **Node.js 18+** и требует **API-ключ Perso Dubbing**. Построен на стандарте Agent Skills (`SKILL.md`), поэтому ведёт себя одинаково в Claude, Codex и Antigravity.
 
 ![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
 
@@ -41,7 +41,6 @@
    claude install perso-dubbing@perso-ai
    ```
 
-   *Предпочитаете клики? После первой команды: кнопка **+** → **Plugins** → **Add plugin** → **perso-dubbing**.*
 3. Попросите продублировать видео — *«Продублируй это видео на английский — C:\videos\clip.mp4»*. URL с YouTube или папка тоже подойдут. Если не указать `--out`, результаты сохраняются рядом с исходным видео.
 
 **Claude Code CLI:** используйте вместо этого `/plugin marketplace add perso-ai/perso-dubbing-plugin` и `/plugin install perso-dubbing@perso-ai`.
@@ -52,18 +51,29 @@
 npx perso-dubbing
 ```
 
-Определяет, какие хосты у вас есть, устанавливает оба навыка в каждый из них и выводит, куда именно попал каждый. Добавьте `--claude` / `--codex` / `--cursor` / `--antigravity` для одного хоста, `--all` для всех сразу или `--project` только для текущего проекта. Репозиторий уже клонирован? `node scripts/install.mjs` из корня репозитория делает то же самое, без обращения к сети.
+Определяет, какие хосты у вас есть, устанавливает оба навыка в каждый из них и выводит, куда именно попал каждый. Добавьте `--claude` / `--codex` / `--antigravity` для одного хоста, `--all` для всех сразу или `--project` только для текущего проекта. Репозиторий уже клонирован? `node scripts/install.mjs` из корня репозитория делает то же самое, без обращения к сети.
 
-> **🤖 Агенту:** если вам дали только URL этого репозитория:
->
-> - **Claude Code (приложение для компьютера или CLI)** — **не** запускайте npx, даже если пользователь сказал «установи это». Покажите ему две команды `claude …` выше и попросите ввести каждую самостоятельно (это слэш-команды, которые вводит пользователь, и вы не можете их выполнить), а также путь с кликами: кнопка **+** → **Plugins** → **Add plugin**. Используйте npx только если после этого пользователь всё же хочет, чтобы установку выполнили вы.
-> - **Codex · Cursor · Antigravity, или если пользователь поручил установку вам** — выполните `npx perso-dubbing` (или `node scripts/install.mjs`, если репозиторий уже клонирован).
+<details>
+<summary><b>🤖 Агенту</b> — если вам дали только URL этого репозитория</summary>
+
+- **Claude Code (приложение для компьютера или CLI)** — выполните сами эту однострочную команду установки (она неинтерактивна и идемпотентна — повторный запуск безопасен):
+
+  ```bash
+  claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
+  ```
+
+  Когда обе выполнятся успешно, попросите пользователя начать новую сессию (или перезапустить Claude Code) — `/dubbing` и `/srt` загружаются со следующей сессии. Только если CLI `claude` недоступен в вашей оболочке, вернитесь к варианту показать пользователю команду выше, чтобы он ввёл её сам.
+- **Codex · Antigravity, или если пользователь поручил установку вам** — выполните `npx perso-dubbing` (или `node scripts/install.mjs`, если репозиторий уже клонирован).
+- **ChatGPT (веб/приложение — без терминала на компьютере пользователя)** — прочитайте https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/chatgpt-setup.md и следуйте ему: сначала настройте **Codex** на компьютере пользователя — установка продолжится там. (Уже внутри Codex с терминалом? Используйте пункт выше.)
+- **Gemini (веб/приложение — без терминала на компьютере пользователя)** — прочитайте https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/gemini-setup.md и следуйте ему: сначала установите **Antigravity** — установка продолжится там. (Уже внутри Antigravity? Используйте пункт выше.)
+
+</details>
 
 ### Первый запуск — ваш API-ключ
 
 Откроется страница в браузере: войдите и нажмите одну кнопку — ключ будет выпущен и сохранён на этом компьютере в зашифрованном виде. Ничего копировать не нужно. Если браузер открыть не удаётся, вместо этого откроется файл ключа — вставьте туда ключ и сохраните, после чего он шифруется, а файл удаляется.
 
-**Никогда не вставляйте свой API-ключ в чат.** → <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Получить API-ключ</a> · проверить в любой момент можно командой `npm run key:check`
+<a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Получить API-ключ</a> · проверить в любой момент можно командой `npm run key:check`
 
 ---
 
@@ -111,7 +121,6 @@ npx perso-dubbing
 ```text
 .claude-plugin/    Плагин Claude Code + манифесты маркетплейса
 .codex-plugin/     Манифест плагина Codex
-.cursor-plugin/    Манифест плагина Cursor
 docs/              Лендинг GitHub Pages + переведённые README · FAQ (12 языков)
 skills/dubbing/    Навык дубляжа (SKILL.md · lib/ · scripts/) — самодостаточный
 skills/srt/        Навык субтитров SRT (SKILL.md · scripts/) — использует lib/ навыка дубляжа

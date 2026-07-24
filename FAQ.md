@@ -26,7 +26,7 @@ Yes. Put multiple languages in one command (`--target en,ja,zh`) — the source 
 
 ### Where are my results saved?
 
-Next to the source video by default, or in the folder you pass with `--out`. Every run is also a project in your Perso portal (<https://portal.perso.ai>), where you can re-download it or get other formats.
+Next to the source video by default, or in the folder you pass with `--out`. Every run is also a project in your Perso portal (<https://perso.ai/en/workspace/vt>), where you can re-download it or get other formats.
 
 ### What is lip-sync?
 
