@@ -24,7 +24,8 @@ const LOCALES = [
 function transform(html) {
   let out = html;
   // 페이지 URL — 언어 경로가 붙은 것을 먼저 치환하고, 루트(한국어)는 마지막에.
-  for (const lang of ['en', 'es', 'pt']) {
+  out = out.replaceAll(`${OLD_ORIGIN}/en/`, 'https://perso.ai/dubbing/agents');
+  for (const lang of ['es', 'pt']) {
     out = out.replaceAll(`${OLD_ORIGIN}/${lang}/`, newPageUrl(lang));
   }
   out = out.replaceAll(`${OLD_ORIGIN}/`, newPageUrl('ko'));
@@ -35,7 +36,7 @@ function transform(html) {
   // 클라이언트 사이드 언어 라우팅 — root-absolute 경로를 /dubbing/agents 하위 경로로.
   out = out.replaceAll(
     'function langPath(l){ return l === "ko" ? "/" : "/" + l + "/"; }',
-    'function langPath(l){ return l === "ko" ? "/ko/dubbing/agents" : "/" + l + "/dubbing/agents"; }'
+    'function langPath(l){ return l === "ko" ? "/ko/dubbing/agents" : l === "en" ? "/dubbing/agents" : "/" + l + "/dubbing/agents"; }'
   );
   // ?lang= 리다이렉트 스크립트 (docs/index.html 에만 존재; 다른 파일에서는 no-op).
   out = out.replaceAll('location.replace("/"+l+"/");', 'location.replace("/"+l+"/dubbing/agents");');
@@ -59,7 +60,7 @@ for (const { lang, src } of LOCALES) {
   }
   // 치환 결과물이 실제로 존재하는지도 검증 (원본 포맷이 바뀌어 replaceAll 이 no-op 되는 회귀 방지)
   for (const mustHave of [
-    'function langPath(l){ return l === "ko" ? "/ko/dubbing/agents" : "/" + l + "/dubbing/agents"; }',
+    'function langPath(l){ return l === "ko" ? "/ko/dubbing/agents" : l === "en" ? "/dubbing/agents" : "/" + l + "/dubbing/agents"; }',
     `"${ASSET_PREFIX}/media/`,
     'https://perso.ai/',
   ]) {
