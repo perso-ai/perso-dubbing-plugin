@@ -132,6 +132,7 @@ export async function runSchedule(chunks, spaceSeq, opts = {}, hooks = {}) {
               if (!m) { m = await upload(toPrepared(chunk), spaceSeq); mediaByKey.set(mediaKey(chunk), m); } // once per chunk (shared across languages)
               chunk.mediaSeq = m.seq;
               chunk.kind = chunk.kind ?? m.kind;
+              if (!chunk.title && m.originalName) chunk.title = m.originalName; // URL input: name the project after the platform title, not the raw URL
             }
             [pid] = await requestTranslation(spaceSeq, chunk.mediaSeq, { ...opts, target: chunk.target, title: chunk.title ?? opts.title, kind: chunk.kind });
           }
