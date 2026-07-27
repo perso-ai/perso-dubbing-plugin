@@ -57,6 +57,14 @@ for (const { lang, src } of LOCALES) {
   ]) {
     if (out.includes(bad)) throw new Error(`${src}: untransformed pattern remains: ${bad}`);
   }
+  // 치환 결과물이 실제로 존재하는지도 검증 (원본 포맷이 바뀌어 replaceAll 이 no-op 되는 회귀 방지)
+  for (const mustHave of [
+    'function langPath(l){ return l === "ko" ? "/ko/dubbing/agents" : "/" + l + "/dubbing/agents"; }',
+    `"${ASSET_PREFIX}/media/`,
+    'https://perso.ai/',
+  ]) {
+    if (!out.includes(mustHave)) throw new Error(`${src}: expected transformed pattern missing: ${mustHave}`);
+  }
   mkdirSync(path.join(outDir, lang), { recursive: true });
   writeFileSync(path.join(outDir, lang, 'index.html'), out);
 }

@@ -20,3 +20,7 @@ out/
 dubbing-resume.json
 .dubbing-done.json
 _*.mjs
+
+# 내부 작업 문서 — docs/ 는 공개 GitHub Pages 루트이므로 절대 커밋 금지
+docs/superpowers/
+.superpowers/
