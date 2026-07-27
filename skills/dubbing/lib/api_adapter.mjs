@@ -319,3 +319,38 @@ async function fetchToFile(url, outPath, attempts = 3) {
   }
   throw lastErr;
 }
+
+// ── speakers (assign a new speaker to a sentence) ──────
+/** Raw project detail — carries projectGenerationType (DUBBING/STT/AUDIO_SEPARATION/LIP_SYNC), isEditable,
+ *  progressReason, durationMs, title. Flat response (not wrapped in `result`), same shape getStatus reads. */
+export async function getProjectDetail(projectSeq, spaceSeq) {
+  return get(`${VT}/projects/${projectSeq}/spaces/${spaceSeq}`);
+}
+
+/** Full script (sentences + speakers), walking the cursor pagination until hasNext is false. Response is
+ *  flat: { hasNext, nextCursorId, sentences, speakers }. Verified live (project 288977, 387 sentences / 4
+ *  pages of 100): every page repeats the SAME full speakers array (not a per-page delta), and sentences
+ *  come back ordered by offsetMs, NOT by seq (that project has 38 seq inversions, yet the concatenation
+ *  across page boundaries is still strictly ascending by offsetMs, 387/387 unique seqs) — so cursorId is a
+ *  positional cursor, not a `seq >` filter; don't "fix" the pagination to sort or dedupe by seq. Hard-capped
+ *  at 50 pages so a server bug can't spin forever. */
+export async function getProjectScript(projectSeq, spaceSeq) {
+  const sentences = [];
+  let speakers = [];
+  let cursorId;
+  for (let page = 0; page < 50; page++) {
+    const query = { size: 100, ...(cursorId != null ? { cursorId } : {}) };
+    const r = await get(`${VT}/projects/${projectSeq}/spaces/${spaceSeq}/script`, { query });
+    sentences.push(...(r?.sentences ?? []));
+    if (r?.speakers) speakers = r.speakers; // every page carries the full array (verified) — last one wins
+    if (!r?.hasNext) break;
+    cursorId = r.nextCursorId;
+  }
+  return { sentences, speakers };
+}
+
+/** Add a new speaker derived from one sentence. Response shape is unverified — returned as-is; the
+ *  caller scans it defensively for a speaker identity and re-fetches the script to confirm the effect. */
+export async function addSpeakerFromSentence(projectSeq, spaceSeq, sentenceSeq) {
+  return post(`${VT}/projects/${projectSeq}/spaces/${spaceSeq}/speakers/from-sentence`, { body: { sourceSentenceSeq: sentenceSeq } });
+}
