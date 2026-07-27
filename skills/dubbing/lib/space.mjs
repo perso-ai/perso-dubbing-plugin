@@ -1,5 +1,6 @@
 // spaceSeq resolution. Commonly needed by validate, translate, and quota.
 import { get } from './http_client.mjs';
+import { getProjectDetail } from './api_adapter.mjs';
 
 let _cache = null;
 
@@ -50,6 +51,24 @@ export async function resolveSpace() {
     'Several spaces are available — set PERSO_SPACE_SEQ or pass --space <seq>:\n' +
     spaces.map((s) => `  ${s.seq}: ${s.name}`).join('\n'),
   );
+}
+
+/** Locate which of the user's accessible spaces a project lives in, by probing the project detail in
+ *  each one — used to auto-locate a project instead of asking the user which workspace to use.
+ *  403 (wrong space) and 404 (unknown project) mean "not in this space" and are swallowed; any other
+ *  error (network, auth) is a real failure and must not be misread as "not found". */
+export async function findSpaceForProject(projectSeq) {
+  const spaces = await listSpaces();
+  for (const s of spaces) {
+    try {
+      const detail = await getProjectDetail(projectSeq, s.spaceSeq);
+      return { spaceSeq: s.spaceSeq, detail };
+    } catch (e) {
+      if (e?.name === 'PersoApiError' && (e.httpStatus === 403 || e.httpStatus === 404)) continue;
+      throw e;
+    }
+  }
+  return null;
 }
 
 /** Query plan/quota → { planTier, remainingQuota, resetDateTime }. Returns null on failure. */

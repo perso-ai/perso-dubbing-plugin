@@ -1,7 +1,7 @@
 ---
 name: dubbing
 description: Auto-dub (voice-translate) videos into other languages, with lip-sync (Perso AI Dubbing).
-allowed-tools: Bash(node scripts/dubbing.mjs *), Bash(node scripts/resolve_key.mjs *), Bash(node scripts/connect.mjs), Bash(node scripts/billing.mjs *), Bash(node scripts/languages.mjs), Bash(node scripts/check_deps.mjs), Bash(node ${CLAUDE_SKILL_DIR}/scripts/*)
+allowed-tools: Bash(node scripts/dubbing.mjs *), Bash(node scripts/resolve_key.mjs *), Bash(node scripts/connect.mjs), Bash(node scripts/billing.mjs *), Bash(node scripts/languages.mjs), Bash(node scripts/check_deps.mjs), Bash(node scripts/speaker.mjs *), Bash(node ${CLAUDE_SKILL_DIR}/scripts/*)
 ---
 
 # /dubbing
@@ -66,6 +66,23 @@ Rules:
 - **Repeating lip-sync on the same project bills again** (no server-side dedup). If this session already lip-synced it, point at the existing file and re-run only on explicit confirmation.
 - **If lip-sync fails, the worker saves the dubbed video instead** and says so in the final report — relay that clearly; the dubbing credits are not wasted.
 - Credits running out between dubbing and lip-sync: the dubbed videos are saved and resume finishes only the lip-sync — relay the printed top-up URL and resume command verbatim.
+
+## Speaker (dubbing projects only)
+
+To assign a **new speaker** to one or more sentences of an already-dubbed project, run:
+
+`node scripts/speaker.mjs "<project URL|projectSeq>" --at "5s,22s,98s"` (comma-separated timecodes/ranges)
+`node scripts/speaker.mjs "<project URL|projectSeq>" --text "first line|second line"` (pipe-separated, quoted text)
+`node scripts/speaker.mjs "<project URL|projectSeq>" --sentence 1234,1288` (re-run after a `[sentence-select]` question)
+`node scripts/speaker.mjs "<project URL|projectSeq>" --list` (browse the project's sentences to find the right target)
+
+**Dubbing projects only** — the worker rejects subtitle (STT), audio-separation, and lip-sync projects, and unfinished/failed ones. It works out the workspace on its own from the project link; you don't need to ask which space.
+
+**A pause is not a failure.** A `[sentence-select]` line means the worker couldn't pin down a single target (nothing was given, nothing matched, or more than one sentence matched) — it exits cleanly to ask you something, not because it failed. The numbered list under it (index, time label, text) is safe to relay to the user as-is. Right after that list, a `[sentence-ref]` line prints a JSON map of the same numbers to the worker's internal sentence numbers — that line is **your own lookup only**: never show it or read it aloud. Once the user picks a number, look it up in that map and re-run the same command with `--sentence` set to that value. A `[speaker-resolve]` block alongside it means some targets already resolved but **nothing was written yet** — it has its own numbered list and its own `[sentence-ref]` line; the re-run's `--sentence` list must include both those already-resolved values and the newly chosen one(s), or the resolved ones would be dropped. When a run prints more than one `[sentence-select]` group (several ambiguous targets at once), each group has its own list and its own `[sentence-ref]` right after it — the numbering restarts per group, so don't mix a number from one group with the ref line of another. A `[speaker-confirm]` line (more than 10 targets at once) works the same way — a numbered list, then its `[sentence-ref]` — and needs a plain yes/no before writing.
+
+Relay `[progress]` lines as the worker reads the script, and `[speaker-added]` lines as each new speaker is created. On `[script-unavailable]`, relay the printed status (still generating / failed / try again) rather than treating it as an error — the project itself is fine, its script just isn't readable yet.
+
+Pass `--host` silently, same as the other commands. If the user wants the project link, build it from whatever project reference they originally gave you — don't invent one.
 
 ## Audio separation
 
