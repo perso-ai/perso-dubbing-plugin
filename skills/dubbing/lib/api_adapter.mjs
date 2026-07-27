@@ -37,13 +37,13 @@ const regDurationSec = (r) => {
   return Number.isFinite(ms) && ms > 0 ? Math.round(ms / 1000) : null;
 };
 
-/** prepared({source,localPath|sourceUrl,originalName}) → { seq:mediaSeq, kind:'video'|'audio', durationSec:number|null } */
+/** prepared({source,localPath|sourceUrl,originalName}) → { seq:mediaSeq, kind:'video'|'audio', durationSec:number|null, originalName:string|null } */
 export async function upload(prepared, spaceSeq) {
   if (prepared.source === 'external') {
     const r = await put('/file/api/upload/video/external', {
       body: { space_seq: spaceSeq, url: prepared.sourceUrl },
     });
-    return { seq: r.seq, kind: 'video', durationSec: regDurationSec(r) };
+    return { seq: r.seq, kind: 'video', durationSec: regDurationSec(r), originalName: r.originalName ?? null };
   }
   return uploadLocal(prepared.localPath, prepared.originalName, spaceSeq);
 }

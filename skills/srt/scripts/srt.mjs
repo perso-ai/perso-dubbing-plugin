@@ -213,9 +213,14 @@ async function ensureMedia(pin, spaceSeq, saver, { forceReupload = false } = {})
   if (pin.uploadError) throw pin.uploadError;
   if (pin.mediaSeq != null && !forceReupload) return;
   const prepared = await materialize(pin);
-  const { seq, kind, durationSec } = await upload(prepared, spaceSeq);
+  const { seq, kind, durationSec, originalName } = await upload(prepared, spaceSeq);
   pin.mediaSeq = seq;
   pin.kind = kind;
+  // A URL input has no name of its own until the import resolves the platform title.
+  if (originalName && !prepared.originalName) {
+    prepared.originalName = originalName;
+    if (pin.ref) pin.ref.originalName = originalName; // persist so resume reports the same name
+  }
   if (durationSec != null) pin.durationSec = durationSec; // server-measured length (register response)
   saver.writeNow(); // persist the mediaSeq (and duration) so resume reuses the finished upload
 }
@@ -286,7 +291,7 @@ async function sttProcess(perInput, ctx, saver, isResume) {
     });
   };
   for (const pin of perInput) {
-    const name = labelOf(pin.inp ?? pin.ref);
+    let name = labelOf(pin.inp ?? pin.ref);
     try {
       const prev = saver.done[pin.inputId];
       if (prev?.status === 'HARD_FAIL') { streamDone(`Could not extract: ${name} — ${prev.reason ?? 'failed'}`); fail++; continue; }
@@ -298,6 +303,7 @@ async function sttProcess(perInput, ctx, saver, isResume) {
       let projectId = prev?.projectId ?? null;
       if (projectId == null) { // never submitted → upload and submit
         await ensureMedia(pin, spaceSeq, saver);
+        name = labelOf(pin.inp ?? pin.ref); // the import may have resolved a real title for a URL input
         try {
           ([projectId] = await requestStt(spaceSeq, pin.mediaSeq, { title: name, kind: pin.kind ?? 'video' }));
         } catch (e) {
