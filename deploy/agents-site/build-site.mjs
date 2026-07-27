@@ -1,0 +1,55 @@
+#!/usr/bin/env node
+// docs/ (GitHub Pages 구조, 루트=한국어) → perso.ai/{lang}/dubbing/agents 서빙용 정적 트리로 변환.
+// 원본 docs/ 는 건드리지 않는다 — 기존 dubbing-plugin.perso.ai (GitHub Pages) 는 301 전환 전까지 현행 유지.
+import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+
+const [srcDir, outDir] = process.argv.slice(2);
+if (!srcDir || !outDir) {
+  console.error('usage: node build-site.mjs <docsDir> <outDir>');
+  process.exit(1);
+}
+
+const OLD_ORIGIN = 'https://dubbing-plugin.perso.ai';
+const ASSET_PREFIX = '/dubbing/agents';
+const newPageUrl = (lang) => `https://perso.ai/${lang}/dubbing/agents`;
+
+const LOCALES = [
+  { lang: 'ko', src: 'index.html' },
+  { lang: 'en', src: 'en/index.html' },
+  { lang: 'es', src: 'es/index.html' },
+  { lang: 'pt', src: 'pt/index.html' },
+];
+
+function transform(html) {
+  let out = html;
+  // 페이지 URL — 언어 경로가 붙은 것을 먼저 치환하고, 루트(한국어)는 마지막에.
+  for (const lang of ['en', 'es', 'pt']) {
+    out = out.replaceAll(`${OLD_ORIGIN}/${lang}/`, newPageUrl(lang));
+  }
+  out = out.replaceAll(`${OLD_ORIGIN}/`, newPageUrl('ko'));
+  // 루트 절대경로 에셋 → /dubbing/agents 프리픽스 (perso.ai 루트는 다른 앱이 사용)
+  out = out.replaceAll('"/media/', `"${ASSET_PREFIX}/media/`);
+  out = out.replaceAll('url(/fonts/', `url(${ASSET_PREFIX}/fonts/`);
+  out = out.replaceAll('"/perso-mark.svg', `"${ASSET_PREFIX}/perso-mark.svg`);
+  return out;
+}
+
+rmSync(outDir, { recursive: true, force: true });
+
+for (const { lang, src } of LOCALES) {
+  const out = transform(readFileSync(path.join(srcDir, src), 'utf8'));
+  // 치환 누락이 있으면 빌드 자체를 실패시킨다.
+  for (const bad of ['dubbing-plugin.perso.ai', '"/media/', 'url(/fonts/', '"/perso-mark.svg']) {
+    if (out.includes(bad)) throw new Error(`${src}: untransformed pattern remains: ${bad}`);
+  }
+  mkdirSync(path.join(outDir, lang), { recursive: true });
+  writeFileSync(path.join(outDir, lang, 'index.html'), out);
+}
+
+for (const asset of ['media', 'fonts']) {
+  cpSync(path.join(srcDir, asset), path.join(outDir, 'dubbing/agents', asset), { recursive: true });
+}
+cpSync(path.join(srcDir, 'perso-mark.svg'), path.join(outDir, 'dubbing/agents/perso-mark.svg'));
+
+console.log(`built ${LOCALES.length} locale pages -> ${outDir}`);
