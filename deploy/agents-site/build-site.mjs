@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// docs/ (GitHub Pages 구조, 루트=한국어) → perso.ai/{lang}/dubbing/agents 서빙용 정적 트리로 변환.
-// 원본 docs/ 는 건드리지 않는다 — 기존 dubbing-plugin.perso.ai (GitHub Pages) 는 301 전환 전까지 현행 유지.
+// Transforms docs/ (GitHub Pages layout, root = Korean) into the static tree served at perso.ai/{lang}/dubbing/agents.
+// Leaves the original docs/ untouched — dubbing-plugin.perso.ai (GitHub Pages) stays live until the 301 cutover.
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
@@ -23,22 +23,20 @@ const LOCALES = [
 
 function transform(html) {
   let out = html;
-  // 페이지 URL — 언어 경로가 붙은 것을 먼저 치환하고, 루트(한국어)는 마지막에.
+  // Replace lang-prefixed URLs before the bare root (Korean) — ordering matters here.
   out = out.replaceAll(`${OLD_ORIGIN}/en/`, 'https://perso.ai/dubbing/agents');
   for (const lang of ['es', 'pt']) {
     out = out.replaceAll(`${OLD_ORIGIN}/${lang}/`, newPageUrl(lang));
   }
   out = out.replaceAll(`${OLD_ORIGIN}/`, newPageUrl('ko'));
-  // 루트 절대경로 에셋 → /dubbing/agents 프리픽스 (perso.ai 루트는 다른 앱이 사용)
+  // Root-absolute assets get the /dubbing/agents prefix — perso.ai root is owned by another app.
   out = out.replaceAll('"/media/', `"${ASSET_PREFIX}/media/`);
   out = out.replaceAll('url(/fonts/', `url(${ASSET_PREFIX}/fonts/`);
   out = out.replaceAll('"/perso-mark.svg', `"${ASSET_PREFIX}/perso-mark.svg`);
-  // 클라이언트 사이드 언어 라우팅 — root-absolute 경로를 /dubbing/agents 하위 경로로.
   out = out.replaceAll(
     'function langPath(l){ return l === "ko" ? "/" : "/" + l + "/"; }',
     'function langPath(l){ return l === "ko" ? "/ko/dubbing/agents" : l === "en" ? "/dubbing/agents" : "/" + l + "/dubbing/agents"; }'
   );
-  // ?lang= 리다이렉트 스크립트 (docs/index.html 에만 존재; 다른 파일에서는 no-op).
   out = out.replaceAll('location.replace("/"+l+"/");', 'location.replace("/"+l+"/dubbing/agents");');
   return out;
 }
@@ -47,7 +45,7 @@ rmSync(outDir, { recursive: true, force: true });
 
 for (const { lang, src } of LOCALES) {
   const out = transform(readFileSync(path.join(srcDir, src), 'utf8'));
-  // 치환 누락이 있으면 빌드 자체를 실패시킨다.
+  // Fail the build if any untransformed pattern remains.
   for (const bad of [
     'dubbing-plugin.perso.ai',
     '"/media/',
@@ -58,7 +56,7 @@ for (const { lang, src } of LOCALES) {
   ]) {
     if (out.includes(bad)) throw new Error(`${src}: untransformed pattern remains: ${bad}`);
   }
-  // 치환 결과물이 실제로 존재하는지도 검증 (원본 포맷이 바뀌어 replaceAll 이 no-op 되는 회귀 방지)
+  // Also verify the transformed patterns actually appear — guards against replaceAll silently becoming a no-op if the source format changes.
   for (const mustHave of [
     'function langPath(l){ return l === "ko" ? "/ko/dubbing/agents" : l === "en" ? "/dubbing/agents" : "/" + l + "/dubbing/agents"; }',
     `"${ASSET_PREFIX}/media/`,

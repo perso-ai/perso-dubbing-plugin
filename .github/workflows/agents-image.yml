@@ -1,6 +1,5 @@
-# 해당 파일 관련 문의사항은 인프라 기술팀으로 전달 부탁 드립니다.
-# Repo Settings → Environments 에 dev 환경 생성 후 PERSO_REGISTRY_USERNAME, PERSO_REGISTRY_PASSWORD 시크릿 설정 필요.
-# (perso-mono-front .github/workflows/image-build.yaml 과 동일 패턴)
+# Requires a `dev` environment under Repo Settings -> Environments, with
+# PERSO_REGISTRY_USERNAME and PERSO_REGISTRY_PASSWORD secrets configured.
 
 name: 🌈 Dubbing skill landing image push on docker registry(AKS)
 
@@ -17,8 +16,8 @@ env:
 
 jobs:
   image:
-    runs-on: az-worker # github runner server 그룹명 (수정 금지)
-    environment: dev # 사용할 환경변수를 설정한 Github Environments 명
+    runs-on: az-worker # GitHub runner group name — do not change
+    environment: dev
 
     steps:
       - name: 1️⃣ Checkout GitHub Action
@@ -37,7 +36,7 @@ jobs:
           password: ${{ secrets.PERSO_REGISTRY_PASSWORD }}
 
       - name: 4️⃣ Build and push image
-        # 빌드 컨텍스트는 레포 루트(`.`) — Dockerfile 이 docs/ 와 deploy/ 를 루트 기준으로 COPY.
+        # Build context is the repo root (.) — Dockerfile COPYs docs/ and deploy/ relative to root.
         run: |
           docker build \
             -f ${{ env.DOCKERFILE_PATH }}/Dockerfile \

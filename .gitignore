@@ -21,6 +21,6 @@ dubbing-resume.json
 .dubbing-done.json
 _*.mjs
 
-# 내부 작업 문서 — docs/ 는 공개 GitHub Pages 루트이므로 절대 커밋 금지
+# Internal working docs — never commit; docs/ is the published GitHub Pages root
 docs/superpowers/
 .superpowers/
