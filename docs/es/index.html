@@ -304,13 +304,10 @@
   /* Every panel but the first sits under a tab that isn't flush left, so its top-left corner is free. */
   .panel[data-group="setup"]:not([data-tab="cc"]) .steps{border-top-left-radius:14px;}
   .soon{grid-template-columns:minmax(0,1fr);}
-  .soon .step{align-items:center; text-align:center; padding:40px 30px 44px;}
+  .soon .step{align-items:center; text-align:center; padding:44px 30px 46px;}
   .soon h3{font-size:20px; font-weight:700; line-height:1.35; letter-spacing:-.017em; word-break:keep-all;}
   .soon p{font-size:16px; color:var(--body); margin-top:10px; line-height:1.7; word-break:keep-all; max-width:46ch; flex:none;}
   .soon .act{margin-top:20px;}
-  .soon-ico{width:52px; height:52px; border-radius:16px; display:flex; align-items:center; justify-content:center;
-    color:var(--accent-ink); background:var(--accent-soft); margin-bottom:18px;}
-  .soon-ico svg{width:24px; height:24px;}
   .step{position:relative; background:transparent; border:0; border-radius:0; padding:30px 30px 34px; display:flex; flex-direction:column;}
   .step:not(:last-child)::after{content:""; position:absolute; right:0; top:30px; bottom:30px; width:1px; background:var(--line-soft);}
   .step .num{width:28px; height:28px; border-radius:50%; background:var(--ink); color:#fff; font-size:14px; font-weight:700;
@@ -492,7 +489,7 @@
     .sc-side{max-width:300px;}
     .faq-item summary{font-size:15.5px; padding-right:42px; padding-left:13px;}
     .faq-a{font-size:14px; padding-right:20px; padding-left:13px;}
-    .soon .step{padding:34px 22px 36px;}
+    .soon .step{padding:38px 22px 38px;}
     .steps{grid-template-columns:minmax(0,1fr);}
     .step{padding:24px 22px 26px;}
     .step:not(:last-child)::after{top:auto; bottom:0; left:22px; right:22px; width:auto; height:1px;}
@@ -504,7 +501,6 @@
   }
   @media (max-width:440px){
     .sc-side{max-width:280px;}
-    .soon-ico{width:46px; height:46px; margin-bottom:15px;}
   }
 </style>
 <header>
@@ -666,7 +662,6 @@
     <div class="panel" data-group="setup" data-tab="cl">
       <div class="steps soon">
         <div class="step">
-          <span class="soon-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 1.9"/></svg></span>
           <h3 data-i="cl_h">Claude 지원은 준비 중이에요</h3>
           <p data-i="cl_p">같은 Anthropic의 Claude Code에서는 지금 바로 사용할 수 있어요. Claude Code 설치 방법을 확인해보세요!</p>
           <div class="act"><button class="dlbtn" id="clToCode" type="button" data-i="cl_btn">Claude Code 설치 방법 보기</button></div>
@@ -677,7 +672,6 @@
     <div class="panel" data-group="setup" data-tab="gpt">
       <div class="steps soon">
         <div class="step">
-          <span class="soon-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 1.9"/></svg></span>
           <h3 data-i="gpt_h">ChatGPT 지원은 준비 중이에요</h3>
           <p data-i="gpt_p">같은 OpenAI 계열인 Codex에서는 지금 바로 사용할 수 있어요. Codex 설치 방법을 확인해보세요!</p>
           <div class="act"><button class="dlbtn" id="gptToCodex" type="button" data-i="gpt_btn">Codex 설치 방법 보기</button></div>
@@ -688,7 +682,6 @@
     <div class="panel" data-group="setup" data-tab="gm">
       <div class="steps soon">
         <div class="step">
-          <span class="soon-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 1.9"/></svg></span>
           <h3 data-i="gm_h">Gemini 지원은 준비 중이에요</h3>
           <p data-i="gm_p">같은 Google 계열인 Antigravity에서는 지금 바로 사용할 수 있어요. Antigravity 설치 방법을 확인해보세요!</p>
           <div class="act"><button class="dlbtn" id="gmToAg" type="button" data-i="gm_btn">Antigravity 설치 방법 보기</button></div>
