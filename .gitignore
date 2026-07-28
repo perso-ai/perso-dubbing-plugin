@@ -20,3 +20,7 @@ out/
 dubbing-resume.json
 .dubbing-done.json
 _*.mjs
+
+# Internal working docs — never commit; docs/ is the published GitHub Pages root
+docs/superpowers/
+.superpowers/
