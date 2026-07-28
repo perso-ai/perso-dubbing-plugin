@@ -98,17 +98,11 @@ Report the saved translated file paths to the user, mentioning the originals are
 
 ## Interruption & resume
 
-The worker saves a state file (`*.srtresume.json`, next to the source or in `--out`) from the moment the plan is known and after every completed piece, so a run that dies for ANY reason (credits, crash, killed shell) resumes without redoing paid work:
+The worker saves a state file (`*.srtresume.json`, next to the source or in `--out`) from the moment the plan is known and after every completed piece, so a run that dies for ANY reason (credits, crash, killed shell) continues without redoing paid work. When continuing is possible the worker prints a **`[resume-state] <path>` marker**.
 
-```
-node scripts/srt.mjs --resume "<state-file>"
-```
+**`[resume-state]` is for you, not the user — never show it or the raw `--resume` command.** Tell the user in natural language what finished and what didn't, and offer to continue. When the user agrees, run `node scripts/srt.mjs --resume "<that path>"` (completed inputs are skipped and their `[srt-original]` lines re-printed; the state file is deleted when everything finishes). Delete the state file only if the user explicitly chooses to start over and pay for completed parts again — never on your own. Re-running the original command is blocked (`[resume-check]`).
 
-Completed inputs are skipped (their `[srt-original]` lines are re-printed), and the state file is deleted when everything finishes.
-
-**Re-running the original command while a state file exists is blocked** — the worker prints `[resume-check]` lines instead of re-billing. Relay the printed `--resume` command and run that. Delete the state file **only** if the user explicitly chooses to pay for the completed parts again — never on your own.
-
-**On an insufficient-credits stop**: deliver the completed SRTs (and translate them), then relay the worker's guidance and resume command **verbatim** — plain stdout (not `[progress]`), so don't drop it while summarizing. The guidance points to the dubbing skill's `billing.mjs` (`node ../dubbing/scripts/billing.mjs options`) for a payment link — the flow is described in the dubbing SKILL.md's "Plan upgrade & credits" section. **You only ever hand the link to the user — never open it or complete payment yourself.**
+**On an insufficient-credits stop**: deliver the completed SRTs (and translate them), then tell the user the rest needs a top-up and continuing finishes it without re-billing. The guidance points to the dubbing skill's `billing.mjs` (`node ../dubbing/scripts/billing.mjs options`) for a payment link — described in the dubbing SKILL.md's "Plan upgrade & credits" section. **You only ever hand the link to the user — never open it or complete payment yourself.**
 
 ## Config (env)
 

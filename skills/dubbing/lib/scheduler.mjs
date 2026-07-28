@@ -9,7 +9,7 @@
 // re-submitted on failure (a repeat request bills again) — a failed lip-sync falls back to the dubbed video.
 import { basename, join } from 'node:path';
 import { makeTempDir } from './tmp.mjs';
-import { upload, requestTranslation, requestLipSync, getStatus, download, getQueueStatus, cancel } from './api_adapter.mjs';
+import { upload, requestTranslation, requestLipSync, getStatus, download, getQueueStatus, cancel, classifyUploadError } from './api_adapter.mjs';
 import { PersoApiError } from './http_client.mjs';
 import {
   BACKOFF_BASE_MS, BACKOFF_MAX_MS, POLL_INTERVAL_MS,
@@ -52,6 +52,7 @@ export async function runSchedule(chunks, spaceSeq, opts = {}, hooks = {}) {
   const submitted = new Map(); // projectId → task (input × chunk × language)
   const results = new Map(); // taskKey → result
   const mediaByKey = new Map(); // `${inputId}|${index}` → {seq, kind}: uploaded once per chunk, shared across languages
+  const mediaFailByKey = new Map(); // `${inputId}|${index}` → a defined (non-retryable) upload failure, reused by sibling-language tasks so the same doomed upload isn't re-attempted
 
   // [status] heartbeat (stdout): stage + part counts only — no %, no elapsed, no ETA (user-facing rule).
   // First line ~3 min in (matches the agent's first check), then every statusEvery ms; the `next check`
@@ -97,6 +98,14 @@ export async function runSchedule(chunks, spaceSeq, opts = {}, hooks = {}) {
     results.set(taskKey(t), rec);
     try { onResult(rec); } catch { /* state saving must never break scheduling */ }
   };
+  // Before its media is uploaded a non-lipsync chunk has no mediaSeq → a failure here is an upload-phase failure.
+  const inUploadPhase = (t) => t.stage !== 'lipsync' && t.mediaSeq === undefined;
+  // Record a defined (non-retryable) upload failure and cache it by media key so sibling-language tasks reuse it.
+  const failUpload = (t, info) => {
+    const rec = { status: 'HARD_FAIL', failKind: 'upload', failSource: t.source === 'external' ? 'external' : 'local', ...info };
+    mediaFailByKey.set(mediaKey(t), rec);
+    setResult(t, rec);
+  };
   const checkpoint = (t, pid) => {
     try { onSubmit({ inputId: t.inputId ?? 0, index: t.index, target: t.target, stage: t.stage ?? 'dub', projectId: pid, parentSeq: t.parentSeq ?? null, lipsync: !!opts.lipsync }); }
     catch { /* state saving must never break scheduling */ }
@@ -121,6 +130,10 @@ export async function runSchedule(chunks, spaceSeq, opts = {}, hooks = {}) {
           keep.push(chunk);
           if (slots <= 0 || rejected) blocked = true; // held due to capacity occupancy (distinct from transient-error retry)
           continue;
+        }
+        if (inUploadPhase(chunk)) {
+          const prevFail = mediaFailByKey.get(mediaKey(chunk)); // same media already failed to upload (defined) → don't re-attempt for this language
+          if (prevFail) { setResult(chunk, prevFail); progressed = true; continue; }
         }
         try {
           let pid;
@@ -159,9 +172,19 @@ export async function runSchedule(chunks, spaceSeq, opts = {}, hooks = {}) {
             // local inputs are usually pre-split by resolveChunks → reaching here means an unsplittable case such as external
             setResult(chunk, { status: 'HARD_FAIL', reason: 'too_long' });
             log(`[Input ${chunk.inputId + 1}] segment ${chunk.index + 1} cannot be processed (length)`);
+          } else if (inUploadPhase(chunk) && classifyUploadError(e)) {
+            // a defined upload/register rejection (unsupported format, or a 4xx such as an undownloadable external
+            // URL) → deterministic; retrying repeats the same result. Keep the server's human message for the user.
+            const up = classifyUploadError(e);
+            failUpload(chunk, { reason: up.message || up.token, failToken: up.token, failCode: up.code });
+            log(`[Input ${chunk.inputId + 1}] segment ${chunk.index + 1} upload rejected (${up.code ?? up.token})`);
           } else if (chunk.retries < MAX_RETRY) {
             chunk.retries++; keep.push(chunk);
             log(`[Input ${chunk.inputId + 1}] segment ${chunk.index + 1} retrying`);
+          } else if (inUploadPhase(chunk)) {
+            // retries exhausted during the upload phase (transient upload/register errors) → still an upload failure
+            setResult(chunk, { status: 'HARD_FAIL', reason: 'upload_failed', failKind: 'upload', failToken: 'upload_failed', failCode: null, failSource: chunk.source === 'external' ? 'external' : 'local' });
+            log(`[Input ${chunk.inputId + 1}] segment ${chunk.index + 1} upload failed`);
           } else {
             setResult(chunk, { status: 'HARD_FAIL', reason: 'submit_failed' });
             log(`[Input ${chunk.inputId + 1}] segment ${chunk.index + 1} processing failed`);

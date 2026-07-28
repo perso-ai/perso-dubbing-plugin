@@ -11,9 +11,10 @@ import { pickVideoEncoder, encoderVideoArgs, probeStreams, normalizeTo } from '.
 const exec = promisify(execFile);
 
 // Internal reason token → user-friendly text (avoids exposing raw codes/conditions)
-function friendlyReason(reason) {
+export function friendlyReason(reason) {
   const map = {
     too_long: 'length limit', submit_failed: 'processing error', download_failed: 'download failed',
+    upload_failed: 'upload failed', unsupported_format: 'unsupported media format',
     no_voice: 'no voice detected (nothing to dub)', elapsed_exceeded: 'timed out', failed: 'processing failed',
   };
   if (map[reason]) return map[reason];

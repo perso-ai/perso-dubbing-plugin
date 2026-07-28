@@ -65,7 +65,7 @@ Rules:
 
 - **Repeating lip-sync on the same project bills again** (no server-side dedup). If this session already lip-synced it, point at the existing file and re-run only on explicit confirmation.
 - **If lip-sync fails, the worker saves the dubbed video instead** and says so in the final report — relay that clearly; the dubbing credits are not wasted.
-- Credits running out between dubbing and lip-sync: the dubbed videos are saved and resume finishes only the lip-sync — relay the printed top-up URL and resume command verbatim.
+- Credits running out between dubbing and lip-sync: the dubbed videos are saved and continuing finishes only the lip-sync — relay the top-up URL, and continue via the `[resume-state]` path once paid (see **Interruption & resume**).
 
 ## Speaker (dubbing projects only)
 
@@ -93,21 +93,17 @@ To split voice from background sound (no dubbing involved), run **in the backgro
 - Outputs per input, next to the source (`--out` is a folder here): `<name>.voice.wav` · `<name>.background.wav` · `<name>.sub_background.wav`.
 - Credits ≈ seconds ×0.5. No language options; cannot combine with lip-sync flags.
 - Auto-split/merge, key gate, `[space-select]` and `[progress]` rules apply unchanged.
-- **Resume** — separation saves the same `*.dubresume.json` state with a per-part checkpoint, so an interrupted run (credits, crash, killed shell) continues with `node scripts/dubbing.mjs --resume "<state-file>"` **without re-submitting already-paid parts**. Re-running the original command is blocked (`[resume-check]`) — run the printed `--resume` instead.
+- **Resume** — separation saves the same `*.dubresume.json` state with a per-part checkpoint, so an interrupted run (credits, crash, killed shell) continues **without re-submitting already-paid parts**. It uses the same `[resume-state]` handling as dubbing (see **Interruption & resume**); re-running the original command is blocked (`[resume-check]`).
 
 ## Interruption & resume
 
-The worker saves a state file (`*.dubresume.json`, next to the source or `--out`) from the moment the split plan is known and after every completed piece, so a run that dies for ANY reason (credits, crash, killed shell) resumes without redoing paid work:
+The worker saves a state file (`*.dubresume.json`, next to the source or `--out`) from the moment the split plan is known and after every completed piece, so a run that dies for ANY reason (credits, crash, killed shell) continues without redoing paid work. When continuing is possible the worker prints a **`[resume-state] <path>` marker**.
 
-```
-node scripts/dubbing.mjs --resume "<state-file>"
-```
+**`[resume-state]` is for you, not the user — never show it or the raw `--resume` command.** Instead tell the user in natural language what finished and what didn't, and offer to continue. When the user agrees, run `node scripts/dubbing.mjs --resume "<that path>"` (already-completed parts are skipped and not re-billed; the state file is deleted when everything finishes). Delete the state file only if the user explicitly chooses to start over and pay for completed parts again — never on your own.
 
-Completed parts are skipped automatically; the state file is deleted when everything finishes.
+**Partial / failed segments.** When a split run finishes with missing segments, relay it conversationally: how many segments succeeded and failed, and — from the worker's per-segment lines — which failures are *recoverable* ("recoverable at no extra charge by continuing") versus *permanently failed* ("cannot be recovered"). Offer to continue (fills the recoverable ones; permanent ones stay missing). Also offer to show the successful segments now: they are already saved locally (state the paths), or you can give a Perso link to view them (build it from the `[project-ref]` seqs — see the URL patterns below).
 
-**Re-running the original command while a state file exists is blocked** — the worker prints `[resume-check]` lines instead of re-billing. Relay the printed `--resume` command and run that. Delete the state file **only** if the user explicitly chooses to pay for the completed parts again — never on your own.
-
-**On an insufficient-credits stop**: deliver the completed parts, then relay the worker's guidance and resume command **verbatim** — plain stdout (not `[progress]`), so don't drop it while summarizing. The guidance points to `scripts/billing.mjs` for a payment link — see **Plan upgrade & credits** below.
+**On an insufficient-credits stop**: the completed parts are delivered; tell the user the rest needs a top-up, then continuing finishes it without re-charging paid work. The worker's guidance points to `scripts/billing.mjs` for a payment link — see **Plan upgrade & credits** below — and prints a `[resume-state]` marker to continue after payment.
 
 ## Plan upgrade & credits
 
@@ -129,7 +125,7 @@ It routes by the current plan tier — ask only the question for that branch, th
 
 **Recommending on a credit-out stop**: estimate the remaining work's credits (dubbing ≈ ×1/s · lip-sync ≈ ×2 · separation ≈ ×0.5, and ×3 for 4K on pro+), pass it as `--shortfall`, and relay the tool's recommendation. If even the top self-serve plan or a reasonable credit quantity can't cover it, point the user to their administrator (Enterprise) instead.
 
-Hand the returned link to the user to complete payment in their browser; after they top up, resume the interrupted job with the printed `--resume` command (no re-billing).
+Hand the returned link to the user to complete payment in their browser; after they top up, continue the interrupted job via its `[resume-state]` path (no re-billing).
 
 ## Perso portal (answer only when asked)
 
