@@ -93,6 +93,11 @@
   .hero-cta{display:flex; flex-direction:column; align-items:flex-start; gap:11px; margin-top:30px;}
   .hero-act{margin:28px 0 4px;}
   .hero-act .btn{padding:14px 30px; font-size:16px; border-radius:99px;}
+  .hero-avail{margin-top:22px; text-align:center;}
+  .hero-avail .logos{display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:8px 18px;}
+  .hero-avail .logo{display:inline-flex; align-items:center; gap:6px;}
+  .hero-avail .logo img{width:18px; height:18px; object-fit:contain; display:block;}
+  .hero-avail .logo span{font-size:12px; font-weight:500; color:var(--mut); white-space:nowrap;}
   .btn:focus-visible{outline:2px solid var(--accent-ink); outline-offset:3px;}
   .cta-label{font-size:14px; font-weight:600; color:var(--body); word-break:keep-all;}
   .iconrow{display:flex; gap:12px; align-items:center;}
@@ -523,6 +528,13 @@
   <h1 class="reveal" data-i="h1">영상을 전 세계 언어로 더빙 — 지금 쓰는 AI 에이전트에서 바로</h1>
   <p class="reveal hero-sub" data-i="hero_sub">원본 목소리 그대로 더빙, 립싱크. SRT 자막과 다중 화자 분리도 가능합니다. 당신의 Claude Code, Codex, Antigravity에서 명령 한 줄로 사용해보세요.</p>
   <div class="reveal hero-act" data-d="80"><a class="btn btn-primary" id="hero-cta" href="#setup" data-i="hero_cta">1분 만에 설치하기</a></div>
+  <div class="reveal hero-avail" data-d="110">
+    <div class="logos">
+      <span class="logo"><img src="/media/claudecode.png" alt="" width="18" height="18"><span>Claude Code</span></span>
+      <span class="logo"><img src="/media/codex.png" alt="" width="18" height="18"><span>Codex</span></span>
+      <span class="logo"><img src="/media/antigravity.png" alt="" width="18" height="18"><span>Antigravity</span></span>
+    </div>
+  </div>
   <code id="l-cl" data-i="l_cl" style="display:none">https://github.com/perso-ai/perso-dubbing-plugin 이거 설치해줘.</code>
   <div class="iconrow-removed" hidden>
       <div class="iconrow">
