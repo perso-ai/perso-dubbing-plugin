@@ -14,7 +14,7 @@ import { preloadKeyEnv } from '../../dubbing/scripts/resolve_key.mjs';
 import { ExitCode, UsageError, friendlyError, errorClass, ensureKey, ensureSpace } from '../../dubbing/lib/gates.mjs';
 import { expandInputs, prepareInput } from '../../dubbing/lib/input.mjs';
 import { getPlanStatus, spacePlanProps } from '../../dubbing/lib/space.mjs';
-import { upload, requestStt, downloadAudioScript, getStatus } from '../../dubbing/lib/api_adapter.mjs';
+import { upload, requestStt, downloadAudioScript, getStatus, classifyUploadError } from '../../dubbing/lib/api_adapter.mjs';
 import { probe } from '../../dubbing/lib/ffmpeg.mjs';
 import { messages } from '../../dubbing/lib/messages.mjs';
 import { checkForUpdate } from '../../dubbing/lib/update_check.mjs';
@@ -145,10 +145,8 @@ function statePath({ out, inputs }) {
 // [resume-check] lines say what to ask; a non-zero exit would misread as a failure).
 function guardExistingState(file) {
   if (!existsSync(file)) return;
-  console.log(`[resume-check] An earlier run for this input did not finish — its state file still exists: ${file}`);
-  console.log('[resume-check] To finish it without paying again for the completed parts, run:');
-  console.log(`[resume-check]   node scripts/srt.mjs --resume "${file}"`);
-  console.log('[resume-check] To discard it and start over instead (completed parts will be billed again), delete that state file and re-run this command.');
+  console.log('[resume-check] An earlier run for this input did not finish. It can be continued (already-paid parts are not re-billed), or discarded to start over (which re-bills them).');
+  console.log(`[resume-state] ${file}`);
   throw new ExitCode(0);
 }
 
@@ -190,7 +188,7 @@ function sttSaver(ctx, perInput, prevDone = {}) {
     // The paid projectId is persisted the moment it exists → a hard kill can't cause a re-submission on resume.
     onSubmit: (inputId, projectId) => { done[inputId] = { status: 'RUN', projectId }; writeNow(); },
     onComplete: (inputId, projectId, savedPath) => { done[inputId] = { status: 'OK', projectId, savedPath }; writeNow(); },
-    onFail: (inputId, reason) => { done[inputId] = { status: 'HARD_FAIL', reason }; writeNow(); },
+    onFail: (inputId, reason, extra = {}) => { done[inputId] = { status: 'HARD_FAIL', reason, ...extra }; writeNow(); },
   };
 }
 
@@ -270,6 +268,7 @@ async function sttProcess(perInput, ctx, saver, isResume) {
   const langs = transcribeOnly ? null : targets; // translation list carried on every mapping line
   const usedByDir = new Map();
   let ok = 0, fail = 0, noVoice = 0; // per input (one STT project each)
+  let uploadFailCount = 0; // subset of fail whose media never uploaded → no project created → excluded from stt_completed
   const flags = { pending: false };
   const total = perInput.length;
   const allDur = perInput.map((p) => p.durationSec).filter((d) => d != null);
@@ -277,12 +276,20 @@ async function sttProcess(perInput, ctx, saver, isResume) {
   const streamDone = (msg) => notify(total > 1 ? `${msg} (${ok + fail + 1}/${total})` : msg); // stream each input as it settles — don't buffer to the end
   // Completed-funnel event — also fired on a quota stop (partial counts), like dubbing_completed.
   const trackCompleted = async () => {
+    // Upload-phase failures created no project → reported by upload_failed, excluded here. A run that only
+    // failed to upload has nothing to report.
+    const telemetryFail = fail - uploadFailCount;
+    if (ok + telemetryFail <= 0) return;
     const knownDur = perInput.map((p) => p.durationSec).filter((d) => d != null);
+    // STT is one project per input (no chunk split — long media is rejected with a "split it yourself" note),
+    // so there is no partial/per-part breakdown: only success/fail/no-voice at the input level + a run-level scope.
+    const failureScope = telemetryFail === 0 ? 'none' : (ok === 0 ? 'total' : 'partial');
     track('stt_completed', {
       ...await spacePlanProps(spaceSeq),
       input_count: perInput.length,
       lang_count: transcribeOnly ? null : targets.length,
-      ok_count: ok, fail_count: fail, no_voice_count: noVoice,
+      success_count: ok, fail_count: telemetryFail, no_voice_count: noVoice,
+      failure_scope: failureScope,
       target_langs: transcribeOnly ? null : targets.join(','),
       transcribe_only: transcribeOnly,
       duration_sec: knownDur.length ? knownDur.reduce((a, b) => a + b, 0) : null,
@@ -294,7 +301,7 @@ async function sttProcess(perInput, ctx, saver, isResume) {
     let name = labelOf(pin.inp ?? pin.ref);
     try {
       const prev = saver.done[pin.inputId];
-      if (prev?.status === 'HARD_FAIL') { streamDone(`Could not extract: ${name} — ${prev.reason ?? 'failed'}`); fail++; continue; }
+      if (prev?.status === 'HARD_FAIL') { if (prev.failKind === 'upload') uploadFailCount++; streamDone(`Could not extract: ${name} — ${prev.reason ?? 'failed'}`); fail++; continue; } // a persisted upload failure stays excluded from stt_completed
       if (prev?.status === 'OK' && prev.savedPath && existsSync(prev.savedPath)) {
         emitMapping(pin.inp ?? pin.ref, langs, prev.savedPath, prev.projectId); // re-print so the agent gets the full mapping on resume
         streamDone(`Subtitle ready: ${name} → ${basename(prev.savedPath)}`); ok++;
@@ -341,12 +348,11 @@ async function sttProcess(perInput, ctx, saver, isResume) {
         await trackCompleted();
         console.log(messages.quotaExceeded({
           planTier: plan?.planTier, remainingQuota: plan?.remainingQuota,
-          resumeHint: `node scripts/srt.mjs --resume "${ctx.file}"`,
           billingScript: '../dubbing/scripts/billing.mjs',
         }));
+        console.log(`[resume-state] ${ctx.file}`);
         throw new ExitCode(0); // credits ran out but finished work was delivered + resume is available — a recoverable stop, not a failure (matches dubbing)
       }
-      if (e?.name === 'UnsupportedMediaError') { notify(skipMsg(name, e)); continue; }
       if (isOverLimit(e)) {
         // The register rejected this media, so there is no server-measured duration — best-effort
         // local probe for telemetry only (null when ffprobe is unavailable).
@@ -361,6 +367,18 @@ async function sttProcess(perInput, ctx, saver, isResume) {
           duration_sec: durSec,
         });
         streamDone(`Could not extract: ${name} — ${overLimitMsg(e)}`); fail++;
+        continue;
+      }
+      // Only a pre-project (upload-phase) failure counts as an upload failure — if the media already uploaded
+      // (pin.mediaSeq set), a later 4xx came from the STT-project request and must stay a normal/transient failure.
+      const up = pin.mediaSeq == null ? classifyUploadError(e) : null;
+      if (up) {
+        const source = (pin.inp?.source ?? pin.ref?.source) === 'external' ? 'external' : 'local';
+        track('upload_failed', { ...await spacePlanProps(spaceSeq), source, reason: up.token, code: up.code, is_resume: isResume });
+        if (up.token === 'unsupported_format') { notify(skipMsg(name, e)); continue; } // keep the "convert it" suggestion; not counted as a fail
+        saver.onFail(pin.inputId, up.message || up.token, { failKind: 'upload' }); // terminal → resume won't loop on the same doomed upload
+        uploadFailCount++;
+        streamDone(`Could not extract: ${name} — ${up.message || up.token}`); fail++;
         continue;
       }
       flags.pending = true; // errored after some languages may have been billed → keep state so resume finishes them
@@ -379,7 +397,7 @@ async function sttProcess(perInput, ctx, saver, isResume) {
 
 // Drop the state file only when nothing paid is still owed; otherwise keep it and point at --resume (no re-billing).
 function finishState(file, pending) {
-  if (pending) { notify(`Some parts still need finishing — resume with: node scripts/srt.mjs --resume "${file}"`); return; }
+  if (pending) { notify('Some inputs still need finishing — continuing completes them without re-billing paid work.'); console.log(`[resume-state] ${file}`); return; }
   try { if (existsSync(file)) unlinkSync(file); } catch { /* ignore */ }
 }
 

@@ -20,6 +20,18 @@ export class UnsupportedMediaError extends Error {
     this.cause = cause;
   }
 }
+
+// Classify a failure raised while uploading/registering media. Returns { token, code, message } for a
+// DEFINED (non-retryable) upload rejection — an unsupported format, or any 4xx from the upload endpoints
+// (e.g. an undownloadable external URL) — else null (transient / not upload-defined → let the caller retry).
+// Credit (402) and queue-full (429) are handled by callers before this and are excluded here.
+export function classifyUploadError(e) {
+  if (e instanceof UnsupportedMediaError) return { token: 'unsupported_format', code: 'unsupported_format', message: null };
+  if (e instanceof PersoApiError && e.httpStatus >= 400 && e.httpStatus < 500 && e.httpStatus !== 402 && e.httpStatus !== 429) {
+    return { token: 'upload_failed', code: e.code ?? null, message: e.message || null };
+  }
+  return null;
+}
 // A file path in the response may be relative (perso-storage) → turn it into an absolute URL via the media base + encoding.
 // The media host can differ per environment, so it can be overridden with PERSO_MEDIA_BASE (defaults to
 // production) — perso.ai hosts only, or an injected env could swap the delivered result files.

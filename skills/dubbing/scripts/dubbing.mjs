@@ -14,8 +14,8 @@ import { getPlanStatus, spacePlanProps } from '../lib/space.mjs';
 import { getLanguages } from '../lib/languages.mjs';
 import { resolveChunks, recutChunk, SplitConfirmNeeded } from '../lib/split.mjs';
 import { runSchedule } from '../lib/scheduler.mjs';
-import { download, getStatus, upload, requestAudioSeparation, downloadSeparation } from '../lib/api_adapter.mjs';
-import { mergeGroups } from '../lib/merge.mjs';
+import { download, getStatus, upload, requestAudioSeparation, downloadSeparation, classifyUploadError } from '../lib/api_adapter.mjs';
+import { mergeGroups, friendlyReason } from '../lib/merge.mjs';
 import { messages, withUtm, SUBSCRIPTION_URL, projectUrl } from '../lib/messages.mjs';
 import { checkForUpdate } from '../lib/update_check.mjs';
 import { track, initTelemetry, setTelemetrySpace, primeTelemetrySpace, setAgentHost } from '../lib/telemetry.mjs';
@@ -65,6 +65,20 @@ function inputDurationsSec(perInput) {
     return sec > 0 ? sec : null;
   });
 }
+
+// Failure-reason → a fixed telemetry token. Free-text engine/service messages are bucketed to
+// 'engine_error' so raw (possibly non-English) text is never sent. Shared by dubbing + separation.
+function reasonToken(reason) {
+  const map = {
+    too_long: 'too_long', submit_failed: 'submit_failed', download_failed: 'download_failed',
+    upload_failed: 'upload_failed', unsupported_format: 'unsupported_format',
+    no_voice: 'no_voice', elapsed_exceeded: 'timeout', engine_error: 'engine_error',
+    dub_processing: 'dub_processing', lipsync_failed: 'lipsync_failed',
+  };
+  return map[reason] ?? 'engine_error';
+}
+
+const reasonPhrase = (parts) => [...new Set(parts.map((r) => friendlyReason(r.reason)))].join(', ');
 
 const USAGE = [
   'Usage: node scripts/dubbing.mjs "<file|folder|URL>" ["<another input>" ...] [--source auto] [--target en,ja] [--space "space name"] [--out path|folder] [--recursive] [--lipsync] [--force] [--no-save]',
@@ -187,10 +201,8 @@ function resumePath({ out, inputs, multiInput }) {
 // [resume-check] lines say what to ask; a non-zero exit would misread as a failure).
 function guardExistingState(file) {
   if (!existsSync(file)) return;
-  console.log(`[resume-check] An earlier run for this input did not finish — its state file still exists: ${file}`);
-  console.log('[resume-check] To finish it without paying again for the completed parts, run:');
-  console.log(`[resume-check]   node scripts/dubbing.mjs --resume "${file}"`);
-  console.log('[resume-check] To discard it and start over instead (completed parts will be billed again), delete that state file and re-run this command.');
+  console.log('[resume-check] An earlier run for this input did not finish. It can be continued (already-paid parts are not re-billed), or discarded to start over (which re-bills them).');
+  console.log(`[resume-state] ${file}`);
   throw new ExitCode(0);
 }
 
@@ -350,7 +362,9 @@ function emitProjectRef(pin, tRes, target, ctx, { lipsync }) {
 async function finishPool(allResults, perInput, ctx) {
   const usedByDir = new Map();
   const multiLang = ctx.targets.length > 1;
-  let okCount = 0, failCount = 0;
+  let fullCount = 0, partialCount = 0, failCount = 0; // per (input × language): fully delivered / partially delivered / nothing delivered
+  let uploadFailUnits = 0; // subset of failCount whose media never uploaded → no project created → excluded from dubbing_completed
+  let hadSilentFail = false; // a whole input+language dropped for no voice → reason token for the completed event
   const lines = [];
 
   for (const pin of perInput) {
@@ -358,19 +372,20 @@ async function finishPool(allResults, perInput, ctx) {
     const isSplit = pin.chunks.length > 1;
     for (const target of ctx.targets) {
       const tRes = inRes.filter((r) => r.target === target);
-      if (!tRes.length) continue; // all canceled / no results
+      if (!tRes.length) { failCount++; continue; } // no results at all (e.g. every part dropped for quota before submit) → nothing delivered
       const tlab = multiLang ? `${labelOf(pin.inp)} (${target})` : labelOf(pin.inp);
       const mergeable = tRes.filter((r) => r.status === 'OK' || r.status === 'PASSTHROUGH');
       if (mergeable.length && mergeable.every((r) => r.status === 'PASSTHROUGH')) {
         // every processed part was silent — merging would just hand the original back as a "dubbed" result
         lines.push(`Could not dub: ${tlab} — no voice detected (nothing to dub)`);
+        hadSilentFail = true;
         failCount++;
         continue;
       }
       if (mergeable.length && mergeable.every((r) => r.serverOnly)) {
         // --no-save: the dubbed result was left on the server and never downloaded → report + reference, don't merge/save.
         lines.push(`Kept on server, not saved: ${tlab} → ${projectUrl(mergeable[0].projectId, 'dub')}`);
-        okCount++;
+        fullCount++; // --no-save is single/unsplit only → a kept result is a complete one
         emitProjectRef(pin, tRes, target, ctx, { lipsync: false });
         continue;
       }
@@ -388,21 +403,32 @@ async function finishPool(allResults, perInput, ctx) {
         saved = paths;
       }
       if (saved.length) {
-        const notes = [];
-        if (report) notes.push('some parts excluded');
-        if (lsFailed) notes.push(hasLs ? 'lip-sync failed on some parts — dubbed video used for those' : 'lip-sync failed — dubbed video delivered instead');
-        if (lsPending) notes.push('lip-sync still pending — resume to finish it');
-        lines.push(`Done${hasLs ? ' (lip-sync)' : ''}: ${tlab} → ${saved.map((p) => basename(p)).join(', ')}${notes.length ? ` (${notes.join('; ')})` : ''}`);
-        okCount++;
+        const files = saved.map((p) => basename(p)).join(', ');
+        if (mergeable.length >= pin.chunks.length) {
+          const notes = [];
+          if (lsFailed) notes.push(hasLs ? 'lip-sync failed on some segments — dubbed video used there' : 'lip-sync failed — dubbed video delivered instead');
+          if (lsPending) notes.push('lip-sync still generating — continuing will finish it');
+          lines.push(`Done${hasLs ? ' (lip-sync)' : ''}: ${tlab} → ${files}${notes.length ? ` (${notes.join('; ')})` : ''}`);
+          fullCount++;
+        } else {
+          const recoverable = tRes.filter((r) => r.status === 'DLFAIL');
+          const permanent = tRes.filter((r) => r.status === 'HARD_FAIL');
+          lines.push(`Dubbed ${mergeable.length} of ${pin.chunks.length} segments: ${tlab} → ${files}`);
+          if (recoverable.length) lines.push(`  ${recoverable.length} unfinished (${reasonPhrase(recoverable)}) — recoverable at no extra charge by continuing`);
+          if (permanent.length) lines.push(`  ${permanent.length} permanently failed (${reasonPhrase(permanent)}) — cannot be recovered`);
+          partialCount++;
+        }
         emitProjectRef(pin, tRes, target, ctx, { lipsync: hasLs && !lsFailed && !lsPending });
       } else {
         lines.push(`Could not dub: ${tlab} — ${report ?? 'no result'}`);
         failCount++;
+        if (tRes.every((r) => r.failKind === 'upload')) uploadFailUnits++; // upload-only failure: no project created → reported by upload_failed, not dubbing_completed
       }
     }
   }
   if (lines.length) console.log(lines.join('\n'));
-  if (perInput.length > 1 || multiLang) console.log(`\nSummary: ${okCount} done · ${failCount} failed`);
+  const delivered = fullCount + partialCount;
+  if (perInput.length > 1 || multiLang) console.log(`\nSummary: ${delivered} done${partialCount ? ` (${partialCount} partial)` : ''} · ${failCount} failed`);
 
   // If it stopped again (out of credit) or only downloads failed, save the manifest → resume.
   const dlPending = allResults.some((r) => r.status === 'DLFAIL');
@@ -420,25 +446,56 @@ async function finishPool(allResults, perInput, ctx) {
         planTier: plan?.planTier,
         remainingQuota: plan?.remainingQuota,
         remainingNote: min != null ? `~${min} min` : null,
-        resumeHint: `node scripts/dubbing.mjs --resume "${ctx.file}"`,
-        note: lsOwed ? '   Dubbing for some items is already done — resume will run only the remaining lip-sync (no re-dub charge).' : null,
+        note: lsOwed ? '   Dubbing for some items is already done — only the remaining lip-sync is left (no re-dub charge).' : null,
       }));
+      console.log(`[resume-state] ${ctx.file}`);
     } else {
-      console.log(`\nSome parts are still finishing on the server or could not be downloaded — resume later to fetch them (no re-dub, no extra credits):\n  node scripts/dubbing.mjs --resume "${ctx.file}"`);
+      console.log(`\nSome segments finished on the server but weren't downloaded — continuing fetches them at no extra charge.`);
+      console.log(`[resume-state] ${ctx.file}`);
     }
   } else {
     try { unlinkSync(ctx.file); } catch { /* done → clean up resume state-file (ignore if absent) */ }
   }
   if (!ctx.lipsyncOnly) { // lipsync-only runs report via lipsync_only_started, not dubbing_completed
-    track('dubbing_completed', {
-      ...await spacePlanProps(ctx.spaceSeq),
-      input_count: perInput.length, ok_count: okCount, fail_count: failCount,
-      had_split: perInput.some((p) => (p.chunks?.length ?? 0) > 1),
-      had_lipsync: allResults.some((r) => r.lipsync),
-      duration_sec: totalDurationSec(perInput),
-      source_lang: ctx.source, target_lang: (ctx.targets || []).join(','),
-      is_resume: !!ctx.isResume, recovered: !!ctx.isResume && ctx.resumedFrom === 'quota' && okCount > 0,
-    });
+    // Dedicated funnel for upload-phase failures (one per input — the media is uploaded once, shared across languages).
+    // These never created a project, so they are reported here and excluded from dubbing_completed below.
+    const uploadFails = allResults.filter((r) => r.failKind === 'upload');
+    if (uploadFails.length) {
+      const planProps = await spacePlanProps(ctx.spaceSeq);
+      const seen = new Set();
+      for (const r of uploadFails) {
+        if (seen.has(r.inputId)) continue;
+        seen.add(r.inputId);
+        track('upload_failed', { ...planProps, source: r.failSource ?? 'local', reason: r.failToken ?? 'upload_failed', code: r.failCode ?? null, is_resume: !!ctx.isResume });
+      }
+    }
+    // dubbing_completed covers only work that reached the server (a project was created). A run that only
+    // failed to upload has no project → skip the event entirely.
+    const telemetryFail = failCount - uploadFailUnits;
+    if (fullCount + partialCount + telemetryFail > 0) {
+      const projectResults = allResults.filter((r) => r.failKind !== 'upload'); // exclude upload-phase failures (no project)
+      const partSuccess = projectResults.filter((r) => r.status === 'OK' || r.status === 'PASSTHROUGH').length;
+      const failedParts = projectResults.filter((r) => r.status === 'DLFAIL' || r.status === 'HARD_FAIL');
+      const quotaDropped = ctx.sched?.pendingLeft?.length ?? 0; // parts never submitted (quota/timeout stop) — no result record
+      const partFailed = failedParts.length + quotaDropped;
+      const reasons = new Set(failedParts.map((r) => r.failToken ?? reasonToken(r.reason)));
+      if (quotaDropped) reasons.add(ctx.sched?.stopReason === 'credit' ? 'quota' : 'incomplete');
+      if (hadSilentFail) reasons.add('no_voice');
+      const failureScope = (telemetryFail === 0 && partialCount === 0) ? 'none' : (fullCount === 0 && partialCount === 0 ? 'total' : 'partial');
+      track('dubbing_completed', {
+        ...await spacePlanProps(ctx.spaceSeq),
+        input_count: perInput.length,
+        success_count: fullCount, partial_success_count: partialCount, fail_count: telemetryFail,
+        failure_scope: failureScope,
+        part_total: partSuccess + partFailed, part_success: partSuccess, part_failed: partFailed,
+        failure_reasons: reasons.size ? [...reasons].sort().join(',') : null,
+        had_split: perInput.some((p) => (p.chunks?.length ?? 0) > 1),
+        had_lipsync: allResults.some((r) => r.lipsync),
+        duration_sec: totalDurationSec(perInput),
+        source_lang: ctx.source, target_lang: (ctx.targets || []).join(','),
+        is_resume: !!ctx.isResume, recovered: !!ctx.isResume && ctx.resumedFrom === 'quota' && delivered > 0,
+      });
+    }
   }
 }
 
@@ -800,7 +857,7 @@ function sepSaver(ctx, perInput, prevDone = {}) {
     // The paid projectId is persisted the moment it exists → a hard kill can't cause a re-submission on resume.
     onSubmit: (inputId, index, projectId) => { done[`${inputId}|${index}`] = { status: 'RUN', projectId }; writeNow(); },
     onComplete: (inputId, index, projectId) => { done[`${inputId}|${index}`] = { status: 'OK', projectId }; writeNow(); },
-    onFail: (inputId, index, reason) => { done[`${inputId}|${index}`] = { status: 'HARD_FAIL', reason }; writeNow(); },
+    onFail: (inputId, index, reason, extra = {}) => { done[`${inputId}|${index}`] = { status: 'HARD_FAIL', reason, ...extra }; writeNow(); },
   };
 }
 
@@ -843,7 +900,7 @@ async function runSeparation(args) {
 
 // Drop the state file only when nothing paid is still owed; otherwise keep it and point at --resume (no re-billing).
 function finishSepState(file, pending) {
-  if (pending) { notify(`Some parts still need downloading — resume with: node scripts/dubbing.mjs --resume "${file}"`); return; }
+  if (pending) { notify('Some segments still need downloading — continuing fetches them at no extra charge.'); console.log(`[resume-state] ${file}`); return; }
   try { if (existsSync(file)) unlinkSync(file); } catch { /* ignore */ }
 }
 
@@ -878,7 +935,7 @@ async function runResumeSeparation(m, file) {
 // Returns true when some paid part is still owed (undelivered) → the caller must keep the state file for resume.
 async function separationProcess(perInput, spaceSeq, ctx, saver, materializeFor, isResume = false) {
   const usedByDir = new Map();
-  let ok = 0, fail = 0;
+  let fullCount = 0, partialCount = 0, failCount = 0; // per input: all tracks/parts delivered / delivered with excluded parts / nothing delivered
   const flags = { pending: false };
   const tmp = await makeTempDir('dubbing-sep-');
   const total = perInput.length;
@@ -887,23 +944,60 @@ async function separationProcess(perInput, spaceSeq, ctx, saver, materializeFor,
     const pin = perInput[i];
     try {
       const byTrack = await separateChunks(pin, spaceSeq, tmp, saver, materializeFor, flags, { ticker, index: i, total });
-      const line = await saveSeparationTracks(pin, byTrack, { out: ctx.out, usedByDir });
+      const { line, excluded } = await saveSeparationTracks(pin, byTrack, { out: ctx.out, usedByDir });
       notify(total > 1 ? `${line} (${i + 1}/${total})` : line); // stream each finished input, don't buffer to the end
-      if (line.startsWith('Done')) ok++; else fail++;
+      if (!line.startsWith('Done')) failCount++; else if (excluded) partialCount++; else fullCount++;
     } catch (e) {
       if (e?.httpStatus === 402) { // out of credits — finished inputs already streamed above → just the top-up/resume path
         const plan = await getPlanStatus(spaceSeq);
-        console.log(messages.quotaExceeded({ planTier: plan?.planTier, remainingQuota: plan?.remainingQuota, resumeHint: `node scripts/dubbing.mjs --resume "${ctx.file}"` }));
+        console.log(messages.quotaExceeded({ planTier: plan?.planTier, remainingQuota: plan?.remainingQuota }));
+        console.log(`[resume-state] ${ctx.file}`);
         throw new ExitCode(0); // credits ran out but finished work was delivered + resume is available — a recoverable stop, not a failure (matches the dub path)
       }
       if (e?.name === 'UnsupportedMediaError') { notify(skipMsg(labelOf(pin.inp ?? pin.ref), e)); continue; }
       flags.pending = true; // errored after some chunks may have been billed → keep state so resume re-downloads them
-      fail++;
+      failCount++;
       notify(`Could not separate: ${labelOf(pin.inp ?? pin.ref)} — ${friendlyError(e)}`);
     }
   }
-  if (total > 1) console.log(`\nSummary: ${ok} done · ${fail} failed`);
-  track('separation_completed', { ...await spacePlanProps(spaceSeq), input_count: perInput.length, ok_count: ok, fail_count: fail, duration_sec: totalDurationSec(perInput), is_resume: isResume });
+  const delivered = fullCount + partialCount;
+  if (total > 1) console.log(`\nSummary: ${delivered} done${partialCount ? ` (${partialCount} partial)` : ''} · ${failCount} failed`);
+
+  // Group the per-chunk state by input to separate upload-phase failures (no project created) from the rest.
+  const byInput = new Map();
+  for (const [k, d] of Object.entries(saver.done ?? {})) {
+    const inputId = Number(k.split('|')[0]);
+    const arr = byInput.get(inputId) ?? [];
+    arr.push(d);
+    byInput.set(inputId, arr);
+  }
+  const planProps = await spacePlanProps(spaceSeq);
+  let uploadOnlyFailInputs = 0; // inputs whose only outcome was an upload failure → excluded from separation_completed
+  for (const [inputId, entries] of byInput) {
+    const uf = entries.find((d) => d.failKind === 'upload');
+    if (!uf) continue;
+    track('upload_failed', { ...planProps, source: uf.failSource ?? 'local', reason: uf.failToken ?? 'upload_failed', code: uf.failCode ?? null, is_resume: isResume });
+    if (!entries.some((d) => d.status === 'OK')) uploadOnlyFailInputs++;
+  }
+
+  // separation_completed covers only work that reached the server; a run that only failed to upload has no project.
+  const telemetryFail = failCount - uploadOnlyFailInputs;
+  if (fullCount + partialCount + telemetryFail > 0) {
+    const doneVals = Object.values(saver.done ?? {});
+    const partSuccess = doneVals.filter((d) => d.status === 'OK').length;
+    const failedParts = doneVals.filter((d) => d.status === 'HARD_FAIL' && d.failKind !== 'upload'); // exclude upload-phase failures (no project)
+    const reasons = new Set(failedParts.map((d) => reasonToken(d.reason)));
+    const failureScope = (telemetryFail === 0 && partialCount === 0) ? 'none' : (fullCount === 0 && partialCount === 0 ? 'total' : 'partial');
+    track('separation_completed', {
+      ...planProps,
+      input_count: perInput.length,
+      success_count: fullCount, partial_success_count: partialCount, fail_count: telemetryFail,
+      failure_scope: failureScope,
+      part_total: partSuccess + failedParts.length, part_success: partSuccess, part_failed: failedParts.length,
+      failure_reasons: reasons.size ? [...reasons].sort().join(',') : null,
+      duration_sec: totalDurationSec(perInput), is_resume: isResume,
+    });
+  }
   return flags.pending;
 }
 
@@ -918,6 +1012,7 @@ async function separateChunks(pin, spaceSeq, tmp, saver, materializeFor, flags, 
     const prev = saver.done[`${pin.inputId}|${c.index}`];
     if (prev?.status === 'HARD_FAIL') { gap(c.index, prev.reason ?? 'failed'); continue; }
     let projectId = prev?.projectId ?? null;
+    let obtainedMedia = false; // media in hand (uploaded or pre-existing) → a later failure is not an upload failure
     try {
       if (projectId == null) { // never submitted → (re-cut/upload and) submit
         let mediaSeq = c.mediaSeq ?? null, kind = c.kind ?? 'video';
@@ -927,6 +1022,7 @@ async function separateChunks(pin, spaceSeq, tmp, saver, materializeFor, flags, 
             : (c.source === 'external' ? { source: 'external', sourceUrl: c.sourceUrl } : refOf(pin.inp ?? pin.ref));
           ({ seq: mediaSeq, kind } = await upload(ref, spaceSeq));
         }
+        obtainedMedia = true;
         ([projectId] = await requestAudioSeparation(spaceSeq, mediaSeq, { title: c.title, kind }));
         if (projectId == null) throw new Error('Separation request was not accepted.');
         saver.onSubmit(pin.inputId, c.index, projectId); // checkpoint the billed unit before any wait
@@ -946,7 +1042,16 @@ async function separateChunks(pin, spaceSeq, tmp, saver, materializeFor, flags, 
       for (const t of tracks) byTrack.get(t.label)?.push({ index: c.index, status: 'OK', path: t.path, name: t.fileName });
     } catch (e) {
       if (e?.httpStatus === 402) throw e; // credit-out → let separationProcess deliver finished parts + surface the resume path
-      // One part failed to prepare/upload/submit/download — gap it so finished sibling parts still merge & save; keep state so resume retries.
+      const up = !obtainedMedia ? classifyUploadError(e) : null; // only a pre-project upload failure qualifies (mirror the scheduler's upload-phase guard)
+      if (up) {
+        // defined upload rejection (unsupported format / undownloadable external URL) → terminal, so resume
+        // doesn't loop on it; keep the server's message for the user and record it for the upload_failed event.
+        const msg = up.message || (up.token === 'unsupported_format' ? 'unsupported media format' : 'upload failed');
+        saver.onFail(pin.inputId, c.index, msg, { failKind: 'upload', failToken: up.token, failCode: up.code, failSource: c.source === 'external' ? 'external' : 'local' });
+        gap(c.index, msg);
+        continue;
+      }
+      // One part failed to prepare/upload/submit/download (transient) — gap it so finished sibling parts still merge & save; keep state so resume retries.
       flags.pending = true;
       gap(c.index, friendlyError(e));
     }
@@ -976,9 +1081,9 @@ async function saveSeparationTracks(pin, byTrack, { out, usedByDir }) {
   }
   if (!saved.length) {
     const why = byTrack.get('voice').find((r) => r.reason)?.reason ?? 'no result';
-    return `Could not separate: ${labelOf(inp)} — ${why}`;
+    return { line: `Could not separate: ${labelOf(inp)} — ${why}`, excluded: false };
   }
-  return `Done (separation): ${labelOf(inp)} → ${saved.join(', ')}${excluded ? ' (some parts excluded)' : ''}`;
+  return { line: `Done (separation): ${labelOf(inp)} → ${saved.join(', ')}${excluded ? ' (some parts excluded)' : ''}`, excluded };
 }
 
 // Poll a project until it settles. Progress changes reset the idle window; a stuck job times out.
