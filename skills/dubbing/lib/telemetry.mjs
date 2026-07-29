@@ -92,8 +92,10 @@ export function primeTelemetrySpace(hint) {
 /** Fire one event. Fail-silent and never throws; safe to call without awaiting (the run drains the
  *  pending request on exit). null/undefined properties are dropped so only set fields are sent.
  *  Transient failures (network error, timeout, 408/429/5xx) are retried with backoff; other 4xx are
- *  final. insert_id makes a retry after a lost response idempotent (Amplitude dedupes on it). */
-export async function track(eventType, props = {}) {
+ *  final. insert_id makes a retry after a lost response idempotent (Amplitude dedupes on it).
+ *  opts.budgetMs overrides the default total budget — used by the install beacon, which runs inside a
+ *  blocking SessionStart hook and must return promptly on slow links. */
+export async function track(eventType, props = {}, opts = {}) {
   if (process.env.PERSO_NO_TELEMETRY || !API_KEY) return;
   try {
     const event_properties = { env: API_ENV, agent_host: _agentHost, agent_host_source: _agentHostSource, ...(NODE_MAJOR ? { node_major: NODE_MAJOR } : {}) };
@@ -120,7 +122,7 @@ export async function track(eventType, props = {}) {
       }],
     });
     const debug = (msg) => { if (process.env.PERSO_TELEMETRY_DEBUG) console.error(`[telemetry] ${eventType} → ${msg}`); };
-    const deadline = Date.now() + TOTAL_BUDGET_MS;
+    const deadline = Date.now() + (opts.budgetMs || TOTAL_BUDGET_MS);
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       if (attempt > 0) await new Promise((r) => setTimeout(r, RETRY_DELAY_MS[attempt - 1]));
       const remaining = deadline - Date.now();

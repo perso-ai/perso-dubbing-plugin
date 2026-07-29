@@ -10,6 +10,7 @@
   "files": [
     "skills",
     "scripts",
+    "hooks",
     ".claude-plugin",
     ".codex-plugin",
     ".cursor-plugin"
