@@ -117,22 +117,83 @@ export function wordCuesFromTimestamps(json) {
   }).filter((c) => c.words.length);
 }
 
-function karaokeEvents(cueWords, p) {
+// ── caption chunking (short-form standard: 1-2 short lines on screen at a time) ──
+const hasCJK = (t) => /[぀-ヿ㐀-鿿가-힯]/.test(t); // Kana, CJK, Hangul
+// Per-line/window sizing by script and preset group. Short-form breaks tighter than long-form.
+function capacity(text, group) {
+  const short = group !== 'longform';
+  return hasCJK(text)
+    ? { lineChars: short ? 12 : 20, maxLines: 2, maxWords: short ? 8 : 12 }
+    : { lineChars: short ? 24 : 42, maxLines: 2, maxWords: short ? 6 : 10 };
+}
+// Pack tokens into windows, each window an array of <= maxLines lines of <= lineChars. Guarantees the line cap.
+// `bind(token)` maps a token to its payload (a string for plain text, a word object for karaoke) kept in the output.
+function packWindows(tokens, sep, cap, lenOf, bind) {
+  const wins = [];
+  let win = [[]]; // array of lines; each line an array of payloads
+  let lineLen = 0;
+  const lineText = (line) => line.map((x) => (typeof x === 'string' ? x : x.word)).join(sep);
+  for (const tk of tokens) {
+    const wl = lenOf(tk);
+    const cur = win[win.length - 1];
+    const cand = cur.length ? lineLen + sep.length + wl : wl;
+    if (cur.length && cand > cap.lineChars) {
+      if (win.length >= cap.maxLines) { wins.push(win); win = [[]]; } else win.push([]);
+      lineLen = 0;
+    }
+    const line = win[win.length - 1];
+    line.push(bind(tk));
+    lineLen = lineText(line).length;
+  }
+  if (win.some((l) => l.length)) wins.push(win);
+  return wins.filter((w) => w.some((l) => l.length));
+}
+const winLen = (win, sep) => win.reduce((s, l) => s + l.reduce((a, x) => a + (typeof x === 'string' ? x.length : x.word.length), 0) + Math.max(0, l.length - 1) * sep.length, 0);
+
+// Re-chunk plain cues: cues that already fit are kept; overflowing ones split into time-proportional 2-line windows.
+function chunkCues(cues, group) {
+  const out = [];
+  for (const c of cues) {
+    const text = c.textLines.join(' ').trim();
+    const cap = capacity(text, group);
+    if (c.textLines.length <= cap.maxLines && text.length <= cap.lineChars * cap.maxLines) { out.push(c); continue; }
+    const spaced = /\s/.test(text);
+    const sep = spaced ? ' ' : '';
+    const tokens = spaced ? text.split(/\s+/) : [...text];
+    const wins = packWindows(tokens, sep, cap, (t) => t.length, (t) => t);
+    const total = wins.reduce((s, w) => s + winLen(w, sep), 0) || 1;
+    let t = c.start;
+    for (const w of wins) {
+      const dur = (c.end - c.start) * (winLen(w, sep) / total);
+      out.push({ start: t, end: t + dur, textLines: w.map((line) => line.join(sep)) });
+      t += dur;
+    }
+  }
+  return out;
+}
+// Group a segment's words into karaoke windows of <= maxLines lines so only a few words show at once.
+function windowizeWords(words, group) {
+  const cap = capacity(words.map((w) => w.word).join(' '), group);
+  return packWindows(words, ' ', cap, (w) => w.word.length, (w) => w).map((win) => win.flat());
+}
+
+function karaokeEvents(cueWords, p, group) {
   const H_ON = assColor(p.highlight || '39E639');
   const H_OFF = assColor(p.primary);
   const sc = p.highlightScale || 112;
   let out = '';
   for (const cue of cueWords) {
-    const w = cue.words;
-    for (let i = 0; i < w.length; i++) {
-      const start = w[i].start;
-      const end = i < w.length - 1 ? w[i + 1].start : w[i].end; // hold highlight through inter-word gaps
-      if (!(end > start)) continue;
-      const line = w.map((x, j) => {
-        const t = assText(p.uppercase ? x.word.toUpperCase() : x.word);
-        return j === i ? `{\\c${H_ON}\\fscx${sc}\\fscy${sc}}${t}{\\c${H_OFF}\\fscx100\\fscy100}` : t;
-      }).join(' ');
-      out += `Dialogue: 0,${assTime(start)},${assTime(end)},Base,,0,0,,${line}\n`;
+    for (const w of windowizeWords(cue.words, group)) {
+      for (let i = 0; i < w.length; i++) {
+        const start = w[i].start;
+        const end = i < w.length - 1 ? w[i + 1].start : w[i].end; // hold highlight through inter-word gaps
+        if (!(end > start)) continue;
+        const line = w.map((x, j) => {
+          const t = assText(p.uppercase ? x.word.toUpperCase() : x.word);
+          return j === i ? `{\\c${H_ON}\\fscx${sc}\\fscy${sc}}${t}{\\c${H_OFF}\\fscx100\\fscy100}` : t;
+        }).join(' ');
+        out += `Dialogue: 0,${assTime(start)},${assTime(end)},Base,,0,0,,${line}\n`;
+      }
     }
   }
   return out;
@@ -150,14 +211,15 @@ function plainEvents(cues, p) {
 
 /** Build ASS for a preset. For karaoke: wordTimestamps (measured) if given, else approximate from cues. */
 export function buildAss(cues, preset, { width, height, wordTimestamps = null }) {
+  const group = preset.group || 'shortform';
   let events;
   if (preset.karaoke) {
     const cueWords = wordTimestamps
       ? wordCuesFromTimestamps(wordTimestamps)
       : cues.map((c) => ({ words: approxWords(c.textLines.join(' ').split(/\s+/).filter(Boolean), c.start, c.end) }));
-    events = karaokeEvents(cueWords, preset);
+    events = karaokeEvents(cueWords, preset, group);
   } else {
-    events = plainEvents(cues, preset);
+    events = plainEvents(chunkCues(cues, group), preset);
   }
   return header(preset, width, height) + events;
 }

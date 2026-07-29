@@ -54,7 +54,7 @@ When extraction finishes, the worker prints one line per input, carrying every t
 
 **If `langs` is `null`** (a `--transcribe-only` run), there is nothing to translate: deliver that file to the user as-is and stop here.
 
-**Show translation progress.** STT extraction is done, but translating into each language takes time too — make it visible. Before you start, post one line naming the languages you'll produce (e.g. "자막 추출 완료 — 이제 일본어·영어로 번역합니다"). After you finish and save each language's file, post a one-line update (e.g. `일본어 ✓ (1/2)`), so the user sees per-language progress like a multi-language dub. A long file may stay quiet within a single language while you batch its sections — that's fine.
+**Show translation progress.** STT extraction is done, but translating into each language takes time too — make it visible. Before you start, post one line naming the languages you'll produce (e.g. "Subtitles extracted — now translating into Japanese and English"). After you finish and save each language's file, post a one-line update (e.g. `Japanese ✓ (1/2)`), so the user sees per-language progress like a multi-language dub. A long file may stay quiet within a single language while you batch its sections — that's fine.
 
 For each `[srt-original]` line, translate the one file at `path` into **every** language in `langs`:
 
@@ -102,21 +102,28 @@ Optionally burn a **styled** subtitle track onto the video (permanent hardsub) w
 
 **When to offer it (two entry points):**
 
-- **After translation (this skill's normal flow):** once the SRTs are delivered, offer to burn a styled version. If several languages were produced, ask whether to apply to **all or only some** (e.g. "영어만"). Example: `자막 준비 끝났어요. 영상에 스타일 입혀서 구워드릴까요? (영어·일본어·중국어 중 전체 또는 일부)`
-- **Direct request (video + SRT handed to you):** skip the question and go straight to preset selection.
+- **After translation:** once the SRTs are delivered, offer to add styled subtitles — natural user-facing wording, not "burn/hardsub". For several languages, ask all or only some.
+- **Direct request (video + SRT handed to you):** go straight to preset selection.
 
 **Flow:**
 
-1. **Show presets.** Run `node scripts/style.mjs --list-presets` and present them, grouped short-form (9:16) / long-form (16:9). Tell the user they can pick a preset **or describe any style** (e.g. "노란 글씨에 검정 테두리, 하단"). If `assets/style_presets.png` exists, attach it as a visual reference. Suggest a default by the video's orientation (portrait → a short-form preset, landscape → a long-form one).
+1. **Always show the presets first — never skip to applying one.** How to show them depends on the surface:
+   - **Claude app (or any surface that can render an interactive widget):** show the preset **gallery** — a tile per preset the user selects, with an **Apply** button that sends the pick back as the generation request. Preferred there.
+   - **CLI / Antigravity / Codex / anywhere without interactive rendering (universal fallback):** attach `assets/style_presets.png` (the static preview) **and** run `node scripts/style.mjs --list-presets` for the text menu.
+   Both come from the same presets. Group short-form (9:16) / long-form (16:9). The user can pick a preset **or describe any style** (e.g. "yellow text, black outline, at the bottom"). Suggest a default by orientation (portrait → short-form, landscape → long-form) but let them choose. Apply only after they pick or describe.
 2. **Apply.** Run the worker in the **background** (encoding takes time):
    - From a Perso STT project: `node scripts/style.mjs --project <seq> --preset <id> [--out folder]`
    - From local files: `node scripts/style.mjs "<video>" "<subtitle.srt>" --preset <id> [--out folder]`
    - **Custom style:** map the user's description to override flags on top of any base preset — `--position center|lower|bottom|upper`, `--font`, `--fontsize`, `--primary RRGGBB`, `--outline RRGGBB`, `--outline-width`, `--box RRGGBB@opacity|none`, `--karaoke`/`--no-karaoke`, `--highlight RRGGBB`, `--uppercase`, `--bold`/`--no-bold` (see `--help`).
    - **Fonts:** `--font "<name>"` uses an installed font; a name that isn't installed falls back to the closest system font automatically (mention it when relevant). A user-supplied font file (.ttf/.otf/.ttc) goes in as `--font-file "<path>"` — the family name is read from the file itself.
    - **Multiple languages:** run once per language's SRT with the same `--preset`, adding `--lang <code>` so outputs are named per language.
-3. **Relay + deliver.** Surface the worker's `[progress]` lines. The `[styled-output]` line carries the final `path` — deliver that file, and attaching one extracted frame as proof is nice. Add `--host <runtime>` for telemetry (silent), same as `srt.mjs`.
+3. **Relay + deliver.** Surface `[progress]` lines; deliver the file from the `[styled-output]` `path`. Add `--host <runtime>` for telemetry (silent).
 
-**Karaoke (per-word highlight).** The `karaoke` preset needs per-word timings. With `--project` the worker fetches the project's `scriptTimestamps` automatically (accurate for the **original** language). When no word timings are available (a translated SRT, or a local SRT alone), it **still proceeds** with estimated timing and prints a notice — relay it as-is, don't ask: `단어별 시간이 없어 근사로 Karaoke를 적용해요. 타이밍이 조금 어긋날 수 있어요.` For accurate original-language karaoke, pass `--word-timestamps <scriptTimestamps.json>`.
+**Karaoke (per-word highlight).** The `karaoke` preset needs per-word timings. With `--project` the worker fetches the project's `scriptTimestamps` automatically (accurate for the **original** language). When no word timings are available (a translated SRT, or a local SRT alone), it **still proceeds** with estimated timing and prints a notice — relay the worker's notice as-is, don't ask. For accurate original-language karaoke, pass `--word-timestamps <scriptTimestamps.json>`.
+
+## Making short clips → the clip skill
+
+Cutting a long video into highlight clips is a **separate skill** (`clip`, installed alongside). After extraction, offer it too (e.g. "I can also cut the key moments into short clips"); when the user wants clips, invoke `clip`. It cuts + reframes and hands subtitles back here via `<clip>.srt` sidecars — style each with `scripts/style.mjs "<clip>.mp4" "<clip>.srt" --preset <id>`.
 
 ## Interruption & resume
 
