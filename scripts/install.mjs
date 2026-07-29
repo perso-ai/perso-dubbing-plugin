@@ -8,6 +8,7 @@ import { cp, mkdir, access, writeFile, readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { emitInstall } from './install_beacon.mjs';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url))); // package root (= parent of scripts/)
 // Skill payloads → each installs under its own name (→ /dubbing, /srt). They must land side by side:
@@ -63,3 +64,6 @@ for (const root of roots) {
   }
 }
 console.log('\nInstalled! Use  /dubbing  ("dub this video for me")  or  /srt  ("make me an English SRT for this video").');
+
+// Count the install (once per version; deduped in the beacon). Non-blocking, fail-silent.
+await emitInstall('npx', { hosts: targets.join(',') });
