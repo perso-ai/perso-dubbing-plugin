@@ -953,6 +953,7 @@
     try { if (typeof pdGtag === "function") pdGtag("event", name, p); } catch(e) {}       // GA4
     try { (window.dataLayer = window.dataLayer || []).push(Object.assign({event:name}, p)); } catch(e) {} // GTM
   }
+  window.pdTrack = track;  // reused by the fallback/hand-off IIFE below
   function outboundTarget(a){
     var h = a.getAttribute("href") || "";
     if (a.hasAttribute("data-faq")) return "faq";
@@ -984,6 +985,13 @@
     // 5) language change
     var langBtn = t.closest(".langmenu button[data-lang]");
     if (langBtn) { track("lang_change", {from: lang(), to: langBtn.getAttribute("data-lang") || ""}); return; }
+    // 6b) install-app link inside a fallback hint (app-not-opened, or unsupported-agent hand-off)
+    var missHint = t.closest(".dl-miss");
+    if (missHint && t.closest(".dl-miss a[href]")) {
+      var mid = missHint.getAttribute("data-miss") || missHint.getAttribute("data-handoff") || "";
+      track("install_app_click", {agent: DL[mid] ? DL[mid].agent : mid, source: missHint.hasAttribute("data-miss") ? "app_not_opened" : "unsupported"});
+      return;
+    }
     // 6) outbound links (faq / github / perso)
     var a = t.closest("a[href]");
     if (a) { var tg = outboundTarget(a); if (tg) track("outbound_click", {target: tg}); }
@@ -1141,12 +1149,21 @@
   //   [data-miss]    — the deep link was attempted and the app didn't open
   //   [data-handoff] — arrived from a "coming soon" panel, no deep link was ever tried
   // Only one of the pair is ever visible, so the wording always matches how the visitor got here.
+  var HINT_AGENT = {"dl-cc":"claude_code", "dl-cx":"codex", "dl-ag":"antigravity"};
   function showHint(attr, id){
     var other = attr === "data-miss" ? "data-handoff" : "data-miss";
     var hide = document.querySelector('.dl-miss[' + other + '="' + id + '"]');
     if (hide) hide.hidden = true;
     var el = document.querySelector('.dl-miss[' + attr + '="' + id + '"]');
-    if (el) el.hidden = false;
+    if (el) {
+      var wasHidden = el.hidden;
+      el.hidden = false;
+      // Fire once per hidden->shown transition: the app-didn't-open hint (data-miss) or the
+      // unsupported-agent hand-off hint (data-handoff) becoming visible = "can't use it without the app".
+      if (wasHidden && typeof window.pdTrack === "function") {
+        window.pdTrack("install_fallback_shown", {agent: HINT_AGENT[id] || id, reason: attr === "data-miss" ? "app_not_opened" : "unsupported"});
+      }
+    }
     return el;
   }
   ["dl-cc", "dl-cx", "dl-ag"].forEach(function(id){
@@ -1170,12 +1187,15 @@
   // that agent's install link right away (no deep link is attempted). Uses the hand-off wording,
   // not the "app didn't open" fallback — the visitor never tried to launch anything.
   // [button id, destination tab, install-hint id]
-  [["gptToCodex", "cx", "dl-cx"],   // ChatGPT → Codex
-   ["clToCode",   "cc", "dl-cc"],   // Claude  → Claude Code
-   ["gmToAg",     "ag", "dl-ag"]    // Gemini  → Antigravity
+  [["gptToCodex", "cx", "dl-cx", "chatgpt"],   // ChatGPT → Codex
+   ["clToCode",   "cc", "dl-cc", "claude"],    // Claude  → Claude Code
+   ["gmToAg",     "ag", "dl-ag", "gemini"]     // Gemini  → Antigravity
   ].forEach(function(h){
     var btn = document.getElementById(h[0]); if (!btn) return;
     btn.addEventListener("click", function(){
+      // Unsupported agent: the visitor asked how to install the working sibling agent instead.
+      if (typeof window.pdTrack === "function")
+        window.pdTrack("unsupported_agent_click", {agent: h[3], redirect_to: HINT_AGENT[h[2]] || h[1]});
       var dest = document.querySelector('.tabs[data-group="setup"] .tab[data-tab="' + h[1] + '"]');
       if (dest) dest.click();   // reuses the tab handler above; one agent_select fires
       showHint("data-handoff", h[2]);
