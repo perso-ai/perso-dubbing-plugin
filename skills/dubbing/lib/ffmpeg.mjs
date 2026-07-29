@@ -8,12 +8,15 @@ import { makeTempDir } from './tmp.mjs';
 
 const exec = promisify(execFile);
 
-/** @returns {{durationMs?:number, width?:number, height?:number, sizeBytes?:number}} */
+/** @returns {{durationMs?:number, width?:number, height?:number, sizeBytes?:number, rotation:number}}
+ *  rotation is the display-matrix angle (0 when absent) — ffmpeg autorotates on decode, so a ±90 rotation
+ *  means the rendered canvas has width/height swapped relative to the coded stream dimensions. */
 export async function probe(path) {
   const args = [
     '-v', 'error',
     '-show_entries', 'format=duration,size',
     '-show_entries', 'stream=width,height,codec_type',
+    '-show_entries', 'stream_side_data=rotation',
     '-of', 'json',
     path,
   ];
@@ -22,11 +25,13 @@ export async function probe(path) {
   const durSec = Number(info?.format?.duration);
   const sizeBytes = Number(info?.format?.size);
   const v = (info?.streams ?? []).find((s) => s.codec_type === 'video') ?? {};
+  const rot = Number((v.side_data_list ?? []).find((d) => d.rotation !== undefined)?.rotation) || 0;
   return {
     durationMs: Number.isFinite(durSec) ? Math.round(durSec * 1000) : undefined,
     width: v.width,
     height: v.height,
     sizeBytes: Number.isFinite(sizeBytes) ? sizeBytes : undefined,
+    rotation: rot,
   };
 }
 

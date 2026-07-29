@@ -1,7 +1,7 @@
 ---
 name: srt
 description: Extract subtitles (SRT) from video/audio/URLs and translate them into other languages (Perso AI STT).
-allowed-tools: Bash(node scripts/srt.mjs *), Bash(node ../dubbing/scripts/resolve_key.mjs *), Bash(node ../dubbing/scripts/billing.mjs *), Bash(node ${CLAUDE_SKILL_DIR}/scripts/*), Bash(node ${CLAUDE_SKILL_DIR}/../dubbing/scripts/*)
+allowed-tools: Bash(node scripts/srt.mjs *), Bash(node scripts/style.mjs *), Bash(node ../dubbing/scripts/resolve_key.mjs *), Bash(node ../dubbing/scripts/billing.mjs *), Bash(node ${CLAUDE_SKILL_DIR}/scripts/*), Bash(node ${CLAUDE_SKILL_DIR}/../dubbing/scripts/*)
 ---
 
 # /srt
@@ -95,6 +95,28 @@ It extends too-fast cues into the following silence and merges short neighbourin
 - for comedy/drama content, review its `[retime] merged` lines: if a merge shows a punchline early or completes an intentionally interrupted line, restore those two cues with their original timings from the pre-merge state.
 
 Report the saved translated file paths to the user, mentioning the originals are kept alongside. If the user wants to open the subtitle project on Perso, build the link from the `[srt-original]` line's `seq`: `https://perso.ai/en/workspace/vt/stt/<seq>`.
+
+## Style & burn subtitles (hardsub)
+
+Optionally burn a **styled** subtitle track onto the video (permanent hardsub) with `scripts/style.mjs`. This is a local ffmpeg step — no key, no credits (except `--project`, which downloads the source from Perso). Requires `ffmpeg`; if missing, tell the user to install it and stop.
+
+**When to offer it (two entry points):**
+
+- **After translation (this skill's normal flow):** once the SRTs are delivered, offer to burn a styled version. If several languages were produced, ask whether to apply to **all or only some** (e.g. "영어만"). Example: `자막 준비 끝났어요. 영상에 스타일 입혀서 구워드릴까요? (영어·일본어·중국어 중 전체 또는 일부)`
+- **Direct request (video + SRT handed to you):** skip the question and go straight to preset selection.
+
+**Flow:**
+
+1. **Show presets.** Run `node scripts/style.mjs --list-presets` and present them, grouped short-form (9:16) / long-form (16:9). Tell the user they can pick a preset **or describe any style** (e.g. "노란 글씨에 검정 테두리, 하단"). If `assets/style_presets.png` exists, attach it as a visual reference. Suggest a default by the video's orientation (portrait → a short-form preset, landscape → a long-form one).
+2. **Apply.** Run the worker in the **background** (encoding takes time):
+   - From a Perso STT project: `node scripts/style.mjs --project <seq> --preset <id> [--out folder]`
+   - From local files: `node scripts/style.mjs "<video>" "<subtitle.srt>" --preset <id> [--out folder]`
+   - **Custom style:** map the user's description to override flags on top of any base preset — `--position center|lower|bottom|upper`, `--font`, `--fontsize`, `--primary RRGGBB`, `--outline RRGGBB`, `--outline-width`, `--box RRGGBB@opacity|none`, `--karaoke`/`--no-karaoke`, `--highlight RRGGBB`, `--uppercase`, `--bold`/`--no-bold` (see `--help`).
+   - **Fonts:** `--font "<name>"` uses an installed font; a name that isn't installed falls back to the closest system font automatically (mention it when relevant). A user-supplied font file (.ttf/.otf/.ttc) goes in as `--font-file "<path>"` — the family name is read from the file itself.
+   - **Multiple languages:** run once per language's SRT with the same `--preset`, adding `--lang <code>` so outputs are named per language.
+3. **Relay + deliver.** Surface the worker's `[progress]` lines. The `[styled-output]` line carries the final `path` — deliver that file, and attaching one extracted frame as proof is nice. Add `--host <runtime>` for telemetry (silent), same as `srt.mjs`.
+
+**Karaoke (per-word highlight).** The `karaoke` preset needs per-word timings. With `--project` the worker fetches the project's `scriptTimestamps` automatically (accurate for the **original** language). When no word timings are available (a translated SRT, or a local SRT alone), it **still proceeds** with estimated timing and prints a notice — relay it as-is, don't ask: `단어별 시간이 없어 근사로 Karaoke를 적용해요. 타이밍이 조금 어긋날 수 있어요.` For accurate original-language karaoke, pass `--word-timestamps <scriptTimestamps.json>`.
 
 ## Interruption & resume
 
