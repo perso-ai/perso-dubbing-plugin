@@ -6,11 +6,11 @@
 <title>Perso Dubbing Skill — Dublagem de vídeo com IA e sincronização labial no seu agente de IA</title>
 <meta name="description" content="Dublagem de vídeo com IA com um único comando no Claude Code, Codex ou Antigravity. Clonagem de voz que mantém a voz original, sincronização labial e legendas SRT — pastas inteiras em vários idiomas de uma vez.">
 <link rel="canonical" href="https://dubbing-plugin.perso.ai/pt/">
-<link rel="alternate" hreflang="ko" href="https://dubbing-plugin.perso.ai/">
-<link rel="alternate" hreflang="en" href="https://dubbing-plugin.perso.ai/en/">
+<link rel="alternate" hreflang="en" href="https://dubbing-plugin.perso.ai/">
+<link rel="alternate" hreflang="ko" href="https://dubbing-plugin.perso.ai/ko/">
 <link rel="alternate" hreflang="es" href="https://dubbing-plugin.perso.ai/es/">
 <link rel="alternate" hreflang="pt" href="https://dubbing-plugin.perso.ai/pt/">
-<link rel="alternate" hreflang="x-default" href="https://dubbing-plugin.perso.ai/en/">
+<link rel="alternate" hreflang="x-default" href="https://dubbing-plugin.perso.ai/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Perso Dubbing">
 <meta property="og:title" content="Perso Dubbing Skill — Dublagem de vídeo com IA e sincronização labial no seu agente de IA">
@@ -25,7 +25,7 @@
 <meta name="twitter:description" content="Dublagem e sincronização labial que mantêm a voz original. Também legendas SRT e separação de múltiplos falantes. Experimente no seu Claude Code, Codex ou Antigravity com um único comando.">
 <link rel="icon" href="/perso-mark.svg">
 <script>window.__pdlang="pt";</script>
-<script>(function(){try{var q=new URLSearchParams(location.search);var raw=q.get("lang")||q.get("hl");if(!raw)return;var code=raw.trim().toLowerCase().replace(/_/g,"-").split("-")[0];var map={ko:"/",en:"/en/",es:"/es/",pt:"/pt/"};var t=map[code];if(!t)return;if(code===window.__pdlang)return;q.delete("lang");q.delete("hl");var qs=q.toString();location.replace(t+(qs?"?"+qs:"")+location.hash);}catch(e){}})();</script>
+<script>(function(){try{var q=new URLSearchParams(location.search);var raw=q.get("lang")||q.get("hl");if(!raw)return;var code=raw.trim().toLowerCase().replace(/_/g,"-").split("-")[0];var map={ko:"/ko/",en:"/",es:"/es/",pt:"/pt/"};var t=map[code];if(!t)return;if(code===window.__pdlang)return;q.delete("lang");q.delete("hl");var qs=q.toString();location.replace(t+(qs?"?"+qs:"")+location.hash);}catch(e){}})();</script>
 <!-- Google Tag Manager — perso.ai 동일 컨테이너 -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-WT7QJR3V');</script>
 <!-- GA4 direct events (page_view는 GTM이 전송 — send_page_view:false로 중복 방지) -->
@@ -797,7 +797,7 @@
     try { localStorage.setItem("pd-lang", lang); } catch(e) {}
   }
   var MULTIPAGE = (typeof window.__pdlang !== "undefined");
-  function langPath(l){ return l === "ko" ? "/" : "/" + l + "/"; }
+  function langPath(l){ return l === "en" ? "/" : "/" + l + "/"; }
   var langbtn = document.getElementById("langbtn"), langmenu = document.getElementById("langmenu");
   langbtn.addEventListener("click", function(e){
     e.stopPropagation();
