@@ -25,7 +25,8 @@
 <meta name="twitter:description" content="Dublagem e sincronização labial que mantêm a voz original. Também legendas SRT e separação de múltiplos falantes. Experimente no seu Claude Code, Codex ou Antigravity com um único comando.">
 <link rel="icon" href="https://dubbing-skill.perso.ai/perso-mark.svg">
 <script>window.__pdlang="pt";</script>
-<script>(function(){try{var q=new URLSearchParams(location.search);var raw=q.get("lang")||q.get("hl");if(!raw)return;var code=raw.trim().toLowerCase().replace(/_/g,"-").split("-")[0];var map={ko:"/ko/",en:"/",es:"/es/",pt:"/pt/"};var t=map[code];if(!t)return;if(code===window.__pdlang)return;q.delete("lang");q.delete("hl");var qs=q.toString();location.replace(t+(qs?"?"+qs:"")+location.hash);}catch(e){}})();</script>
+<script>window.__swapLang=function(pathname,L){var rest=pathname.replace(/^\/(ko|es|pt|en)(?=\/|$)/,"").replace(/^\/{2,}/,"/");return (L==="en"?"":"/"+L)+(rest||"/");};</script>
+<script>(function(){try{var q=new URLSearchParams(location.search);var raw=q.get("lang")||q.get("hl");if(!raw)return;var code=raw.trim().toLowerCase().replace(/_/g,"-").split("-")[0];if(["en","ko","es","pt"].indexOf(code)===-1)return;q.delete("lang");q.delete("hl");var qs=q.toString();if(code===window.__pdlang){if(history&&history.replaceState){history.replaceState(null,"",location.pathname+(qs?"?"+qs:"")+location.hash);}return;}location.replace(window.__swapLang(location.pathname,code)+(qs?"?"+qs:"")+location.hash);}catch(e){}})();</script>
 <!-- Google Tag Manager — perso.ai 동일 컨테이너 -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-WT7QJR3V');</script>
 <!-- GA4 direct events (page_view는 GTM이 전송 — send_page_view:false로 중복 방지) -->
@@ -797,7 +798,6 @@
     try { localStorage.setItem("pd-lang", lang); } catch(e) {}
   }
   var MULTIPAGE = (typeof window.__pdlang !== "undefined");
-  function langPath(l){ return l === "en" ? "/" : "/" + l + "/"; }
   var langbtn = document.getElementById("langbtn"), langmenu = document.getElementById("langmenu");
   langbtn.addEventListener("click", function(e){
     e.stopPropagation();
@@ -810,7 +810,7 @@
   document.querySelectorAll(".langmenu button").forEach(function(b){
     b.addEventListener("click", function(){
       var l = b.getAttribute("data-lang");
-      if (MULTIPAGE) { if (l !== window.__pdlang) location.href = langPath(l); }
+      if (MULTIPAGE) { if (l !== window.__pdlang) { var q=new URLSearchParams(location.search); q.delete("lang"); q.delete("hl"); var qs=q.toString(); location.href = window.__swapLang(location.pathname, l) + (qs?"?"+qs:"") + location.hash; } }
       else { applyLang(l); }
     });
   });
