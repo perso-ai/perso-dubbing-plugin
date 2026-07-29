@@ -1,14 +1,22 @@
 ---
 name: clip
-description: Cut a long video into short-form clips (highlights/shorts) from a Perso AI STT project — pick the best moments, cut them, and reframe 16:9→9:16. Subtitles are added separately by the srt skill.
+description: Cut a video into short-form clips (highlights/shorts) — cut given timecodes directly, or pick the best moments from a Perso AI STT project. Reframes 16:9→9:16. Subtitles are added separately by the srt skill.
 allowed-tools: Bash(node scripts/clip.mjs *), Bash(node ../dubbing/scripts/resolve_key.mjs *), Bash(node ${CLAUDE_SKILL_DIR}/scripts/*), Bash(node ${CLAUDE_SKILL_DIR}/../dubbing/scripts/*)
 ---
 
 # /clip
 
-Turn a long video into short clips. You (the agent) pick the moments; the worker fetches the source, maps sentence numbers to exact timecodes, cuts, and reframes. **Subtitles are not this skill's job** — after cutting, the `srt` skill styles them (see the handoff below).
+Cut a video into short clips + reframe. **Subtitles are not this skill's job** — after cutting, the `srt` skill styles them (see the handoff below).
 
-This skill works on a completed **Perso AI STT project** (it needs the project's transcript + word timestamps). If the user only has a raw video, run the `srt` skill first to create the STT project, then clip it.
+## Entry points
+
+- **Explicit timecodes** ("cut 2:00–3:00 of this video") → cut the local file directly: `--video "<file>" --ranges "2:00-3:00,..."`. No STT, no key, no credits.
+- **AI highlight selection on an STT project** → `--plan` then `--clips` (the flow below). Needs the project's transcript + word timestamps.
+- **Raw video, "find the good moments"** (no timecodes given) → you can't pick highlights without a transcript, so **ask the user which they want**:
+  - **STT** (proper selection, uses credits): run the `srt` skill's STT first to create the project, then clip it with `--plan`/`--clips`.
+  - **Free** (no STT): the user gives the timecodes and you cut them with `--video --ranges`.
+
+  Proceed with their choice — don't run STT (which bills credits) without asking.
 
 ## Core rules
 

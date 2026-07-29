@@ -37,17 +37,20 @@ const CLIP_MIN = 30, CLIP_MAX = 90;
 const USAGE = [
   'Usage: node scripts/clip.mjs --project <seq> --plan',
   '       node scripts/clip.mjs --project <seq> --clips \'[{"title":"..","start_order":N,"end_order":M}]\' [--out folder]',
+  '       node scripts/clip.mjs --video "<file>" --ranges "2:00-3:00,5:10-5:40" [--titles "a,b"] [--out folder]',
   '       node scripts/clip.mjs --sidecars <clips.json> [--karaoke]',
   '',
   '  --plan            print the summary + transcript for clip selection',
   '  --clips <json|@file>   clip specs: array of { title, start_order, end_order } → cuts + writes clips.json',
+  '  --video <file> --ranges <t-t,...>   local cut by explicit timecodes (no STT, no key); times are',
+  '                    mm:ss / hh:mm:ss / seconds. --titles names them (comma-separated).',
   '  --out <folder>    where to write the clips (default: current folder)',
   '  --sidecars <clips.json>   write <clip>.srt for each clip (for the srt skill to style); add --karaoke',
   '                    to also write <clip>.timestamps.json (measured word timing — karaoke only)',
   `  --min/--max <sec> target length band for the warning (default ${CLIP_MIN}-${CLIP_MAX})`,
 ].join('\n');
 
-const VALUE_FLAGS = ['project', 'clips', 'out', 'sidecars', 'min', 'max', 'host'];
+const VALUE_FLAGS = ['project', 'clips', 'video', 'ranges', 'titles', 'out', 'sidecars', 'min', 'max', 'host'];
 function parseArgs(argv) {
   const a = {};
   for (let i = 0; i < argv.length; i++) {
@@ -63,10 +66,29 @@ function parseArgs(argv) {
       a[k] = v;
     } else throw new UsageError(`Unexpected argument: ${t}`);
   }
-  if (a.sidecars) return a; // sidecars is offline (no project/key)
+  if (a.sidecars) return a; // offline (no project/key)
+  if (a.video) { if (!a.ranges) throw new UsageError('--video needs --ranges "start-end,..." (e.g. "2:00-3:00").'); return a; } // offline
   if (!a.project || !/^\d+$/.test(a.project)) throw new UsageError('--project <seq> is required (numeric project id).');
   if (!a.plan && !a.clips) throw new UsageError('Pass --plan to inspect, --clips <json> to cut, or --sidecars <clips.json>.');
   return a;
+}
+
+// mm:ss / hh:mm:ss / seconds → seconds.
+function parseTime(s) {
+  s = String(s).trim();
+  if (/^\d+(\.\d+)?$/.test(s)) return Number(s);
+  const parts = s.split(':').map(Number);
+  if (!parts.length || parts.some((n) => !Number.isFinite(n))) throw new UsageError(`Bad time "${s}" — use mm:ss, hh:mm:ss, or seconds.`);
+  return parts.reduce((acc, n) => acc * 60 + n, 0);
+}
+function parseRanges(raw) {
+  const out = String(raw).split(',').map((r) => r.trim()).filter(Boolean).map((r) => {
+    const m = r.split('-');
+    if (m.length !== 2) throw new UsageError(`Bad range "${r}" — use start-end (e.g. 2:00-3:00).`);
+    return { start: parseTime(m[0]), end: parseTime(m[1]) };
+  });
+  if (!out.length) throw new UsageError('--ranges is empty.');
+  return out;
 }
 
 async function streamToFile(url, out) {
@@ -181,6 +203,38 @@ function runSidecars(a) {
   notify(`Sidecars written for ${out.length} clip${out.length === 1 ? '' : 's'}. Style each with the srt skill: node ../srt/scripts/style.mjs "<clip>.mp4" "<clip>.srt" --preset <id>${a.karaoke ? ' --word-timestamps "<clip>.timestamps.json"' : ''}`);
 }
 
+// Local cut: no STT, no key — just ffmpeg-cut a local video at explicit timecodes and reframe.
+async function runLocalCut(a) {
+  const video = resolve(a.video);
+  if (!existsSync(video)) throw new Error(`Video not found: ${a.video}`);
+  const ranges = parseRanges(a.ranges);
+  const titles = a.titles ? a.titles.split(',').map((s) => s.trim()) : [];
+  let { width, height, rotation } = await probe(video);
+  if (Math.abs(rotation) % 180 === 90) [width, height] = [height, width];
+  const rf = reframe(width, height);
+  const outDir = resolve(a.out || process.cwd());
+  mkdirSync(outDir, { recursive: true });
+  const enc = await pickVideoEncoder();
+
+  const done = [];
+  for (let i = 0; i < ranges.length; i++) {
+    const { start, end } = ranges[i];
+    const dur = end - start;
+    if (!(dur > 0)) { notify(`Skipped range ${i + 1} — end must be after start.`); continue; }
+    const title = titles[i] || `clip_${i + 1}`;
+    const outPath = join(outDir, `${String(i + 1).padStart(2, '0')}_${sanitize(title) || 'clip'}.mp4`);
+    const args = ['-y', '-hide_banner', '-loglevel', 'error', '-ss', start.toFixed(3), '-t', dur.toFixed(3), '-i', video];
+    if (rf.filter) args.push('-vf', rf.filter);
+    args.push(...encoderVideoArgs(enc), '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', outPath);
+    notify(`Clip ${i + 1}: ${fmt(start)}→${fmt(end)} (${Math.round(dur)}s)`);
+    await exec('ffmpeg', args, { maxBuffer: 1 << 20 });
+    done.push({ path: outPath, title, start, end, seconds: Math.round(dur) });
+  }
+  track('clips_completed', { clip_count: done.length, reframed: !!rf.filter, source: 'local' });
+  console.log(`[clips-output] ${JSON.stringify({ count: done.length, outDir, clips: done.map(({ path, title, seconds }) => ({ path, title, seconds })) })}`);
+  notify(`Done — ${done.length} clip${done.length === 1 ? '' : 's'} saved to ${outDir}.`);
+}
+
 async function main() {
   let exitCode = 0;
   try {
@@ -190,6 +244,7 @@ async function main() {
     if (a.host) setAgentHost(a.host);
     if (a.help) { console.log(USAGE); return; }
     if (a.sidecars) { initTelemetry(); track('run_started', { mode: 'clip-sidecars' }); runSidecars(a); return; }
+    if (a.video) { initTelemetry(); track('run_started', { mode: 'clip-local' }); await runLocalCut(a); return; }
     await ensureKey();
     initTelemetry();
     track('run_started', { mode: a.plan ? 'clip-plan' : 'clip-cut' });
