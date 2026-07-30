@@ -13,10 +13,12 @@ Một skill dành cho agent lập trình, mang tính năng lồng tiếng AI c�
 - **Lồng tiếng** sang ngôn ngữ khác — một tệp đơn lẻ, cả một thư mục, hoặc một URL
 - **Đồng bộ khẩu hình (lip-sync)** cho video đã lồng tiếng để khẩu hình khớp với âm thanh mới
 - **Tách** giọng nói khỏi âm thanh nền
-- **Phụ đề** (`/srt`) — trích xuất SRT bằng speech-to-text, rồi agent của bạn sẽ dịch
+- **Phụ đề** — trích xuất SRT bằng speech-to-text, rồi agent của bạn sẽ dịch
+- **Phụ đề có kiểu** — ghép phụ đề có kiểu lên video: preset dựng sẵn, hoặc font, màu, và vị trí của riêng bạn
+- **Clip ngắn** — cắt video dài thành các đoạn nổi bật dạng ngắn và đổi khung hình 16:9 → 9:16
 - Media quá lớn hoặc quá dài sẽ được tự động chia nhỏ, xử lý, rồi ghép lại
 
-Chạy trên **Node.js 18+** và cần **API key của Perso Dubbing**. Được xây dựng trên chuẩn Agent Skills (`SKILL.md`), nên skill hoạt động giống hệt nhau trên Claude, Codex, và Antigravity.
+Chạy trên **Node.js 18+** và có thể cần **API key của Perso Dubbing**. Được xây dựng trên chuẩn Agent Skills (`SKILL.md`), nên skill hoạt động giống hệt nhau trên Claude, Codex, và Antigravity.
 
 ![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
 
@@ -71,7 +73,7 @@ Tự động phát hiện các host bạn đang có và cài cả hai skill vào
 
 ### Lần chạy đầu tiên — API key của bạn
 
-Một trang trình duyệt sẽ mở ra: đăng nhập và nhấn một lần, key của bạn sẽ được cấp và lưu trên máy này ở dạng mã hóa. Không cần sao chép gì cả. Nếu không mở được trình duyệt, một tệp key sẽ mở ra thay thế — dán key vào đó rồi lưu, tệp sẽ được mã hóa và xóa đi.
+Key chỉ cần khi một tác vụ sử dụng Perso API (lồng tiếng, lip-sync, tách âm, trích xuất SRT) — các bước ngoại tuyến như ghép phụ đề có kiểu lên video cục bộ hoặc dịch một tệp SRT bạn cung cấp không bao giờ yêu cầu key. Khi cần key, một trang trình duyệt sẽ mở ra: đăng nhập và nhấn một lần, key của bạn sẽ được cấp và lưu trên máy này ở dạng mã hóa. Không cần sao chép gì cả. Nếu không mở được trình duyệt, một tệp key sẽ mở ra thay thế — dán key vào đó rồi lưu, tệp sẽ được mã hóa và xóa đi.
 
 <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Lấy API key</a> · kiểm tra bất cứ lúc nào bằng `npm run key:check`
 
@@ -90,6 +92,10 @@ Chỉ cần nói với agent của bạn điều bạn muốn:
 > "Tách giọng nói và nhạc nền ra khỏi clip này"
 >
 > "Tạo cho tôi một tệp SRT tiếng Anh cho video này"
+>
+> "Thêm phụ đề có kiểu vào video này — SRT đây"
+>
+> "Cắt video này từ 2:00 đến 3:00 thành clip ngắn"
 
 Hoặc gõ **`/dubbing`** / **`/srt`** để bắt đầu. Để xem danh sách đầy đủ các tùy chọn CLI, hãy hỏi agent của bạn về cách dùng hoặc chạy `npm run dub -- --help`.
 
@@ -124,6 +130,7 @@ Còn thắc mắc khác? Xem **[FAQ](FAQ.md)**.
 docs/              Trang landing GitHub Pages + README đã dịch · FAQ (12 ngôn ngữ)
 skills/dubbing/    Skill lồng tiếng (SKILL.md · lib/ · scripts/) — độc lập
 skills/srt/        Skill phụ đề SRT (SKILL.md · scripts/) — dùng lib/ của skill lồng tiếng
+skills/clip/       Skill clip ngắn (SKILL.md · lib/ · scripts/) — dùng lib/ của skill lồng tiếng
 scripts/           Trình cài đặt cấp repository (install.mjs)
 ```
 

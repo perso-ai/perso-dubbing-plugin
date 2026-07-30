@@ -13,10 +13,12 @@
 - **더빙** — 파일 하나, 폴더 전체, URL 모두 가능
 - **립싱크** — 더빙된 음성에 맞춰 입 모양까지 자연스럽게
 - **음원 분리** — 음성과 배경음을 각각의 트랙으로
-- **자막**(`/srt`) — 음성 인식으로 SRT를 추출하고, 에이전트가 원하는 언어로 번역
+- **자막** — 음성 인식으로 SRT를 추출하고, 에이전트가 원하는 언어로 번역
+- **자막 입히기** — 스타일이 적용된 자막을 영상에 인코딩. 기성 프리셋 또는 원하는 폰트, 색, 위치도 가능.
+- **숏폼 클립** — 긴 영상을 하이라이트 숏폼으로 자르고 16:9 → 9:16으로 리프레임
 - 용량이 크거나 아주 긴 영상은 자동으로 분할·처리 후 다시 합쳐집니다
 
-**Node.js 18+** 에서 동작하며 **Perso Dubbing API 키**가 필요합니다. Agent Skills 표준(`SKILL.md`) 기반이라 Claude·Codex·Antigravity 어디서나 동일하게 동작합니다.
+**Node.js 18+** 에서 동작하며 **Perso Dubbing API 키**가 필요할 수 있습니다. Agent Skills 표준(`SKILL.md`) 기반이라 Claude·Codex·Antigravity 어디서나 동일하게 동작합니다.
 
 ![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
 
@@ -71,7 +73,7 @@ npx perso-dubbing
 
 ### 첫 실행 — API 키
 
-브라우저 페이지가 열립니다. 로그인하고 한 번 클릭하면 키가 발급되어 이 PC에 암호화 저장됩니다. 복사할 것이 없습니다. 브라우저를 열 수 없는 환경이라면 대신 키 파일이 열립니다 — 거기에 키를 붙여넣고 저장하면 암호화된 뒤 파일은 삭제됩니다.
+키는 Perso API를 쓰는 작업(더빙·립싱크·음원 분리·SRT 추출)에서만 필요합니다. 오프라인 작업(로컬 영상에 자막 입히기, 직접 준 SRT 번역)은 키를 요구하지 않습니다. 키가 필요한 순간 브라우저 페이지가 열립니다. 로그인하고 한 번 클릭하면 키가 발급되어 이 PC에 암호화 저장됩니다. 복사할 것이 없습니다. 브라우저를 열 수 없는 환경이라면 대신 키 파일이 열립니다 — 거기에 키를 붙여넣고 저장하면 암호화된 뒤 파일은 삭제됩니다.
 
 <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">API 키 발급받기</a> · 확인은 `npm run key:check`
 
@@ -90,6 +92,10 @@ npx perso-dubbing
 > "이 클립에서 목소리랑 배경음 분리해줘"
 >
 > "이 영상으로 영어 SRT 만들어줘"
+>
+> "이 영상에 자막 입혀줘 — SRT 여기 있어"
+>
+> "이 영상 2:00~3:00 구간 숏츠로 잘라줘"
 
 또는 **`/dubbing`** / **`/srt`** 를 입력해 시작하세요. CLI 옵션 전체가 필요하면 에이전트에게 사용법을 묻거나 `npm run dub -- --help`를 실행하세요.
 
@@ -124,6 +130,7 @@ npx perso-dubbing
 docs/              GitHub Pages 랜딩 + 번역된 README · FAQ (12개 언어)
 skills/dubbing/    더빙 스킬 본체 (SKILL.md · lib/ · scripts/) — 자체 완결형
 skills/srt/        SRT 자막 스킬 (SKILL.md · scripts/) — dubbing 스킬의 lib/를 사용
+skills/clip/       숏폼 클립 스킬 (SKILL.md · lib/ · scripts/) — dubbing 스킬의 lib/를 사용
 scripts/           저장소 레벨 설치 스크립트 (install.mjs)
 ```
 

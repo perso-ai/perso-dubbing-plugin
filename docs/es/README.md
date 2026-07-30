@@ -13,10 +13,12 @@ Una skill para agentes de programación que lleva el doblaje con IA de [Perso Du
 - **Dobla** a otro idioma — un solo archivo, una carpeta entera o una URL
 - **Sincroniza los labios** del vídeo doblado para que la boca coincida con el nuevo audio
 - **Separa** la voz del audio de fondo
-- **Subtítulos** (`/srt`) — extrae un SRT mediante reconocimiento de voz y luego tu agente lo traduce
+- **Subtítulos** — extrae un SRT mediante reconocimiento de voz y luego tu agente lo traduce
+- **Subtítulos con estilo** — incrusta subtítulos con estilo en el vídeo: presets listos para usar, o tu propia fuente, color y posición
+- **Clips cortos** — recorta un vídeo largo en momentos destacados de formato corto y reencuadra 16:9 → 9:16
 - El contenido demasiado grande o muy largo se divide, se procesa y se vuelve a unir automáticamente
 
-Se ejecuta con **Node.js 18+** y necesita una **clave de API de Perso Dubbing**. Está construida sobre el estándar Agent Skills (`SKILL.md`), así que se comporta igual en Claude, Codex y Antigravity.
+Se ejecuta con **Node.js 18+** y puede necesitar una **clave de API de Perso Dubbing**. Está construida sobre el estándar Agent Skills (`SKILL.md`), así que se comporta igual en Claude, Codex y Antigravity.
 
 ![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
 
@@ -71,7 +73,7 @@ Detecta qué hosts tienes e instala ambas skills en cada uno, indicando dónde h
 
 ### Primera ejecución — tu clave de API
 
-Se abre una página del navegador: inicia sesión y haz un clic, y tu clave se emite y se guarda cifrada en este equipo. No hay nada que copiar. Si no puede abrirse ningún navegador, se abre en su lugar un archivo de clave: pega ahí la clave y guarda, y el archivo se cifra y se elimina.
+La clave solo se necesita cuando una acción usa la API de Perso (doblaje, sincronización labial, separación, extracción de SRT); los pasos sin conexión, como incrustar subtítulos con estilo en un vídeo local o traducir un SRT que tú proporcionas, nunca la piden. Cuando hace falta, se abre una página del navegador: inicia sesión y haz un clic, y tu clave se emite y se guarda cifrada en este equipo. No hay nada que copiar. Si no puede abrirse ningún navegador, se abre en su lugar un archivo de clave: pega ahí la clave y guarda, y el archivo se cifra y se elimina.
 
 <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Consigue una clave de API</a> · compruébala cuando quieras con `npm run key:check`
 
@@ -90,6 +92,10 @@ Solo dile a tu agente lo que quieres:
 > «Separa la voz y la música de fondo de este clip»
 >
 > «Hazme un SRT en inglés de este vídeo»
+>
+> «Añade subtítulos con estilo a este vídeo — aquí tienes el SRT»
+>
+> «Recorta este vídeo de 2:00 a 3:00 como un short»
 
 O escribe **`/dubbing`** / **`/srt`** para empezar. Para la lista completa de opciones de la CLI, pídele el modo de uso a tu agente o ejecuta `npm run dub -- --help`.
 
@@ -124,6 +130,7 @@ O escribe **`/dubbing`** / **`/srt`** para empezar. Para la lista completa de op
 docs/              Landing de GitHub Pages + README traducidos · FAQ (12 idiomas)
 skills/dubbing/    La skill de doblaje (SKILL.md · lib/ · scripts/) — autónoma
 skills/srt/        La skill de subtítulos SRT (SKILL.md · scripts/) — usa la lib/ de la skill de doblaje
+skills/clip/       La skill de clips cortos (SKILL.md · lib/ · scripts/) — usa la lib/ de la skill de doblaje
 scripts/           Instalador a nivel de repositorio (install.mjs)
 ```
 

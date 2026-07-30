@@ -13,10 +13,12 @@
 - **吹き替え** — 単一ファイル、フォルダ全体、URLのいずれからでも他の言語へ
 - **リップシンク** — 吹き替えた動画の口の動きを新しい音声に合わせます
 - **音声分離** — 音声と背景音を分離します
-- **字幕**（`/srt`）— 音声認識でSRTを抽出し、続けてエージェントが翻訳します
+- **字幕** — 音声認識でSRTを抽出し、続けてエージェントが翻訳します
+- **スタイル付き字幕** — スタイルを適用した字幕を動画に焼き込みます。既製のプリセット、または独自のフォント・色・位置も指定できます
+- **ショートクリップ** — 長い動画をショート形式のハイライトに切り出し、16:9 → 9:16 にリフレームします
 - サイズが大きすぎるメディアや非常に長いメディアは、自動的に分割・処理され、最後に結合されます
 
-**Node.js 18以上**で動作し、**Perso Dubbing APIキー**が必要です。Agent Skills標準（`SKILL.md`）に基づいているため、Claude・Codex・Antigravity のいずれでもまったく同じように動作します。
+**Node.js 18以上**で動作し、**Perso Dubbing APIキー**が必要になる場合があります。Agent Skills標準（`SKILL.md`）に基づいているため、Claude・Codex・Antigravity のいずれでもまったく同じように動作します。
 
 ![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
 
@@ -71,7 +73,7 @@ npx perso-dubbing
 
 ### 初回実行 — APIキー
 
-ブラウザのページが開きます。サインインして一度クリックするだけで、キーが発行され、このマシンに暗号化して保存されます。コピーする必要はありません。ブラウザを開けない場合は、代わりにキーファイルが開きます — そこにキーを貼り付けて保存すると、暗号化されファイルは削除されます。
+キーが必要になるのは、Perso API を使う操作（吹き替え・リップシンク・音声分離・SRT抽出）のときだけです。ローカル動画へのスタイル付き字幕の焼き込みや、自分で用意したSRTの翻訳といったオフライン処理では要求されません。キーが必要になると、ブラウザのページが開きます。サインインして一度クリックするだけで、キーが発行され、このマシンに暗号化して保存されます。コピーする必要はありません。ブラウザを開けない場合は、代わりにキーファイルが開きます — そこにキーを貼り付けて保存すると、暗号化されファイルは削除されます。
 
 <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">APIキーを取得</a> ・ `npm run key:check` でいつでも確認できます
 
@@ -90,6 +92,10 @@ npx perso-dubbing
 > 「このクリップから音声と背景音楽を分離して」
 >
 > 「この動画の英語のSRTを作って」
+>
+> 「この動画にスタイル付き字幕を入れて — SRTはこちら」
+>
+> 「この動画の2:00〜3:00をショートに切り出して」
 
 または **`/dubbing`** / **`/srt`** と入力して開始します。CLIオプションの全一覧は、エージェントに使い方を尋ねるか、`npm run dub -- --help` を実行してください。
 
@@ -124,6 +130,7 @@ npx perso-dubbing
 docs/              GitHub Pages ランディング + 翻訳版 README · FAQ（12言語）
 skills/dubbing/    吹き替えスキル本体 (SKILL.md · lib/ · scripts/) — 単体で完結
 skills/srt/        SRT字幕スキル (SKILL.md · scripts/) — dubbing スキルの lib/ を使用
+skills/clip/       ショートクリップスキル (SKILL.md · lib/ · scripts/) — dubbing スキルの lib/ を使用
 scripts/           リポジトリレベルのインストーラー (install.mjs)
 ```
 
