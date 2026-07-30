@@ -1,7 +1,7 @@
 ---
 name: srt
 description: Extract subtitles (SRT) from video/audio/URLs and translate them into other languages (Perso AI STT).
-allowed-tools: Bash(node scripts/srt.mjs *), Bash(node ../dubbing/scripts/resolve_key.mjs *), Bash(node ../dubbing/scripts/billing.mjs *), Bash(node ${CLAUDE_SKILL_DIR}/scripts/*), Bash(node ${CLAUDE_SKILL_DIR}/../dubbing/scripts/*)
+allowed-tools: Bash(node scripts/srt.mjs *), Bash(node scripts/style.mjs *), Bash(node ../dubbing/scripts/resolve_key.mjs *), Bash(node ../dubbing/scripts/billing.mjs *), Bash(node ${CLAUDE_SKILL_DIR}/scripts/*), Bash(node ${CLAUDE_SKILL_DIR}/../dubbing/scripts/*)
 ---
 
 # /srt
@@ -19,15 +19,16 @@ A skill that extracts the source-language subtitles of a video/audio via the Per
 - **Relay progress faithfully.** Surface the worker's stdout `[progress]` lines to chat, verbatim or summarized. The indented stderr detail logs don't need relaying. For a batch the worker streams a `[progress]` line per input and prints a `[status]` heartbeat (`subtitles 3/20`, with a `next check ~Nm` hint) — check the background output ~3 minutes after launch, then on the hinted interval, relaying new lines. Never invent percentages or ETAs.
 - **Name your runtime for telemetry (silent).** Add `--host <claude-code|codex|cursor|antigravity|gemini>` to the worker command, naming the agent you are running as, if you can tell. It only tags usage telemetry — never surface it to the user and never ask them about it. Omit it if unsure.
 - **Unsupported formats are skipped automatically** and the rest keep processing — relay the skip notice.
+- **Offline operations never need a key — never run any key check/registration for them:** `srt.mjs --check`/`--retime`, `style.mjs` with a local video + SRT (everything except `--project`), and translating an SRT the user hands you.
 - This skill shares the dubbing skill's libraries: the `dubbing` folder must be installed next to `srt` (every install method ships them together; only a manual copy of the `srt` folder alone breaks this).
 
-## One-time setup
+## Setup (lazy — no upfront step)
 
-Same as `/dubbing` — the first run registers the key itself (browser flow, file fallback); relay the worker's printed instructions. Never paste the key into chat.
+Same as `/dubbing` — **key registration is not a step you run first.** The worker gates itself the moment a command that needs the Perso API runs (extraction, or `style.mjs --project`), opening the browser flow (file fallback) then; relay its printed instructions. Never run a key check/registration proactively. Never paste the key into chat.
 
 ## Run
 
-After the key gate, collect the input (local path or URL — re-ask if missing) and run **in the background**:
+Collect the input (local path or URL — re-ask if missing) and run **in the background** (the worker gates the key itself when extraction actually starts):
 
 - Single: `node scripts/srt.mjs "<file|URL>" [--target en] [--space "space name"] [--out folder]`
 - Multi-language / multi-input: `node scripts/srt.mjs "<URL>" "<file>" --target en,ja`
@@ -46,6 +47,8 @@ Extracted original SRT files are saved next to each source (or into `--out`), ke
 
 ## Translate (you do this part)
 
+**User hands an SRT directly (no STT):** there is no worker step and no `[srt-original]` line — treat the given SRT as `path` and the languages the user asked for as `langs`, then follow Steps 1–5 as written, deriving Step 3's `{stem}` from the SRT's own filename. Fully offline: `--check`/`--retime` only, no key, no credits.
+
 When extraction finishes, the worker prints one line per input, carrying every target language:
 
 ```
@@ -54,7 +57,7 @@ When extraction finishes, the worker prints one line per input, carrying every t
 
 **If `langs` is `null`** (a `--transcribe-only` run), there is nothing to translate: deliver that file to the user as-is and stop here.
 
-**Show translation progress.** STT extraction is done, but translating into each language takes time too — make it visible. Before you start, post one line naming the languages you'll produce (e.g. "자막 추출 완료 — 이제 일본어·영어로 번역합니다"). After you finish and save each language's file, post a one-line update (e.g. `일본어 ✓ (1/2)`), so the user sees per-language progress like a multi-language dub. A long file may stay quiet within a single language while you batch its sections — that's fine.
+**Show translation progress.** STT extraction is done, but translating into each language takes time too — make it visible. Before you start, post one line naming the languages you'll produce (e.g. "Subtitles extracted — now translating into Japanese and English"). After you finish and save each language's file, post a one-line update (e.g. `Japanese ✓ (1/2)`), so the user sees per-language progress like a multi-language dub. A long file may stay quiet within a single language while you batch its sections — that's fine.
 
 For each `[srt-original]` line, translate the one file at `path` into **every** language in `langs`:
 
@@ -95,6 +98,35 @@ It extends too-fast cues into the following silence and merges short neighbourin
 - for comedy/drama content, review its `[retime] merged` lines: if a merge shows a punchline early or completes an intentionally interrupted line, restore those two cues with their original timings from the pre-merge state.
 
 Report the saved translated file paths to the user, mentioning the originals are kept alongside. If the user wants to open the subtitle project on Perso, build the link from the `[srt-original]` line's `seq`: `https://perso.ai/en/workspace/vt/stt/<seq>`.
+
+## Style & burn subtitles (hardsub)
+
+Optionally burn a **styled** subtitle track onto the video (permanent hardsub) with `scripts/style.mjs`. This is a local ffmpeg step — no key, no credits (except `--project`, which downloads the source from Perso). Requires `ffmpeg`; if missing, tell the user to install it and stop.
+
+**When to offer it (two entry points):**
+
+- **After translation:** once the SRTs are delivered, offer to add styled subtitles — natural user-facing wording, not "burn/hardsub". For several languages, ask all or only some.
+- **Direct request (video + SRT handed to you):** go straight to preset selection.
+
+**Flow:**
+
+1. **Always show the presets first — never skip to applying one.** How to show them depends on the surface:
+   - **Claude app (or any surface that can render an interactive widget):** show the preset **gallery** — a tile per preset the user selects, with an **Apply** button that sends the pick back as the generation request. Preferred there.
+   - **CLI / Antigravity / Codex / anywhere without interactive rendering (universal fallback):** attach `assets/style_presets.png` (the static preview) **and** run `node scripts/style.mjs --list-presets` for the text menu.
+   Both come from the same presets. Group short-form (9:16) / long-form (16:9). The user can pick a preset **or describe any style** (e.g. "yellow text, black outline, at the bottom"). Suggest a default by orientation (portrait → short-form, landscape → long-form) but let them choose. Apply only after they pick or describe.
+2. **Apply.** Run the worker in the **background** (encoding takes time):
+   - From a Perso STT project: `node scripts/style.mjs --project <seq> --preset <id> [--out folder]`
+   - From local files: `node scripts/style.mjs "<video>" "<subtitle.srt>" --preset <id> [--out folder]`
+   - **Custom style:** map the user's description to override flags on top of any base preset — `--position center|lower|bottom|upper`, `--font`, `--fontsize`, `--primary RRGGBB`, `--outline RRGGBB`, `--outline-width`, `--box RRGGBB@opacity|none`, `--karaoke`/`--no-karaoke`, `--highlight RRGGBB`, `--uppercase`, `--bold`/`--no-bold` (see `--help`).
+   - **Fonts:** `--font "<name>"` uses an installed font; a name that isn't installed falls back to the closest system font automatically (mention it when relevant). A user-supplied font file (.ttf/.otf/.ttc) goes in as `--font-file "<path>"` — the family name is read from the file itself.
+   - **Multiple languages:** run once per language's SRT with the same `--preset`, adding `--lang <code>` so outputs are named per language.
+3. **Relay + deliver.** Surface `[progress]` lines; deliver the file from the `[styled-output]` `path`. Add `--host <runtime>` for telemetry (silent).
+
+**Karaoke (per-word highlight).** The `karaoke` preset needs per-word timings. With `--project` the worker fetches the project's `scriptTimestamps` automatically (accurate for the **original** language). When no word timings are available (a translated SRT, or a local SRT alone), it **still proceeds** with estimated timing and prints a notice — relay the worker's notice as-is, don't ask. For accurate original-language karaoke, pass `--word-timestamps <scriptTimestamps.json>`.
+
+## Making short clips → the clip skill
+
+Cutting a long video into highlight clips is a **separate skill** (`clip`, installed alongside). After extraction, offer it too (e.g. "I can also cut the key moments into short clips"); when the user wants clips, invoke `clip`. It cuts + reframes and hands subtitles back here via `<clip>.srt` sidecars — style each with `scripts/style.mjs "<clip>.mp4" "<clip>.srt" --preset <id>`.
 
 ## Interruption & resume
 
