@@ -217,9 +217,9 @@ function printMenu() {
 async function main() {
   let exitCode = 0;
   try {
-    preloadKeyEnv();
     primeTelemetrySpace();
     const a = parseArgs(process.argv.slice(2));
+    if (a.project) preloadKeyEnv(); // API mode only — local video+srt burns offline (no key material touched)
     if (a.host) setAgentHost(a.host);
     if (a.help) { console.log(USAGE); return; }
     if (a.listPresets) { printMenu(); return; }

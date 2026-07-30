@@ -21,14 +21,14 @@ A skill that auto-dubs videos via the Perso AI Dubbing API.
 - **Unsupported formats are skipped automatically** and the rest keep processing — relay the skip notice.
 - **A pause is not a failure.** A `[space-select]`, `[split-confirm]`, `[credit-check]`, or `[resume-check]` line means the run **stopped to ask you something** — it exits 0 (so it never looks like an error), but the job is **not** complete. Whenever one of these lines is present, never report the run as done: relay it and act on it. The lines are the signal, not the exit code.
 
-## One-time setup
+## Setup (lazy — no upfront step)
 
-1. **API key** — none needed up front: the first run opens a browser page (sign in, one click — the key is stored encrypted). If no browser can open, the worker prints file-based instructions instead — relay them to the user. While a run is waiting for the key, don't start `connect.mjs` or `resolve_key.mjs --watch` yourself. Never paste the key into chat. Status check: `node scripts/resolve_key.mjs --check` (a missing key is not an error). Get a key: https://developers.perso.ai/api-keys
+1. **API key** — **not a step you run first.** The worker gates itself the moment a command that needs the Perso API runs: on the first such run it opens a browser page (sign in, one click — the key is stored encrypted), or prints file-based instructions if no browser can open — relay them to the user. Never trigger key registration yourself: the worker spawns `connect.mjs`/`resolve_key.mjs --watch` when needed, so don't run those, and don't run `resolve_key.mjs --check` as a pre-step (only if the user explicitly asks whether a key is registered — a missing key is not an error). Never paste the key into chat. Get a key: https://developers.perso.ai/api-keys
 2. **ffmpeg/ffprobe** — auto-installed only when a video exceeds the plan limit and must be split (approve if permission is requested). Manual check: `node scripts/check_deps.mjs`.
 
 ## Run
 
-After the key gate, collect the input (local path or URL — re-ask if missing) and run **in the background**:
+Collect the input (local path or URL — re-ask if missing) and run **in the background** — the worker performs the key gate itself on first need; just relay its printed instructions if registration starts:
 
 - Single: `node scripts/dubbing.mjs "<file|URL>" [--source auto] [--target en] [--space "space name"] [--out result.mp4] [--lipsync] [--no-save]`
 - Multi-language / multi-input (one or more inputs; URLs and files can be mixed): `node scripts/dubbing.mjs "<URL>" "<file>" --target en,ja` — one output per input × language, saved next to each source (`--out <folder>` collects them).

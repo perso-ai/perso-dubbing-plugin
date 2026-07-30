@@ -441,6 +441,7 @@ async function runResume(fileArg) {
   if (m.kind !== 'stt' || ![1, 2].includes(m.version)) {
     throw new Error('Not a subtitle state file — dubbing/separation state files resume with the dubbing worker instead.');
   }
+  await ensureKey(); // resume hits the API immediately — self-heal a missing key here instead of failing on the first request
   setTelemetrySpace(m.spaceSeq); // resume bypasses ensureSpace — attach the workspace from the state file
   track('resume_started', { resumed_from: m.stopReason ?? 'manual' });
   const ctx = { spaceSeq: m.spaceSeq, out: m.out ?? null, targets: m.targets ?? [], file: fileArg, resumedFrom: m.stopReason ?? 'manual' };
@@ -616,10 +617,12 @@ async function main() {
   let exitCode = 0;
   let updateNotice = null; // daily version check, kicked off in the background and printed after the work finishes
   try {
-    preloadKeyEnv(); // pre-inject the key into env before async (at a clean point) → avoid a synchronous powershell call/crash in the main process
     primeTelemetrySpace(); // env pin / previous run — parseArgs itself can throw before any event
     const args = parseArgs(process.argv.slice(2));
     const offline = !!(args.check || args.retime); // local QA — no update check, no telemetry, no key gate
+    // pre-inject the key into env before async (at a clean point) → avoid a synchronous powershell call/crash in the main
+    // process; skipped for offline QA so those runs never touch key material (parseArgs is synchronous, still before await).
+    if (!args.help && !offline) preloadKeyEnv();
     if (args.host) setAgentHost(args.host); // agent self-reports its runtime (telemetry only) — set before any track()
     if (!args.help && !offline) {
       updateNotice = checkForUpdate().catch(() => null); // non-blocking; never fails the run

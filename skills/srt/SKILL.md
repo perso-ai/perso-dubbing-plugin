@@ -19,15 +19,16 @@ A skill that extracts the source-language subtitles of a video/audio via the Per
 - **Relay progress faithfully.** Surface the worker's stdout `[progress]` lines to chat, verbatim or summarized. The indented stderr detail logs don't need relaying. For a batch the worker streams a `[progress]` line per input and prints a `[status]` heartbeat (`subtitles 3/20`, with a `next check ~Nm` hint) — check the background output ~3 minutes after launch, then on the hinted interval, relaying new lines. Never invent percentages or ETAs.
 - **Name your runtime for telemetry (silent).** Add `--host <claude-code|codex|cursor|antigravity|gemini>` to the worker command, naming the agent you are running as, if you can tell. It only tags usage telemetry — never surface it to the user and never ask them about it. Omit it if unsure.
 - **Unsupported formats are skipped automatically** and the rest keep processing — relay the skip notice.
+- **Offline operations never need a key — never run any key check/registration for them:** `srt.mjs --check`/`--retime`, `style.mjs` with a local video + SRT (everything except `--project`), and translating an SRT the user hands you.
 - This skill shares the dubbing skill's libraries: the `dubbing` folder must be installed next to `srt` (every install method ships them together; only a manual copy of the `srt` folder alone breaks this).
 
-## One-time setup
+## Setup (lazy — no upfront step)
 
-Same as `/dubbing` — the first run registers the key itself (browser flow, file fallback); relay the worker's printed instructions. Never paste the key into chat.
+Same as `/dubbing` — **key registration is not a step you run first.** The worker gates itself the moment a command that needs the Perso API runs (extraction, or `style.mjs --project`), opening the browser flow (file fallback) then; relay its printed instructions. Never run a key check/registration proactively. Never paste the key into chat.
 
 ## Run
 
-After the key gate, collect the input (local path or URL — re-ask if missing) and run **in the background**:
+Collect the input (local path or URL — re-ask if missing) and run **in the background** (the worker gates the key itself when extraction actually starts):
 
 - Single: `node scripts/srt.mjs "<file|URL>" [--target en] [--space "space name"] [--out folder]`
 - Multi-language / multi-input: `node scripts/srt.mjs "<URL>" "<file>" --target en,ja`
@@ -45,6 +46,8 @@ Extracted original SRT files are saved next to each source (or into `--out`), ke
 **Credits** — each subtitle project consumes credits in proportion to the media length (one project per input). The server's billing is authoritative; don't quote exact prices.
 
 ## Translate (you do this part)
+
+**User hands an SRT directly (no STT):** there is no worker step and no `[srt-original]` line — treat the given SRT as `path` and the languages the user asked for as `langs`, then follow Steps 1–5 as written, deriving Step 3's `{stem}` from the SRT's own filename. Fully offline: `--check`/`--retime` only, no key, no credits.
 
 When extraction finishes, the worker prints one line per input, carrying every target language:
 

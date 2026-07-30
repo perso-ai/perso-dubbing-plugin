@@ -21,6 +21,7 @@ Cut a video into short clips + reframe. **Subtitles are not this skill's job** �
 ## Core rules
 
 - **Only the worker sees the raw key** — never open, echo, or pass it as an argument.
+- **The key gate applies only to `--project`/`--plan`/`--clips`.** `--video --ranges` and `--sidecars` are fully offline — never run a key check/registration for them.
 - **Run in the background** — encoding takes time.
 - This skill shares the dubbing skill's libraries: the `dubbing` folder must be installed next to `clip`.
 

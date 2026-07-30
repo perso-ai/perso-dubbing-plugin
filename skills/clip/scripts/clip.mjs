@@ -66,6 +66,7 @@ function parseArgs(argv) {
       a[k] = v;
     } else throw new UsageError(`Unexpected argument: ${t}`);
   }
+  if (a.help) return a; // print usage without requiring any other flag
   if (a.sidecars) return a; // offline (no project/key)
   if (a.video) { if (!a.ranges) throw new UsageError('--video needs --ranges "start-end,..." (e.g. "2:00-3:00").'); return a; } // offline
   if (!a.project || !/^\d+$/.test(a.project)) throw new UsageError('--project <seq> is required (numeric project id).');
@@ -238,13 +239,13 @@ async function runLocalCut(a) {
 async function main() {
   let exitCode = 0;
   try {
-    preloadKeyEnv();
     primeTelemetrySpace();
     const a = parseArgs(process.argv.slice(2));
     if (a.host) setAgentHost(a.host);
     if (a.help) { console.log(USAGE); return; }
     if (a.sidecars) { initTelemetry(); track('run_started', { mode: 'clip-sidecars' }); runSidecars(a); return; }
     if (a.video) { initTelemetry(); track('run_started', { mode: 'clip-local' }); await runLocalCut(a); return; }
+    preloadKeyEnv(); // project mode only — reached after the offline modes have returned (still synchronous, before ensureKey's await)
     await ensureKey();
     initTelemetry();
     track('run_started', { mode: a.plan ? 'clip-plan' : 'clip-cut' });
