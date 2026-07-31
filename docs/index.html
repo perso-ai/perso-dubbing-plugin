@@ -424,7 +424,7 @@
   .hiw-item.is-active .hiw-check{background:var(--accent);}
   .hiw-item.is-active .hiw-txt{color:var(--ink);}
   .hiw-right{display:flex; flex-direction:column;}
-  .hiw-stage{position:relative; aspect-ratio:16/10; border-radius:14px; overflow:hidden; background:transparent;
+  .hiw-stage{position:relative; aspect-ratio:16/10; border-radius:14px; overflow:hidden; background:#efece6;
     box-shadow:0 18px 40px -24px rgba(16,12,32,.5);}
   .hiw-slide{position:absolute; inset:-1px; opacity:0; pointer-events:none; transition:opacity .45s ease;}
   .hiw-slide.is-active{opacity:1; pointer-events:auto;}
@@ -578,7 +578,7 @@
     </ul>
     <div class="hiw-right">
       <div class="hiw-stage" id="hiwStage">
-        <div class="hiw-slide is-active has-video" data-hiw="0"><video src="https://dubbing-skill.perso.ai/media/perso-subtitles-cheap-easy.mp4" loop muted playsinline preload="metadata" aria-hidden="true" tabindex="-1"></video></div>
+        <div class="hiw-slide is-active has-video" data-hiw="0"><video src="https://dubbing-skill.perso.ai/media/perso-subtitles-cheap-easy.mp4" loop muted autoplay playsinline preload="metadata" aria-hidden="true" tabindex="-1"></video></div>
         <div class="hiw-slide has-video" data-hiw="1"><video src="https://dubbing-skill.perso.ai/media/landing-caption-styles.mp4" loop muted playsinline preload="metadata" aria-hidden="true" tabindex="-1"></video></div>
         <div class="hiw-slide has-video" data-hiw="2"><video src="https://dubbing-skill.perso.ai/media/perso-dubbing-add-translate.mp4" loop muted playsinline preload="metadata" aria-hidden="true" tabindex="-1"></video></div>
         <div class="hiw-slide has-video" data-hiw="3"><video src="https://dubbing-skill.perso.ai/media/perso-clip-promo.mp4" loop muted playsinline preload="metadata" aria-hidden="true" tabindex="-1"></video></div>
@@ -1115,7 +1115,7 @@
     if (!N) return;
     var cur = -1, hovering = false, inView = true;
     function activeVideo(){ var el = slides[cur]; return el ? el.querySelector("video") : null; }
-    function playActive(){ var v = activeVideo(); if (v && !hovering && inView){ try{ v.play(); }catch(e){} } }
+    function playActive(){ var v = activeVideo(); if (!v || !inView) return; v.loop = (hovering || reduced); try{ v.muted = true; v.playsInline = true; }catch(e){} var p; try{ p = v.play(); }catch(e){} if (p && p.catch) p.catch(function(){}); }
     function pauseActive(){ var v = activeVideo(); if (v){ try{ v.pause(); }catch(e){} } }
     function render(i){
       if (i === cur) return;
@@ -1145,7 +1145,7 @@
       el.addEventListener("click", function(){ go(+el.getAttribute("data-hiw")); });
     });
     var wrap = list.closest(".hiw-unlock") || list;
-    wrap.addEventListener("mouseenter", function(){ hovering = true; pauseActive(); });
+    wrap.addEventListener("mouseenter", function(){ hovering = true; playActive(); });
     wrap.addEventListener("mouseleave", function(){ hovering = false; playActive(); });
     if ("IntersectionObserver" in window){
       new IntersectionObserver(function(es){
