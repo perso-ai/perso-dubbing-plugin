@@ -990,8 +990,12 @@
     // 1) install deep-link buttons (app / terminal / vscode)
     var dl = t.closest("a[id^='dl-']");
     if (dl && DL[dl.id]) { track("install_click", {agent: DL[dl.id].agent, method: DL[dl.id].method}); return; }
-    // 1b) hero primary CTA (scrolls to #setup)
-    if (t.closest("#hero-cta")) { track("cta_click", {position: "hero"}); return; }
+    // 1b) primary CTAs that scroll to the install section (#setup) — hero + "how it works"
+    var setupCta = t.closest('a[href="#setup"]');
+    if (setupCta) {
+      track("cta_click", {position: setupCta.id === "hero-cta" ? "hero" : (setupCta.getAttribute("data-i") === "hiw_cta" ? "how_it_works" : "other")});
+      return;
+    }
     // 2) install command copy (inside an agent panel)
     var cmdBtn = t.closest(".cmd button[data-cmd]");
     if (cmdBtn) {
@@ -1031,6 +1035,17 @@
       track("showcase_play", {lang: row[1], mode: row[2]});
     });
   });
+  // install section reached — fires once per session when #setup scrolls into view
+  var setupSec = document.getElementById("setup");
+  if (setupSec && "IntersectionObserver" in window) {
+    var seenSetup = false;
+    var vio = new IntersectionObserver(function(entries){
+      if (seenSetup || !entries[0].isIntersecting) return;
+      seenSetup = true; vio.disconnect();
+      track("install_view", {});
+    }, {threshold: 0.5});
+    vio.observe(setupSec.querySelector("h2") || setupSec);
+  }
 })();
 </script>
 <script>
