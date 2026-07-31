@@ -1115,7 +1115,7 @@
     if (!N) return;
     var cur = -1, hovering = false, inView = true;
     function activeVideo(){ var el = slides[cur]; return el ? el.querySelector("video") : null; }
-    function playActive(){ var v = activeVideo(); if (!v || hovering || !inView) return; try{ v.muted = true; v.playsInline = true; }catch(e){} var p; try{ p = v.play(); }catch(e){} if (p && p.catch) p.catch(function(){}); }
+    function playActive(){ var v = activeVideo(); if (!v || !inView) return; v.loop = (hovering || reduced); try{ v.muted = true; v.playsInline = true; }catch(e){} var p; try{ p = v.play(); }catch(e){} if (p && p.catch) p.catch(function(){}); }
     function pauseActive(){ var v = activeVideo(); if (v){ try{ v.pause(); }catch(e){} } }
     function render(i){
       if (i === cur) return;
@@ -1145,7 +1145,7 @@
       el.addEventListener("click", function(){ go(+el.getAttribute("data-hiw")); });
     });
     var wrap = list.closest(".hiw-unlock") || list;
-    wrap.addEventListener("mouseenter", function(){ hovering = true; pauseActive(); });
+    wrap.addEventListener("mouseenter", function(){ hovering = true; playActive(); });
     wrap.addEventListener("mouseleave", function(){ hovering = false; playActive(); });
     if ("IntersectionObserver" in window){
       new IntersectionObserver(function(es){
