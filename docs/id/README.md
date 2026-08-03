@@ -10,17 +10,20 @@
 
 Skill agen coding yang menghadirkan dubbing AI dari [Perso Dubbing](https://perso.ai/dubbing) ke agen Anda. Instal sekali, lalu cukup katakan *"dubbing video ini ke bahasa Inggris"*.
 
+- ![gratis](https://img.shields.io/badge/%E2%9C%93%20gratis-2ea44f) **Subtitle bergaya** — tanamkan subtitle siap pakai atau bergaya kustom ke dalam video. **Sorotan rilis ini.**
+- ![gratis](https://img.shields.io/badge/%E2%9C%93%20gratis-2ea44f) **Terjemahkan subtitle** — ubah SRT yang sudah Anda miliki ke bahasa apa pun
+- ![gratis](https://img.shields.io/badge/%E2%9C%93%20gratis-2ea44f) **Klip pendek** — potong video panjang menjadi sorotan format pendek, ubah rasio 16:9 → 9:16
 - **Dubbing** ke bahasa lain — satu file, seluruh folder, atau sebuah URL
 - **Lip-sync** pada video hasil dubbing agar gerakan mulut sesuai dengan audio barunya
 - **Pisahkan** suara dari audio latar
-- **Subtitle** — ekstrak SRT melalui speech-to-text, lalu agen Anda menerjemahkannya
-- **Subtitle bergaya** — tanamkan subtitle bergaya ke dalam video: preset siap pakai, atau font, warna, dan posisi Anda sendiri
-- **Klip pendek** — potong video panjang menjadi sorotan format pendek dan ubah rasio 16:9 → 9:16
+- **Subtitle dari ucapan** — ekstrak SRT melalui speech-to-text (atau bawa SRT Anda sendiri → gratis)
 - Media yang berukuran terlalu besar dan sangat panjang otomatis dipecah, diproses, dan digabungkan kembali
 
-Berjalan di atas **Node.js 18+** dan mungkin membutuhkan **kunci API Perso Dubbing**. Dibangun di atas standar Agent Skills (`SKILL.md`), sehingga berperilaku sama persis di Claude, Codex, dan Antigravity.
+> **Skill ini gratis dan open-source (MIT).** Segala hal yang berjalan secara lokal di komputer Anda tidak memerlukan **akun maupun kredit** — menanamkan subtitle bergaya ke video, menerjemahkan SRT yang sudah Anda miliki, dan memotong klip pendek. Langkah-langkah AI yang berjalan di server Perso — dubbing, lip-sync, pemisahan suara/latar, speech-to-text — menggunakan kredit Perso Dubbing API (**bayar hanya untuk yang Anda proses**).
 
-![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
+Berjalan di atas **Node.js 18+**. Langkah-langkah gratis tidak pernah membutuhkan kunci; langkah AI sisi server menggunakan **kunci API Perso Dubbing**. Dibangun di atas standar Agent Skills (`SKILL.md`), sehingga berperilaku sama persis di Claude, Codex, dan Antigravity.
+
+![Preset gaya subtitle](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-presets.gif)
 
 ---
 
@@ -33,14 +36,10 @@ Berjalan di atas **Node.js 18+** dan mungkin membutuhkan **kunci API Perso Dubbi
 Di <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">aplikasi desktop Claude</a> (paket berbayar):
 
 1. Buka **tab Code** (di tengah atas), pilih folder apa pun, lalu pilih lingkungan **Local** — plugin tidak berfungsi dalam sesi cloud.
-2. Tempelkan setiap perintah ke kotak prompt dan tekan Enter, satu per satu:
+2. Tempelkan perintah ini ke kotak prompt dan tekan Enter:
 
    ```text
-   claude marketplace add perso-ai/perso-dubbing-plugin
-   ```
-
-   ```text
-   claude install perso-dubbing@perso-ai
+   claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
    ```
 
 3. Minta dubbing — *"Dubbing video ini ke bahasa Inggris — C:\videos\clip.mp4"*. URL YouTube atau sebuah folder juga bisa. Hasilnya disimpan di sebelah video sumber kecuali Anda menyertakan `--out`.

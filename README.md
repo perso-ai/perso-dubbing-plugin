@@ -10,17 +10,20 @@
 
 A coding-agent skill that brings [Perso Dubbing](https://perso.ai/dubbing)'s AI dubbing to your agent. Install it once, then just say *"dub this video into English"*.
 
+- ![free](https://img.shields.io/badge/%E2%9C%93%20free-2ea44f) **Styled subtitles** — burn ready-made or custom-styled subtitles onto a video. **This release's headline.**
+- ![free](https://img.shields.io/badge/%E2%9C%93%20free-2ea44f) **Translate subtitles** — turn an SRT you already have into any language
+- ![free](https://img.shields.io/badge/%E2%9C%93%20free-2ea44f) **Short clips** — cut a long video into short-form highlights, reframe 16:9 → 9:16
 - **Dub** into another language — a single file, a whole folder, or a URL
 - **Lip-sync** the dubbed video so the mouth matches the new audio
 - **Separate** voice from background audio
-- **Subtitles** — extract an SRT via speech-to-text, then your agent translates it
-- **Styled subtitles** — encode styled subtitles onto the video: ready-made presets, or your own font, color, and position
-- **Short clips** — cut a long video into short-form highlights and reframe 16:9 → 9:16
+- **Subtitles from speech** — extract an SRT via speech-to-text (or bring your own → free)
 - Oversized and very long media is split, processed, and merged back automatically
 
-Runs on **Node.js 18+** and may need a **Perso Dubbing API key**. Built on the Agent Skills standard (`SKILL.md`), so it behaves identically on Claude, Codex, and Antigravity.
+> **The skill is free and open-source (MIT).** Anything that runs locally on your machine needs **no account and no credits** — encoding styled subtitles onto a video, translating an SRT you already have, and cutting short clips. The AI steps that run on Perso's servers — dubbing, lip-sync, voice/background separation, speech-to-text — use Perso Dubbing API credits (**pay only for what you process**).
 
-![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
+Runs on **Node.js 18+**. The free steps never need a key; the server-side AI steps use a **Perso Dubbing API key**. Built on the Agent Skills standard (`SKILL.md`), so it behaves identically on Claude, Codex, and Antigravity.
+
+![Subtitle style presets](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-presets.gif)
 
 ---
 
@@ -33,14 +36,10 @@ Runs on **Node.js 18+** and may need a **Perso Dubbing API key**. Built on the A
 In the <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude desktop app</a> (paid plan):
 
 1. Open the **Code tab** (top center), pick any folder, and choose the **Local** environment — plugins don't work in cloud sessions.
-2. Paste each command into the prompt box and press Enter, one at a time:
+2. Paste this command into the prompt box and press Enter:
 
    ```text
-   claude marketplace add perso-ai/perso-dubbing-plugin
-   ```
-
-   ```text
-   claude install perso-dubbing@perso-ai
+   claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
    ```
 
 3. Ask for a dub — *"Dub this video into English — C:\videos\clip.mp4"*. A YouTube URL or a folder works too. Results are saved next to the source video unless you pass `--out`.

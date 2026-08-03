@@ -6,7 +6,7 @@ Pertanyaan umum seputar skill `/dubbing` dan `/srt`. Untuk pemasangan dan penggu
 
 ### Apa yang saya butuhkan untuk menggunakannya?
 
-Node.js 18+ dan kunci API Perso Dubbing. Instal skill-nya, lalu cukup katakan *"dubbing video ini untuk saya."* → [Dapatkan kunci API](https://developers.perso.ai/api-keys)
+**Node.js 18+** sudah cukup. Subtitle bergaya, menerjemahkan SRT yang Anda sediakan, dan klip pendek berfungsi tanpa perlu mendaftar. Hanya langkah-langkah AI sisi server (dubbing, lip-sync, pemisahan, speech-to-text) yang membutuhkan kunci API Perso Dubbing. → [Dapatkan kunci API](https://developers.perso.ai/api-keys)
 
 ### Bagaimana cara mendaftarkan kunci API saya?
 
@@ -14,7 +14,7 @@ Pada eksekusi pertama, sebuah halaman browser akan terbuka — masuk dan klik se
 
 ### Apakah ini berbayar?
 
-Kode skill ini gratis (MIT), tetapi proses dubbing berjalan melalui API Perso yang membebankan kredit.
+Skill ini gratis dan open-source (MIT). Subtitle bergaya, menerjemahkan SRT yang Anda sediakan, dan klip pendek gratis. Hanya langkah-langkah AI sisi server (dubbing, lip-sync, pemisahan, speech-to-text) yang membebankan kredit — Anda hanya membayar untuk yang Anda proses.
 
 ### Apa saja yang bisa saya masukkan?
 
@@ -38,7 +38,7 @@ Fitur ini memecah sumber menjadi trek suara / latar / sub-latar — tanpa proses
 
 ### Bisakah skill ini membuat subtitle (SRT), alih-alih dubbing?
 
-Skill **`/srt`** mengekstrak subtitle bahasa asli dari video/audio/URL melalui speech-to-text Perso. Jika Anda juga ingin subtitle tersebut diterjemahkan, mintalah SRT beserta bahasa yang Anda inginkan.
+Skill **`/srt`** mengekstrak subtitle bahasa asli dari video/audio/URL melalui speech-to-text Perso. Jika Anda juga ingin subtitle tersebut diterjemahkan, mintalah SRT beserta bahasa yang Anda inginkan. Skill ini juga bisa **menanamkan subtitle bergaya ke dalam video** — preset siap pakai atau font, warna, dan posisi Anda sendiri — yang berjalan secara lokal dan gratis (bawa SRT Anda sendiri → tidak perlu kunci maupun kredit).
 
 ### Prosesnya berhenti di tengah jalan (kredit habis, crash, atau shell dihentikan). Sekarang bagaimana?
 

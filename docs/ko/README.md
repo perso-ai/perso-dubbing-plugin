@@ -10,17 +10,20 @@
 
 [Perso AI](https://perso.ai)의 AI 더빙을 여러분의 에이전트로 가져오는 코딩 에이전트 스킬입니다. 한 번 설치한 뒤 *"이 영상 영어로 더빙해줘"* 라고 말하기만 하면 됩니다.
 
+- ![무료](https://img.shields.io/badge/%E2%9C%93%20%EB%AC%B4%EB%A3%8C-2ea44f) **자막 입히기** — 기성/커스텀 스타일 자막을 영상에 인코딩. **이번 릴리스의 핵심.**
+- ![무료](https://img.shields.io/badge/%E2%9C%93%20%EB%AC%B4%EB%A3%8C-2ea44f) **자막 번역** — 이미 가진 SRT를 원하는 언어로
+- ![무료](https://img.shields.io/badge/%E2%9C%93%20%EB%AC%B4%EB%A3%8C-2ea44f) **숏폼 클립** — 긴 영상을 하이라이트 숏폼으로, 16:9 → 9:16 리프레임
 - **더빙** — 파일 하나, 폴더 전체, URL 모두 가능
 - **립싱크** — 더빙된 음성에 맞춰 입 모양까지 자연스럽게
 - **음원 분리** — 음성과 배경음을 각각의 트랙으로
-- **자막** — 음성 인식으로 SRT를 추출하고, 에이전트가 원하는 언어로 번역
-- **자막 입히기** — 스타일이 적용된 자막을 영상에 인코딩. 기성 프리셋 또는 원하는 폰트, 색, 위치도 가능.
-- **숏폼 클립** — 긴 영상을 하이라이트 숏폼으로 자르고 16:9 → 9:16으로 리프레임
+- **음성 인식 자막** — 음성에서 SRT 추출 (또는 내 SRT 사용 → 무료)
 - 용량이 크거나 아주 긴 영상은 자동으로 분할·처리 후 다시 합쳐집니다
 
-**Node.js 18+** 에서 동작하며 **Perso Dubbing API 키**가 필요할 수 있습니다. Agent Skills 표준(`SKILL.md`) 기반이라 Claude·Codex·Antigravity 어디서나 동일하게 동작합니다.
+> **스킬 자체는 무료·오픈소스(MIT).** 내 컴퓨터에서 로컬로 도는 작업은 **계정도 크레딧도 필요 없습니다** — 자막 인코딩, 내가 가진 SRT 번역, 숏폼 클립. Perso 서버에서 도는 AI 작업(더빙·립싱크·음원 분리·음성 인식)만 Perso Dubbing API 크레딧을 쓰며 **처리한 분량만큼만** 과금됩니다.
 
-![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
+**Node.js 18+** 에서 동작합니다. 무료 작업은 키가 필요 없고, 서버 AI 작업만 **Perso Dubbing API 키**가 필요합니다. Agent Skills 표준(`SKILL.md`) 기반이라 Claude·Codex·Antigravity 어디서나 동일하게 동작합니다.
+
+![자막 스타일 프리셋](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-presets.gif)
 
 ---
 
@@ -33,14 +36,10 @@
 <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude 데스크톱 앱</a>(유료 플랜)에서:
 
 1. **Code 탭**(상단 중앙)을 열고 아무 폴더나 고른 뒤 **Local** 환경을 선택하세요 — 클라우드 세션에서는 플러그인을 쓸 수 없습니다.
-2. 아래 명령을 하나씩 프롬프트 입력창에 붙여넣고 Enter를 누르세요:
+2. 아래 명령을 프롬프트 입력창에 붙여넣고 Enter를 누르세요:
 
    ```text
-   claude marketplace add perso-ai/perso-dubbing-plugin
-   ```
-
-   ```text
-   claude install perso-dubbing@perso-ai
+   claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
    ```
 
 3. 더빙을 요청하세요 — *"이 영상 영어로 더빙해줘 — C:\videos\clip.mp4"*. 유튜브 URL이나 폴더도 됩니다. `--out`을 지정하지 않으면 결과는 원본 영상 옆에 저장됩니다.
@@ -88,8 +87,6 @@ npx perso-dubbing
 > "이 폴더 영상 전부 일본어랑 스페인어로 더빙해줘"
 >
 > "이 유튜브 링크 영어로 더빙하고 립싱크까지 해줘"
->
-> "이 클립에서 목소리랑 배경음 분리해줘"
 >
 > "이 영상으로 영어 SRT 만들어줘"
 >

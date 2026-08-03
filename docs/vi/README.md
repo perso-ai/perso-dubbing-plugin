@@ -10,17 +10,20 @@
 
 Một skill dành cho agent lập trình, mang tính năng lồng tiếng AI của [Perso Dubbing](https://perso.ai/dubbing) đến agent của bạn. Chỉ cần cài đặt một lần, rồi nói *"lồng tiếng video này sang tiếng Anh"*.
 
+- ![miễn phí](https://img.shields.io/badge/%E2%9C%93%20mi%E1%BB%85n%20ph%C3%AD-2ea44f) **Phụ đề có kiểu** — ghép phụ đề dựng sẵn hoặc có kiểu tùy chỉnh lên video. **Điểm nhấn của bản phát hành này.**
+- ![miễn phí](https://img.shields.io/badge/%E2%9C%93%20mi%E1%BB%85n%20ph%C3%AD-2ea44f) **Dịch phụ đề** — chuyển một tệp SRT bạn đã có sang bất kỳ ngôn ngữ nào
+- ![miễn phí](https://img.shields.io/badge/%E2%9C%93%20mi%E1%BB%85n%20ph%C3%AD-2ea44f) **Clip ngắn** — cắt video dài thành các đoạn nổi bật dạng ngắn, đổi khung hình 16:9 → 9:16
 - **Lồng tiếng** sang ngôn ngữ khác — một tệp đơn lẻ, cả một thư mục, hoặc một URL
 - **Đồng bộ khẩu hình (lip-sync)** cho video đã lồng tiếng để khẩu hình khớp với âm thanh mới
 - **Tách** giọng nói khỏi âm thanh nền
-- **Phụ đề** — trích xuất SRT bằng speech-to-text, rồi agent của bạn sẽ dịch
-- **Phụ đề có kiểu** — ghép phụ đề có kiểu lên video: preset dựng sẵn, hoặc font, màu, và vị trí của riêng bạn
-- **Clip ngắn** — cắt video dài thành các đoạn nổi bật dạng ngắn và đổi khung hình 16:9 → 9:16
+- **Phụ đề từ giọng nói** — trích xuất SRT bằng speech-to-text (hoặc dùng SRT của riêng bạn → miễn phí)
 - Media quá lớn hoặc quá dài sẽ được tự động chia nhỏ, xử lý, rồi ghép lại
 
-Chạy trên **Node.js 18+** và có thể cần **API key của Perso Dubbing**. Được xây dựng trên chuẩn Agent Skills (`SKILL.md`), nên skill hoạt động giống hệt nhau trên Claude, Codex, và Antigravity.
+> **Skill này miễn phí và mã nguồn mở (MIT).** Mọi thứ chạy cục bộ trên máy của bạn đều **không cần tài khoản và không cần credit** — ghép phụ đề có kiểu lên video, dịch một tệp SRT bạn đã có, và cắt clip ngắn. Các bước AI chạy trên máy chủ của Perso — lồng tiếng, lip-sync, tách giọng nói/nền, speech-to-text — sử dụng credit của Perso Dubbing API (**chỉ trả phí cho những gì bạn xử lý**).
 
-![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
+Chạy trên **Node.js 18+**. Các bước miễn phí không bao giờ cần key; các bước AI phía máy chủ dùng **API key của Perso Dubbing**. Được xây dựng trên chuẩn Agent Skills (`SKILL.md`), nên skill hoạt động giống hệt nhau trên Claude, Codex, và Antigravity.
+
+![Mẫu kiểu phụ đề](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-presets.gif)
 
 ---
 
@@ -33,14 +36,10 @@ Chạy trên **Node.js 18+** và có thể cần **API key của Perso Dubbing**
 Trong <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">ứng dụng desktop Claude</a> (gói trả phí):
 
 1. Mở **tab Code** (ở giữa phía trên), chọn một thư mục bất kỳ, và chọn môi trường **Local** — plugin không hoạt động trong phiên cloud.
-2. Dán từng lệnh vào ô nhập lệnh rồi nhấn Enter, từng lệnh một:
+2. Dán lệnh này vào ô nhập lệnh rồi nhấn Enter:
 
    ```text
-   claude marketplace add perso-ai/perso-dubbing-plugin
-   ```
-
-   ```text
-   claude install perso-dubbing@perso-ai
+   claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
    ```
 
 3. Yêu cầu lồng tiếng — *"Lồng tiếng video này sang tiếng Anh — C:\videos\clip.mp4"*. URL YouTube hoặc cả một thư mục cũng dùng được. Kết quả được lưu cạnh video gốc, trừ khi bạn dùng `--out`.

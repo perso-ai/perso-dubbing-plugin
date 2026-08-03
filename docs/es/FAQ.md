@@ -6,7 +6,7 @@ Preguntas frecuentes sobre las skills `/dubbing` y `/srt`. Para la instalación 
 
 ### ¿Qué necesito para usarla?
 
-Node.js 18+ y una clave de API de Perso Dubbing. Instala la skill y luego solo di *«dóblame este vídeo»*. → [Consigue una clave de API](https://developers.perso.ai/api-keys)
+**Node.js 18+** es todo lo que necesitas. Los subtítulos con estilo, traducir un SRT que tú proporcionas y los clips cortos funcionan sin registrarte. Solo los pasos de IA del lado del servidor (doblaje, sincronización labial, separación, reconocimiento de voz) necesitan una clave de API de Perso Dubbing. → [Consigue una clave de API](https://developers.perso.ai/api-keys)
 
 ### ¿Cómo registro mi clave de API?
 
@@ -14,7 +14,7 @@ En la primera ejecución se abre una página del navegador: inicia sesión y haz
 
 ### ¿Tiene coste?
 
-El código de la skill es gratuito (MIT), pero el doblaje se realiza a través de la API de Perso, que cobra créditos.
+La skill es gratuita y de código abierto (MIT). Los subtítulos con estilo, traducir un SRT que tú proporcionas y los clips cortos son gratis. Solo los pasos de IA del lado del servidor (doblaje, sincronización labial, separación, reconocimiento de voz) cobran créditos — pagas solo por lo que procesas.
 
 ### ¿Qué puedo darle como entrada?
 
@@ -38,7 +38,7 @@ Divide la fuente en pistas de voz / fondo / fondo secundario, sin doblaje. Añad
 
 ### ¿Puede generar subtítulos (SRT) en lugar de doblar?
 
-La skill **`/srt`** extrae los subtítulos en el idioma original de un vídeo, audio o URL mediante el reconocimiento de voz de Perso. Si además los quieres traducidos, pide el SRT indicando los idiomas que quieres.
+La skill **`/srt`** extrae los subtítulos en el idioma original de un vídeo, audio o URL mediante el reconocimiento de voz de Perso. Si además los quieres traducidos, pide el SRT indicando los idiomas que quieres. También puede **incrustar subtítulos con estilo en el vídeo** — presets listos para usar o tu propia fuente, color y posición — algo que se ejecuta localmente y es gratis (con tu propio SRT no hacen falta ni clave ni créditos).
 
 ### Se detuvo a mitad (sin créditos, un fallo o un shell terminado). ¿Y ahora qué?
 

@@ -209,6 +209,34 @@ function plainEvents(cues, p) {
   return out;
 }
 
+// fx 'rainbow': colour each word from a repeating vivid palette (words sanitized, then tag-prefixed).
+const RAINBOW = ['0000FF', '1A8CFF', '00E0FF', '5CDC3D', 'FF863A', 'FF4DC0']; // &HBBGGRR cycle
+function rainbowEvents(cues, p) {
+  let out = '';
+  for (const c of cues) {
+    let i = 0;
+    const lines = c.textLines.map((ln) => (p.uppercase ? ln.toUpperCase() : ln)
+      .replace(/\S+/g, (w) => `{\\1c&H${RAINBOW[i++ % RAINBOW.length]}&}${assText(w)}`));
+    out += `Dialogue: 0,${assTime(c.start)},${assTime(c.end)},Base,,0,0,,${lines.join('\\N')}\n`;
+  }
+  return out;
+}
+
+// fx 'neon': a blurred colour halo (fill hidden) behind a crisp, legible fill of the same colour.
+function neonEvents(cues, p) {
+  const fill = assColor(p.primary);
+  let out = '';
+  for (const c of cues) {
+    let txt = c.textLines.join('\n');
+    if (p.uppercase) txt = txt.toUpperCase();
+    txt = assText(txt);
+    const st = assTime(c.start), en = assTime(c.end);
+    out += `Dialogue: 0,${st},${en},Base,,0,0,,{\\1a&HFF&\\3c${fill}\\bord5\\blur8\\shad0}${txt}\n`;
+    out += `Dialogue: 1,${st},${en},Base,,0,0,,{\\1c${fill}\\3c&H101010&\\bord1.6\\blur0\\shad0}${txt}\n`;
+  }
+  return out;
+}
+
 /** Build ASS for a preset. For karaoke: wordTimestamps (measured) if given, else approximate from cues. */
 export function buildAss(cues, preset, { width, height, wordTimestamps = null }) {
   const group = preset.group || 'shortform';
@@ -218,6 +246,10 @@ export function buildAss(cues, preset, { width, height, wordTimestamps = null })
       ? wordCuesFromTimestamps(wordTimestamps)
       : cues.map((c) => ({ words: approxWords(c.textLines.join(' ').split(/\s+/).filter(Boolean), c.start, c.end) }));
     events = karaokeEvents(cueWords, preset, group);
+  } else if (preset.fx === 'rainbow') {
+    events = rainbowEvents(chunkCues(cues, group), preset);
+  } else if (preset.fx === 'neon') {
+    events = neonEvents(chunkCues(cues, group), preset);
   } else {
     events = plainEvents(chunkCues(cues, group), preset);
   }

@@ -10,17 +10,20 @@
 
 Uma skill para agentes de programação que traz a dublagem com IA da [Perso Dubbing](https://perso.ai/dubbing) para o seu agente. Instale uma vez e depois basta dizer *"duble este vídeo para o inglês"*.
 
+- ![grátis](https://img.shields.io/badge/%E2%9C%93%20gr%C3%A1tis-2ea44f) **Legendas estilizadas** — incorpore legendas prontas ou com estilo personalizado em um vídeo. **O destaque desta versão.**
+- ![grátis](https://img.shields.io/badge/%E2%9C%93%20gr%C3%A1tis-2ea44f) **Traduzir legendas** — converta um SRT que você já tem para qualquer idioma
+- ![grátis](https://img.shields.io/badge/%E2%9C%93%20gr%C3%A1tis-2ea44f) **Clipes curtos** — corte um vídeo longo em destaques de formato curto e reenquadre 16:9 → 9:16
 - **Duble** para outro idioma — um único arquivo, uma pasta inteira ou uma URL
 - **Sincronize os lábios** do vídeo dublado para que a boca acompanhe o novo áudio
 - **Separe** a voz do áudio de fundo
-- **Legendas** — extraia um SRT por reconhecimento de fala e depois seu agente o traduz
-- **Legendas estilizadas** — incorpore legendas estilizadas no vídeo: presets prontos ou sua própria fonte, cor e posição
-- **Clipes curtos** — corte um vídeo longo em destaques de formato curto e reenquadre 16:9 → 9:16
+- **Legendas a partir da fala** — extraia um SRT por reconhecimento de fala (ou use o seu → grátis)
 - Mídias grandes demais ou muito longas são divididas, processadas e remontadas automaticamente
 
-Roda em **Node.js 18+** e pode precisar de uma **chave de API do Perso Dubbing**. É construída sobre o padrão Agent Skills (`SKILL.md`), então se comporta de forma idêntica no Claude, no Codex e no Antigravity.
+> **A skill é gratuita e de código aberto (MIT).** Tudo o que roda localmente na sua máquina não precisa de **conta nem créditos** — incorporar legendas estilizadas em um vídeo, traduzir um SRT que você já tem e cortar clipes curtos. As etapas de IA que rodam nos servidores da Perso — dublagem, sincronização labial, separação de voz/fundo, reconhecimento de fala — usam créditos da API do Perso Dubbing (**você paga apenas pelo que processa**).
 
-![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
+Roda em **Node.js 18+**. As etapas gratuitas nunca precisam de chave; as etapas de IA do lado do servidor usam uma **chave de API do Perso Dubbing**. É construída sobre o padrão Agent Skills (`SKILL.md`), então se comporta de forma idêntica no Claude, no Codex e no Antigravity.
+
+![Presets de estilo de legenda](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-presets.gif)
 
 ---
 
@@ -33,14 +36,10 @@ Roda em **Node.js 18+** e pode precisar de uma **chave de API do Perso Dubbing**
 No <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">app de desktop do Claude</a> (plano pago):
 
 1. Abra a **aba Code** (parte superior central), escolha qualquer pasta e selecione o ambiente **Local** — os plugins não funcionam em sessões na nuvem.
-2. Cole cada comando na caixa de prompt e pressione Enter, um de cada vez:
+2. Cole este comando na caixa de prompt e pressione Enter:
 
    ```text
-   claude marketplace add perso-ai/perso-dubbing-plugin
-   ```
-
-   ```text
-   claude install perso-dubbing@perso-ai
+   claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
    ```
 
 3. Peça uma dublagem — *"Duble este vídeo para o inglês — C:\videos\clip.mp4"*. Uma URL do YouTube ou uma pasta também funcionam. Os resultados são salvos junto ao vídeo de origem, a menos que você use `--out`.

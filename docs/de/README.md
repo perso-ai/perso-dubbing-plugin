@@ -10,17 +10,20 @@
 
 Eine Skill für Coding-Agents, die die KI-Synchronisation von [Perso Dubbing](https://perso.ai/dubbing) in deinen Agenten bringt. Einmal installieren, dann einfach sagen: *„synchronisiere dieses Video ins Englische"*.
 
+- ![kostenlos](https://img.shields.io/badge/%E2%9C%93%20kostenlos-2ea44f) **Gestylte Untertitel** — fertige oder eigens gestylte Untertitel ins Video einbrennen. **Das Highlight dieser Version.**
+- ![kostenlos](https://img.shields.io/badge/%E2%9C%93%20kostenlos-2ea44f) **Untertitel übersetzen** — ein vorhandenes SRT in jede beliebige Sprache übertragen
+- ![kostenlos](https://img.shields.io/badge/%E2%9C%93%20kostenlos-2ea44f) **Kurzclips** — ein langes Video in Kurzform-Highlights schneiden, von 16:9 → 9:16 neu einrahmen
 - **Synchronisieren** in eine andere Sprache — eine einzelne Datei, einen ganzen Ordner oder eine URL
 - **Lippensynchronisation** des synchronisierten Videos, damit der Mund zum neuen Audio passt
 - **Trennen** von Stimme und Hintergrundton
-- **Untertitel** — SRT per Speech-to-Text extrahieren, dein Agent übersetzt sie anschließend
-- **Gestylte Untertitel** — gestylte Untertitel ins Video einbrennen: fertige Voreinstellungen oder eigene Schriftart, Farbe und Position
-- **Kurzclips** — ein langes Video in Kurzform-Highlights schneiden und von 16:9 → 9:16 neu einrahmen
+- **Untertitel aus Sprache** — SRT per Speech-to-Text extrahieren (oder eigenes mitbringen → kostenlos)
 - Übergroße und sehr lange Mediendateien werden automatisch aufgeteilt, verarbeitet und wieder zusammengeführt
 
-Läuft mit **Node.js 18+** und benötigt möglicherweise einen **Perso Dubbing API-Schlüssel**. Basiert auf dem Agent-Skills-Standard (`SKILL.md`) und verhält sich daher auf Claude, Codex und Antigravity identisch.
+> **Die Skill ist kostenlos und quelloffen (MIT).** Alles, was lokal auf deinem Rechner läuft, braucht **kein Konto und keine Credits** — gestylte Untertitel ins Video einbrennen, ein vorhandenes SRT übersetzen und Kurzclips schneiden. Die KI-Schritte, die auf Persos Servern laufen — Synchronisation, Lippensynchronisation, Stimm-/Hintergrund-Trennung, Speech-to-Text — nutzen Perso Dubbing API-Credits (**zahle nur für das, was du verarbeitest**).
 
-![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
+Läuft mit **Node.js 18+**. Die kostenlosen Schritte benötigen nie einen Schlüssel; die serverseitigen KI-Schritte verwenden einen **Perso Dubbing API-Schlüssel**. Basiert auf dem Agent-Skills-Standard (`SKILL.md`) und verhält sich daher auf Claude, Codex und Antigravity identisch.
+
+![Untertitel-Stilvorlagen](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-presets.gif)
 
 ---
 
@@ -33,14 +36,10 @@ Läuft mit **Node.js 18+** und benötigt möglicherweise einen **Perso Dubbing A
 In der <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude-Desktop-App</a> (kostenpflichtiger Plan):
 
 1. Öffne den **Code-Tab** (oben in der Mitte), wähle einen beliebigen Ordner und die Umgebung **Local** — Plugins funktionieren nicht in Cloud-Sitzungen.
-2. Füge jeden Befehl einzeln in das Eingabefeld ein und drücke Enter:
+2. Füge diesen Befehl in das Eingabefeld ein und drücke Enter:
 
    ```text
-   claude marketplace add perso-ai/perso-dubbing-plugin
-   ```
-
-   ```text
-   claude install perso-dubbing@perso-ai
+   claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
    ```
 
 3. Fordere eine Synchronisation an — *„Synchronisiere dieses Video ins Englische — C:\videos\clip.mp4"*. Eine YouTube-URL oder ein Ordner funktionieren ebenfalls. Die Ergebnisse werden neben dem Ausgangsvideo gespeichert, sofern du nicht `--out` angibst.

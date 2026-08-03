@@ -10,17 +10,20 @@
 
 一款編碼代理（coding-agent）技能，將 [Perso Dubbing](https://perso.ai/dubbing) 的 AI 配音帶入你的代理程式。安裝一次後，只要說一句「把這個影片配音成英文」即可。
 
+- ![免費](https://img.shields.io/badge/%E2%9C%93%20%E5%85%8D%E8%B2%BB-2ea44f) **樣式字幕**——將現成或自訂樣式的字幕壓制到影片上。**本次發布的重點。**
+- ![免費](https://img.shields.io/badge/%E2%9C%93%20%E5%85%8D%E8%B2%BB-2ea44f) **字幕翻譯**——將你已有的 SRT 轉成任何語言
+- ![免費](https://img.shields.io/badge/%E2%9C%93%20%E5%85%8D%E8%B2%BB-2ea44f) **短影片片段**——將長影片剪成短影片精華，並將 16:9 重新構圖為 9:16
 - **配音**成其他語言——單一檔案、整個資料夾或網址皆可
 - 為配音後的影片**對嘴（lip-sync）**，讓嘴型與新的音訊一致
 - **分離**人聲與背景音訊
-- **字幕**——透過語音轉文字擷取 SRT，再由你的代理程式進行翻譯
-- **樣式字幕**——將帶樣式的字幕壓制到影片上：可使用現成的預設，或自訂字體、顏色與位置
-- **短影片片段**——將長影片剪成短影片精華，並將 16:9 重新構圖為 9:16
+- **語音轉字幕**——透過語音轉文字擷取 SRT（或自行提供 → 免費）
 - 過大或過長的媒體會自動分割、處理後再合併回來
 
-需要 **Node.js 18+**，並可能需要一組 **Perso Dubbing API 金鑰**。基於 Agent Skills 標準（`SKILL.md`）打造，因此在 Claude、Codex 與 Antigravity 上的行為完全一致。
+> **此技能免費且開放原始碼（MIT）。** 任何在你電腦本機執行的作業都**不需要帳號、也不需要點數**——將樣式字幕壓制到影片上、翻譯你已有的 SRT，以及剪輯短影片片段。在 Perso 伺服器上執行的 AI 步驟——配音、對嘴、人聲/背景分離、語音轉文字——會使用 Perso Dubbing API 點數（**只為你處理的部分付費**）。
 
-![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
+需要 **Node.js 18+**。免費步驟完全不需要金鑰；伺服器端的 AI 步驟才需要 **Perso Dubbing API 金鑰**。基於 Agent Skills 標準（`SKILL.md`）打造，因此在 Claude、Codex 與 Antigravity 上的行為完全一致。
+
+![字幕樣式預設](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-presets.gif)
 
 ---
 
@@ -33,14 +36,10 @@
 在 <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude 桌面應用程式</a>（付費方案）中：
 
 1. 開啟 **Code 分頁**（畫面上方中央），選擇任一資料夾，並選擇 **Local** 環境——雲端工作階段無法使用外掛程式。
-2. 依序將以下每個指令貼到提示輸入框並按下 Enter：
+2. 將以下指令貼到提示輸入框並按下 Enter：
 
    ```text
-   claude marketplace add perso-ai/perso-dubbing-plugin
-   ```
-
-   ```text
-   claude install perso-dubbing@perso-ai
+   claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
    ```
 
 3. 提出配音需求——「把這個影片配音成英文——C:\videos\clip.mp4」。YouTube 網址或整個資料夾也可以。除非指定 `--out`，否則結果會儲存在原始影片旁邊。
