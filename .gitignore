@@ -24,3 +24,7 @@ _*.mjs
 # Internal working docs — never commit; docs/ is the published GitHub Pages root
 docs/superpowers/
 .superpowers/
+
+# local agent/editor config and OS cruft
+.claude/
+.DS_Store

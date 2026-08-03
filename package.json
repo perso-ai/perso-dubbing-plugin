@@ -42,6 +42,8 @@
   "scripts": {
     "version": "node scripts/sync-version.mjs && git add .claude-plugin .codex-plugin .cursor-plugin",
     "sync-version": "node scripts/sync-version.mjs",
+    "prerender": "node scripts/prerender-locales.mjs",
+    "prerender:check": "node scripts/prerender-locales.mjs --check",
     "doctor": "node skills/dubbing/scripts/check_deps.mjs",
     "key:check": "node skills/dubbing/scripts/resolve_key.mjs --check",
     "langs": "node skills/dubbing/scripts/languages.mjs",
