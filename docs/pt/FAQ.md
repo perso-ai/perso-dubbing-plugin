@@ -6,7 +6,7 @@ Perguntas comuns sobre as skills `/dubbing` e `/srt`. Para instalação e uso, c
 
 ### O que eu preciso para usá-la?
 
-Node.js 18+ e uma chave de API do Perso Dubbing. Instale a skill e depois basta dizer *"duble este vídeo para mim"*. → [Obtenha uma chave de API](https://developers.perso.ai/api-keys)
+**Node.js 18+** é tudo o que você precisa. Legendas estilizadas, traduzir um SRT que você fornece e clipes curtos funcionam sem cadastro. Somente as etapas de IA do lado do servidor (dublagem, sincronização labial, separação, reconhecimento de fala) precisam de uma chave de API do Perso Dubbing. → [Obtenha uma chave de API](https://developers.perso.ai/api-keys)
 
 ### Como registro minha chave de API?
 
@@ -14,7 +14,7 @@ Na primeira execução, uma página do navegador é aberta — faça login e cli
 
 ### Isso tem custo?
 
-O código da skill é gratuito (MIT), mas a dublagem é executada através da API da Perso, que cobra créditos.
+A skill é gratuita e de código aberto (MIT). Legendas estilizadas, traduzir um SRT que você fornece e clipes curtos são grátis. Somente as etapas de IA do lado do servidor (dublagem, sincronização labial, separação, reconhecimento de fala) cobram créditos — você paga apenas pelo que processa.
 
 ### O que posso fornecer como entrada?
 
@@ -38,7 +38,7 @@ Ela divide a fonte em faixas de voz / fundo / subfundo — sem envolver dublagem
 
 ### Ela consegue gerar legendas (SRT) em vez de dublar?
 
-A skill **`/srt`** extrai as legendas no idioma original de um vídeo/áudio/URL usando o reconhecimento de fala da Perso. Se você também quiser as legendas traduzidas, peça o SRT indicando os idiomas desejados.
+A skill **`/srt`** extrai as legendas no idioma original de um vídeo/áudio/URL usando o reconhecimento de fala da Perso. Se você também quiser as legendas traduzidas, peça o SRT indicando os idiomas desejados. Ela também pode **incorporar legendas estilizadas no vídeo** — presets prontos ou sua própria fonte, cor e posição — algo que roda localmente e é grátis (com o seu próprio SRT, não são necessários chave nem créditos).
 
 ### Parou no meio do processo (sem créditos, uma falha ou um shell encerrado). E agora?
 

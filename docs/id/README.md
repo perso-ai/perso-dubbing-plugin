@@ -10,15 +10,20 @@
 
 Skill agen coding yang menghadirkan dubbing AI dari [Perso Dubbing](https://perso.ai/dubbing) ke agen Anda. Instal sekali, lalu cukup katakan *"dubbing video ini ke bahasa Inggris"*.
 
+- ![gratis](https://img.shields.io/badge/%E2%9C%93%20gratis-2ea44f) **Subtitle bergaya** — tanamkan subtitle siap pakai atau bergaya kustom ke dalam video. **Sorotan rilis ini.**
+- ![gratis](https://img.shields.io/badge/%E2%9C%93%20gratis-2ea44f) **Terjemahkan subtitle** — ubah SRT yang sudah Anda miliki ke bahasa apa pun
+- ![gratis](https://img.shields.io/badge/%E2%9C%93%20gratis-2ea44f) **Klip pendek** — potong video panjang menjadi sorotan format pendek, ubah rasio 16:9 → 9:16
 - **Dubbing** ke bahasa lain — satu file, seluruh folder, atau sebuah URL
 - **Lip-sync** pada video hasil dubbing agar gerakan mulut sesuai dengan audio barunya
 - **Pisahkan** suara dari audio latar
-- **Subtitle** (`/srt`) — ekstrak SRT melalui speech-to-text, lalu agen Anda menerjemahkannya
+- **Subtitle dari ucapan** — ekstrak SRT melalui speech-to-text (atau bawa SRT Anda sendiri → gratis)
 - Media yang berukuran terlalu besar dan sangat panjang otomatis dipecah, diproses, dan digabungkan kembali
 
-Berjalan di atas **Node.js 18+** dan membutuhkan **kunci API Perso Dubbing**. Dibangun di atas standar Agent Skills (`SKILL.md`), sehingga berperilaku sama persis di Claude, Codex, dan Antigravity.
+> **Skill ini gratis dan open-source (MIT).** Segala hal yang berjalan secara lokal di komputer Anda tidak memerlukan **akun maupun kredit** — menanamkan subtitle bergaya ke video, menerjemahkan SRT yang sudah Anda miliki, dan memotong klip pendek. Langkah-langkah AI yang berjalan di server Perso — dubbing, lip-sync, pemisahan suara/latar, speech-to-text — menggunakan kredit Perso Dubbing API (**bayar hanya untuk yang Anda proses**).
 
-![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
+Berjalan di atas **Node.js 18+**. Langkah-langkah gratis tidak pernah membutuhkan kunci; langkah AI sisi server menggunakan **kunci API Perso Dubbing**. Dibangun di atas standar Agent Skills (`SKILL.md`), sehingga berperilaku sama persis di Claude, Codex, dan Antigravity.
+
+![Preset gaya subtitle](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-presets.gif)
 
 ---
 
@@ -31,14 +36,10 @@ Berjalan di atas **Node.js 18+** dan membutuhkan **kunci API Perso Dubbing**. Di
 Di <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">aplikasi desktop Claude</a> (paket berbayar):
 
 1. Buka **tab Code** (di tengah atas), pilih folder apa pun, lalu pilih lingkungan **Local** — plugin tidak berfungsi dalam sesi cloud.
-2. Tempelkan setiap perintah ke kotak prompt dan tekan Enter, satu per satu:
+2. Tempelkan perintah ini ke kotak prompt dan tekan Enter:
 
    ```text
-   claude marketplace add perso-ai/perso-dubbing-plugin
-   ```
-
-   ```text
-   claude install perso-dubbing@perso-ai
+   claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
    ```
 
 3. Minta dubbing — *"Dubbing video ini ke bahasa Inggris — C:\videos\clip.mp4"*. URL YouTube atau sebuah folder juga bisa. Hasilnya disimpan di sebelah video sumber kecuali Anda menyertakan `--out`.
@@ -71,7 +72,7 @@ Mendeteksi host mana yang Anda miliki dan menginstal kedua skill ke masing-masin
 
 ### Eksekusi pertama — kunci API Anda
 
-Sebuah halaman browser akan terbuka: masuk dan klik sekali, lalu kunci Anda diterbitkan dan disimpan terenkripsi di komputer ini. Tidak ada yang perlu disalin. Jika tidak ada browser yang bisa dibuka, sebuah file kunci akan terbuka sebagai gantinya — tempelkan kunci di sana lalu simpan, dan file tersebut dienkripsi kemudian dihapus.
+Kunci hanya diperlukan saat sebuah aksi menggunakan Perso API (dubbing, lip-sync, pemisahan, ekstraksi SRT) — langkah offline seperti menanamkan subtitle bergaya ke video lokal atau menerjemahkan SRT yang Anda sediakan tidak pernah memintanya. Saat kunci diperlukan, sebuah halaman browser akan terbuka: masuk dan klik sekali, lalu kunci Anda diterbitkan dan disimpan terenkripsi di komputer ini. Tidak ada yang perlu disalin. Jika tidak ada browser yang bisa dibuka, sebuah file kunci akan terbuka sebagai gantinya — tempelkan kunci di sana lalu simpan, dan file tersebut dienkripsi kemudian dihapus.
 
 <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Dapatkan kunci API</a> · periksa kapan saja dengan `npm run key:check`
 
@@ -90,6 +91,10 @@ Cukup beri tahu agen Anda apa yang Anda inginkan:
 > "Pisahkan suara dan musik latar dari klip ini"
 >
 > "Buatkan saya SRT bahasa Inggris untuk video ini"
+>
+> "Tambahkan subtitle bergaya ke video ini — ini SRT-nya"
+>
+> "Potong video ini dari 2:00 sampai 3:00 sebagai short"
 
 Atau ketik **`/dubbing`** / **`/srt`** untuk memulai. Untuk daftar lengkap opsi CLI, tanyakan cara penggunaannya kepada agen Anda atau jalankan `npm run dub -- --help`.
 
@@ -124,6 +129,7 @@ Punya pertanyaan lain? Lihat **[FAQ](FAQ.md)**.
 docs/              Landing GitHub Pages + README terjemahan · FAQ (12 bahasa)
 skills/dubbing/    Skill dubbing (SKILL.md · lib/ · scripts/) — mandiri
 skills/srt/        Skill subtitle SRT (SKILL.md · scripts/) — memakai lib/ dari skill dubbing
+skills/clip/       Skill klip pendek (SKILL.md · lib/ · scripts/) — memakai lib/ dari skill dubbing
 scripts/           Installer tingkat repositori (install.mjs)
 ```
 

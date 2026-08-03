@@ -6,7 +6,7 @@ Các câu hỏi thường gặp về các skill `/dubbing` và `/srt`. Để bi�
 
 ### Tôi cần gì để sử dụng?
 
-Node.js 18+ và một API key của Perso Dubbing. Cài đặt skill, sau đó chỉ cần nói *"lồng tiếng video này giúp tôi."* → [Lấy API key](https://developers.perso.ai/api-keys)
+Chỉ cần **Node.js 18+** là đủ. Phụ đề có kiểu, dịch một tệp SRT bạn cung cấp, và clip ngắn hoạt động mà không cần đăng ký. Chỉ các bước AI phía máy chủ (lồng tiếng, lip-sync, tách âm, speech-to-text) mới cần một API key của Perso Dubbing. → [Lấy API key](https://developers.perso.ai/api-keys)
 
 ### Làm thế nào để đăng ký API key?
 
@@ -14,7 +14,7 @@ Node.js 18+ và một API key của Perso Dubbing. Cài đặt skill, sau đó c
 
 ### Có tốn phí không?
 
-Mã nguồn của skill là miễn phí (MIT), nhưng việc lồng tiếng chạy qua Perso API, vốn tính phí theo credit.
+Skill này miễn phí và mã nguồn mở (MIT). Phụ đề có kiểu, dịch một tệp SRT bạn cung cấp, và clip ngắn đều miễn phí. Chỉ các bước AI phía máy chủ (lồng tiếng, lip-sync, tách âm, speech-to-text) mới tính phí credit — bạn chỉ trả phí cho những gì bạn xử lý.
 
 ### Tôi có thể đưa vào những gì?
 
@@ -38,7 +38,7 @@ Tính năng này tách nguồn thành các track giọng nói / âm thanh nền 
 
 ### Nó có thể tạo phụ đề (SRT) thay vì lồng tiếng không?
 
-Skill **`/srt`** trích xuất phụ đề ở ngôn ngữ gốc từ video/audio/URL thông qua công nghệ speech-to-text của Perso. Nếu bạn cũng muốn dịch chúng, hãy yêu cầu tệp SRT kèm theo các ngôn ngữ bạn muốn.
+Skill **`/srt`** trích xuất phụ đề ở ngôn ngữ gốc từ video/audio/URL thông qua công nghệ speech-to-text của Perso. Nếu bạn cũng muốn dịch chúng, hãy yêu cầu tệp SRT kèm theo các ngôn ngữ bạn muốn. Skill cũng có thể **ghép phụ đề có kiểu lên video** — preset dựng sẵn hoặc font, màu, và vị trí của riêng bạn — việc này chạy cục bộ và miễn phí (dùng SRT của riêng bạn → không cần key hay credit).
 
 ### Quá trình dừng giữa chừng (hết credit, gặp lỗi, hoặc shell bị kill). Giờ phải làm sao?
 

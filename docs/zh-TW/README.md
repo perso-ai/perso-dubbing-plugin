@@ -10,15 +10,20 @@
 
 一款編碼代理（coding-agent）技能，將 [Perso Dubbing](https://perso.ai/dubbing) 的 AI 配音帶入你的代理程式。安裝一次後，只要說一句「把這個影片配音成英文」即可。
 
+- ![免費](https://img.shields.io/badge/%E2%9C%93%20%E5%85%8D%E8%B2%BB-2ea44f) **樣式字幕**——將現成或自訂樣式的字幕壓制到影片上。**本次發布的重點。**
+- ![免費](https://img.shields.io/badge/%E2%9C%93%20%E5%85%8D%E8%B2%BB-2ea44f) **字幕翻譯**——將你已有的 SRT 轉成任何語言
+- ![免費](https://img.shields.io/badge/%E2%9C%93%20%E5%85%8D%E8%B2%BB-2ea44f) **短影片片段**——將長影片剪成短影片精華，並將 16:9 重新構圖為 9:16
 - **配音**成其他語言——單一檔案、整個資料夾或網址皆可
 - 為配音後的影片**對嘴（lip-sync）**，讓嘴型與新的音訊一致
 - **分離**人聲與背景音訊
-- **字幕**（`/srt`）——透過語音轉文字擷取 SRT，再由你的代理程式進行翻譯
+- **語音轉字幕**——透過語音轉文字擷取 SRT（或自行提供 → 免費）
 - 過大或過長的媒體會自動分割、處理後再合併回來
 
-需要 **Node.js 18+** 以及一組 **Perso Dubbing API 金鑰**。基於 Agent Skills 標準（`SKILL.md`）打造，因此在 Claude、Codex 與 Antigravity 上的行為完全一致。
+> **此技能免費且開放原始碼（MIT）。** 任何在你電腦本機執行的作業都**不需要帳號、也不需要點數**——將樣式字幕壓制到影片上、翻譯你已有的 SRT，以及剪輯短影片片段。在 Perso 伺服器上執行的 AI 步驟——配音、對嘴、人聲/背景分離、語音轉文字——會使用 Perso Dubbing API 點數（**只為你處理的部分付費**）。
 
-![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
+需要 **Node.js 18+**。免費步驟完全不需要金鑰；伺服器端的 AI 步驟才需要 **Perso Dubbing API 金鑰**。基於 Agent Skills 標準（`SKILL.md`）打造，因此在 Claude、Codex 與 Antigravity 上的行為完全一致。
+
+![字幕樣式預設](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-presets.gif)
 
 ---
 
@@ -31,14 +36,10 @@
 在 <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude 桌面應用程式</a>（付費方案）中：
 
 1. 開啟 **Code 分頁**（畫面上方中央），選擇任一資料夾，並選擇 **Local** 環境——雲端工作階段無法使用外掛程式。
-2. 依序將以下每個指令貼到提示輸入框並按下 Enter：
+2. 將以下指令貼到提示輸入框並按下 Enter：
 
    ```text
-   claude marketplace add perso-ai/perso-dubbing-plugin
-   ```
-
-   ```text
-   claude install perso-dubbing@perso-ai
+   claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
    ```
 
 3. 提出配音需求——「把這個影片配音成英文——C:\videos\clip.mp4」。YouTube 網址或整個資料夾也可以。除非指定 `--out`，否則結果會儲存在原始影片旁邊。
@@ -71,7 +72,7 @@ npx perso-dubbing
 
 ### 首次執行——你的 API 金鑰
 
-瀏覽器頁面會自動開啟：登入後點擊一次，金鑰就會核發並加密儲存在這台電腦上，不需要複製貼上。若無法開啟瀏覽器，則會改為開啟金鑰檔案——請將金鑰貼入並儲存，該檔案會被加密並隨即刪除。
+只有在某項操作會用到 Perso API（配音、對嘴、音訊分離、SRT 擷取）時才需要金鑰——像是將帶樣式的字幕壓制到本機影片上，或翻譯你自行提供的 SRT 這類離線步驟，絕不會要求金鑰。需要金鑰時，瀏覽器頁面會自動開啟：登入後點擊一次，金鑰就會核發並加密儲存在這台電腦上，不需要複製貼上。若無法開啟瀏覽器，則會改為開啟金鑰檔案——請將金鑰貼入並儲存，該檔案會被加密並隨即刪除。
 
 <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">取得 API 金鑰</a> · 隨時可用 `npm run key:check` 確認
 
@@ -90,6 +91,10 @@ npx perso-dubbing
 > 「把這段影片的人聲和背景音樂分離出來」
 >
 > 「幫我做一份這個影片的英文 SRT 字幕」
+>
+> 「幫這個影片加上樣式字幕——SRT 在這裡」
+>
+> 「把這個影片從 2:00 到 3:00 剪成一支短影片」
 
 或輸入 **`/dubbing`** / **`/srt`** 開始。若需要完整的 CLI 選項清單，可詢問你的代理程式，或執行 `npm run dub -- --help`。
 
@@ -124,6 +129,7 @@ npx perso-dubbing
 docs/              GitHub Pages 導覽頁 + 翻譯版 README · FAQ（12 種語言）
 skills/dubbing/    配音技能本體（SKILL.md · lib/ · scripts/）——自成一體
 skills/srt/        SRT 字幕技能（SKILL.md · scripts/）——使用 dubbing 技能的 lib/
+skills/clip/       短影片片段技能（SKILL.md · lib/ · scripts/）——使用 dubbing 技能的 lib/
 scripts/           儲存庫層級的安裝程式（install.mjs）
 ```
 

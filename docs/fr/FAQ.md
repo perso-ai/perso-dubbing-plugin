@@ -6,7 +6,7 @@ Foire aux questions sur les skills `/dubbing` et `/srt`. Pour l'installation et 
 
 ### De quoi ai-je besoin pour l'utiliser ?
 
-Node.js 18+ et une clé API Perso Dubbing. Installez la skill, puis dites simplement *« double cette vidéo »*. → [Obtenir une clé API](https://developers.perso.ai/api-keys)
+**Node.js 18+** est tout ce dont vous avez besoin. Les sous-titres stylés, la traduction d'un SRT que vous fournissez et les clips courts fonctionnent sans inscription. Seules les étapes d'IA côté serveur (doublage, synchronisation labiale, séparation, reconnaissance vocale) nécessitent une clé API Perso Dubbing. → [Obtenir une clé API](https://developers.perso.ai/api-keys)
 
 ### Comment enregistrer ma clé API ?
 
@@ -14,7 +14,7 @@ Au premier lancement, une page de navigateur s'ouvre — connectez-vous et cliqu
 
 ### Est-ce payant ?
 
-Le code de la skill est gratuit (MIT), mais le doublage passe par l'API Perso, qui facture en crédits.
+La skill est gratuite et open source (MIT). Les sous-titres stylés, la traduction d'un SRT que vous fournissez et les clips courts sont gratuits. Seules les étapes d'IA côté serveur (doublage, synchronisation labiale, séparation, reconnaissance vocale) facturent des crédits — vous ne payez que ce que vous traitez.
 
 ### Que puis-je lui donner en entrée ?
 
@@ -38,7 +38,7 @@ Elle divise la source en pistes voix / fond / fond secondaire — sans doublage.
 
 ### Peut-elle créer des sous-titres (SRT) au lieu de doubler ?
 
-La skill **`/srt`** extrait les sous-titres dans la langue d'origine à partir d'une vidéo/d'un audio/d'une URL via la reconnaissance vocale de Perso. Si vous les voulez aussi traduits, demandez le SRT en précisant les langues souhaitées.
+La skill **`/srt`** extrait les sous-titres dans la langue d'origine à partir d'une vidéo/d'un audio/d'une URL via la reconnaissance vocale de Perso. Si vous les voulez aussi traduits, demandez le SRT en précisant les langues souhaitées. Elle peut aussi **incruster des sous-titres stylés sur la vidéo** — préréglages prêts à l'emploi ou votre propre police, couleur et position — ce qui s'exécute localement et est gratuit (avec votre propre SRT, aucune clé ni crédit n'est nécessaire).
 
 ### Le processus s'est arrêté en cours de route (crédits épuisés, plantage, ou shell interrompu). Que faire ?
 

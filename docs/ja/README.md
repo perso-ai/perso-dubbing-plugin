@@ -10,15 +10,20 @@
 
 [Perso Dubbing](https://perso.ai/dubbing) のAI吹き替えをエージェントにもたらすコーディングエージェント向けスキルです。一度インストールすれば、あとは*「この動画を英語に吹き替えて」*と言うだけです。
 
+- ![無料](https://img.shields.io/badge/%E2%9C%93%20%E7%84%A1%E6%96%99-2ea44f) **スタイル付き字幕** — 既製またはカスタムスタイルの字幕を動画に焼き込み。**今回のリリースの目玉。**
+- ![無料](https://img.shields.io/badge/%E2%9C%93%20%E7%84%A1%E6%96%99-2ea44f) **字幕翻訳** — すでにあるSRTを好きな言語に
+- ![無料](https://img.shields.io/badge/%E2%9C%93%20%E7%84%A1%E6%96%99-2ea44f) **ショートクリップ** — 長い動画をショート形式のハイライトに、16:9 → 9:16 にリフレーム
 - **吹き替え** — 単一ファイル、フォルダ全体、URLのいずれからでも他の言語へ
 - **リップシンク** — 吹き替えた動画の口の動きを新しい音声に合わせます
 - **音声分離** — 音声と背景音を分離します
-- **字幕**（`/srt`）— 音声認識でSRTを抽出し、続けてエージェントが翻訳します
+- **音声認識字幕** — 音声からSRTを抽出（自分のSRTを使うことも → 無料）
 - サイズが大きすぎるメディアや非常に長いメディアは、自動的に分割・処理され、最後に結合されます
 
-**Node.js 18以上**で動作し、**Perso Dubbing APIキー**が必要です。Agent Skills標準（`SKILL.md`）に基づいているため、Claude・Codex・Antigravity のいずれでもまったく同じように動作します。
+> **スキル自体は無料・オープンソース（MIT）。** 自分のPC上でローカルに動く処理は**アカウントもクレジットも不要**です — スタイル付き字幕の焼き込み、すでに持っているSRTの翻訳、ショートクリップの切り出し。Perso のサーバーで動くAI処理（吹き替え・リップシンク・音声/背景の分離・音声認識）だけが Perso Dubbing API クレジットを使い、**処理した分だけ**課金されます。
 
-![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
+**Node.js 18以上**で動作します。無料の処理にキーは不要で、サーバー側のAI処理だけが**Perso Dubbing APIキー**を使います。Agent Skills標準（`SKILL.md`）に基づいているため、Claude・Codex・Antigravity のいずれでもまったく同じように動作します。
+
+![字幕スタイルプリセット](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-presets.gif)
 
 ---
 
@@ -31,14 +36,10 @@
 <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude デスクトップアプリ</a>（有料プラン）で:
 
 1. **Code タブ**（画面上部中央）を開き、任意のフォルダを選んで、**Local** 環境を選択します — プラグインはクラウドセッションでは動作しません。
-2. 各コマンドをプロンプト欄に貼り付けて、一つずつ Enter を押します。
+2. このコマンドをプロンプト欄に貼り付けて Enter を押します。
 
    ```text
-   claude marketplace add perso-ai/perso-dubbing-plugin
-   ```
-
-   ```text
-   claude install perso-dubbing@perso-ai
+   claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
    ```
 
 3. 吹き替えを依頼します — *「この動画を英語に吹き替えて — C:\videos\clip.mp4」*。YouTubeのURLやフォルダでも動作します。`--out` を指定しない限り、結果は元の動画と同じ場所に保存されます。
@@ -71,7 +72,7 @@ npx perso-dubbing
 
 ### 初回実行 — APIキー
 
-ブラウザのページが開きます。サインインして一度クリックするだけで、キーが発行され、このマシンに暗号化して保存されます。コピーする必要はありません。ブラウザを開けない場合は、代わりにキーファイルが開きます — そこにキーを貼り付けて保存すると、暗号化されファイルは削除されます。
+キーが必要になるのは、Perso API を使う操作（吹き替え・リップシンク・音声分離・SRT抽出）のときだけです。ローカル動画へのスタイル付き字幕の焼き込みや、自分で用意したSRTの翻訳といったオフライン処理では要求されません。キーが必要になると、ブラウザのページが開きます。サインインして一度クリックするだけで、キーが発行され、このマシンに暗号化して保存されます。コピーする必要はありません。ブラウザを開けない場合は、代わりにキーファイルが開きます — そこにキーを貼り付けて保存すると、暗号化されファイルは削除されます。
 
 <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">APIキーを取得</a> ・ `npm run key:check` でいつでも確認できます
 
@@ -90,6 +91,10 @@ npx perso-dubbing
 > 「このクリップから音声と背景音楽を分離して」
 >
 > 「この動画の英語のSRTを作って」
+>
+> 「この動画にスタイル付き字幕を入れて — SRTはこちら」
+>
+> 「この動画の2:00〜3:00をショートに切り出して」
 
 または **`/dubbing`** / **`/srt`** と入力して開始します。CLIオプションの全一覧は、エージェントに使い方を尋ねるか、`npm run dub -- --help` を実行してください。
 
@@ -124,6 +129,7 @@ npx perso-dubbing
 docs/              GitHub Pages ランディング + 翻訳版 README · FAQ（12言語）
 skills/dubbing/    吹き替えスキル本体 (SKILL.md · lib/ · scripts/) — 単体で完結
 skills/srt/        SRT字幕スキル (SKILL.md · scripts/) — dubbing スキルの lib/ を使用
+skills/clip/       ショートクリップスキル (SKILL.md · lib/ · scripts/) — dubbing スキルの lib/ を使用
 scripts/           リポジトリレベルのインストーラー (install.mjs)
 ```
 

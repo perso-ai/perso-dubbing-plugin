@@ -10,15 +10,20 @@
 
 A coding-agent skill that brings [Perso Dubbing](https://perso.ai/dubbing)'s AI dubbing to your agent. Install it once, then just say *"dub this video into English"*.
 
+- ![free](https://img.shields.io/badge/%E2%9C%93%20free-2ea44f) **Styled subtitles** — burn ready-made or custom-styled subtitles onto a video. **This release's headline.**
+- ![free](https://img.shields.io/badge/%E2%9C%93%20free-2ea44f) **Translate subtitles** — turn an SRT you already have into any language
+- ![free](https://img.shields.io/badge/%E2%9C%93%20free-2ea44f) **Short clips** — cut a long video into short-form highlights, reframe 16:9 → 9:16
 - **Dub** into another language — a single file, a whole folder, or a URL
 - **Lip-sync** the dubbed video so the mouth matches the new audio
 - **Separate** voice from background audio
-- **Subtitles** (`/srt`) — extract an SRT via speech-to-text, then your agent translates it
+- **Subtitles from speech** — extract an SRT via speech-to-text (or bring your own → free)
 - Oversized and very long media is split, processed, and merged back automatically
 
-Runs on **Node.js 18+** and needs a **Perso Dubbing API key**. Built on the Agent Skills standard (`SKILL.md`), so it behaves identically on Claude, Codex, and Antigravity.
+> **The skill is free and open-source (MIT).** Anything that runs locally on your machine needs **no account and no credits** — encoding styled subtitles onto a video, translating an SRT you already have, and cutting short clips. The AI steps that run on Perso's servers — dubbing, lip-sync, voice/background separation, speech-to-text — use Perso Dubbing API credits (**pay only for what you process**).
 
-![Perso Dubbing demo](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/dubbing_plugin_demo.gif)
+Runs on **Node.js 18+**. The free steps never need a key; the server-side AI steps use a **Perso Dubbing API key**. Built on the Agent Skills standard (`SKILL.md`), so it behaves identically on Claude, Codex, and Antigravity.
+
+![Subtitle style presets](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-presets.gif)
 
 ---
 
@@ -31,14 +36,10 @@ Runs on **Node.js 18+** and needs a **Perso Dubbing API key**. Built on the Agen
 In the <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude desktop app</a> (paid plan):
 
 1. Open the **Code tab** (top center), pick any folder, and choose the **Local** environment — plugins don't work in cloud sessions.
-2. Paste each command into the prompt box and press Enter, one at a time:
+2. Paste this command into the prompt box and press Enter:
 
    ```text
-   claude marketplace add perso-ai/perso-dubbing-plugin
-   ```
-
-   ```text
-   claude install perso-dubbing@perso-ai
+   claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
    ```
 
 3. Ask for a dub — *"Dub this video into English — C:\videos\clip.mp4"*. A YouTube URL or a folder works too. Results are saved next to the source video unless you pass `--out`.
@@ -71,7 +72,7 @@ Detects which hosts you have and installs both skills into each, printing where 
 
 ### First run — your API key
 
-A browser page opens: sign in and click once, and your key is issued and stored on this machine, encrypted. Nothing to copy. If no browser can open, a key file opens instead — paste the key there and save, and the file is encrypted and deleted.
+The key is only needed when an action uses the Perso API (dubbing, lip-sync, separation, SRT extraction) — offline steps like encoding styled subtitles onto a local video or translating an SRT you provide never ask for it. When one is needed, a browser page opens: sign in and click once, and your key is issued and stored on this machine, encrypted. Nothing to copy. If no browser can open, a key file opens instead — paste the key there and save, and the file is encrypted and deleted.
 
 <a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Get an API key</a> · verify anytime with `npm run key:check`
 
@@ -90,6 +91,10 @@ Just tell your agent what you want:
 > "Split the voice and background music out of this clip"
 >
 > "Make me an English SRT for this video"
+>
+> "Add styled subtitles to this video — here's the SRT"
+>
+> "Cut this video from 2:00 to 3:00 as a short"
 
 Or type **`/dubbing`** / **`/srt`** to start. For the full list of CLI options, ask your agent for the usage or run `npm run dub -- --help`.
 
@@ -124,6 +129,7 @@ More questions? See the **[FAQ](FAQ.md)**.
 docs/              GitHub Pages landing + translated README · FAQ (12 languages)
 skills/dubbing/    The dubbing skill (SKILL.md · lib/ · scripts/) — self-contained
 skills/srt/        The SRT subtitle skill (SKILL.md · scripts/) — uses the dubbing skill's lib/
+skills/clip/       The short-clip skill (SKILL.md · lib/ · scripts/) — uses the dubbing skill's lib/
 scripts/           Repo-level installer (install.mjs)
 ```
 

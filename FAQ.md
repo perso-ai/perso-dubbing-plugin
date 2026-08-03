@@ -6,7 +6,7 @@ Common questions about the `/dubbing` and `/srt` skills. For setup and usage, se
 
 ### What do I need to use it?
 
-Node.js 18+ and a Perso Dubbing API key. Install the skill, then just say *"dub this video for me."* → [Get an API key](https://developers.perso.ai/api-keys)
+**Node.js 18+** is all you need. Styled subtitles, translating an SRT you provide, and short clips work without signing up. Only the server-side AI steps (dubbing, lip-sync, separation, speech-to-text) need a Perso Dubbing API key. → [Get an API key](https://developers.perso.ai/api-keys)
 
 ### How do I register my API key?
 
@@ -14,7 +14,7 @@ On the first run a browser page opens — sign in and click once, and your key i
 
 ### Does it cost money?
 
-The skill's code is free (MIT), but the dubbing runs through the Perso API, which bills credits.
+The skill is free and open-source (MIT). Styled subtitles, translating an SRT you provide, and short clips are free. Only the server-side AI steps (dubbing, lip-sync, separation, speech-to-text) bill credits — you pay only for what you process.
 
 ### What can I feed it?
 
@@ -38,7 +38,7 @@ It splits the source into voice / background / sub-background tracks — no dubb
 
 ### Can it make subtitles (SRT) instead of dubbing?
 
-The **`/srt`** skill extracts original-language subtitles from a video/audio/URL via Perso's speech-to-text. If you also want them translated, ask for the SRT along with the languages you want.
+The **`/srt`** skill extracts original-language subtitles from a video/audio/URL via Perso's speech-to-text. If you also want them translated, ask for the SRT along with the languages you want. It can also **burn styled subtitles onto the video** — ready-made presets or your own font, color, and position — which runs locally and is free (bring your own SRT and no key or credits are needed).
 
 ### It stopped midway (out of credits, a crash, or a killed shell). Now what?
 

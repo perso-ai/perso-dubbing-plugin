@@ -6,7 +6,7 @@ Häufig gestellte Fragen zu den `/dubbing`- und `/srt`-Skills. Informationen zu 
 
 ### Was brauche ich, um sie zu nutzen?
 
-Node.js 18+ und einen Perso Dubbing API-Schlüssel. Installiere die Skill und sage dann einfach *„synchronisiere dieses Video für mich"*. → [API-Schlüssel holen](https://developers.perso.ai/api-keys)
+**Node.js 18+** ist alles, was du brauchst. Gestylte Untertitel, das Übersetzen eines von dir bereitgestellten SRT und Kurzclips funktionieren ohne Anmeldung. Nur die serverseitigen KI-Schritte (Synchronisation, Lippensynchronisation, Trennung, Speech-to-Text) benötigen einen Perso Dubbing API-Schlüssel. → [API-Schlüssel holen](https://developers.perso.ai/api-keys)
 
 ### Wie registriere ich meinen API-Schlüssel?
 
@@ -14,7 +14,7 @@ Beim ersten Durchlauf öffnet sich eine Browser-Seite — melde dich an und klic
 
 ### Kostet es etwas?
 
-Der Code der Skill ist kostenlos (MIT), aber die Synchronisation läuft über die Perso API, die Credits berechnet.
+Die Skill ist kostenlos und quelloffen (MIT). Gestylte Untertitel, das Übersetzen eines von dir bereitgestellten SRT und Kurzclips sind kostenlos. Nur die serverseitigen KI-Schritte (Synchronisation, Lippensynchronisation, Trennung, Speech-to-Text) berechnen Credits — du zahlst nur für das, was du verarbeitest.
 
 ### Was kann ich ihr als Eingabe geben?
 
@@ -38,7 +38,7 @@ Sie teilt die Quelle in Stimme / Hintergrund / Sub-Hintergrund-Spuren auf — oh
 
 ### Kann sie auch Untertitel (SRT) statt Synchronisation erstellen?
 
-Die **`/srt`**-Skill extrahiert die Untertitel in der Originalsprache aus einem Video, einer Audiodatei oder einer URL per Perso-Speech-to-Text. Wenn du sie auch übersetzt haben möchtest, frage nach dem SRT und den gewünschten Sprachen.
+Die **`/srt`**-Skill extrahiert die Untertitel in der Originalsprache aus einem Video, einer Audiodatei oder einer URL per Perso-Speech-to-Text. Wenn du sie auch übersetzt haben möchtest, frage nach dem SRT und den gewünschten Sprachen. Sie kann außerdem **gestylte Untertitel ins Video einbrennen** — fertige Voreinstellungen oder deine eigene Schriftart, Farbe und Position — was lokal läuft und kostenlos ist (bring dein eigenes SRT mit und es werden weder Schlüssel noch Credits benötigt).
 
 ### Sie hat mittendrin gestoppt (Credits aufgebraucht, ein Absturz oder eine abgebrochene Shell). Was jetzt?
 
