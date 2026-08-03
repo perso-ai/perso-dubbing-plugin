@@ -21,7 +21,7 @@ import { downloadAudioScript } from '../../dubbing/lib/api_adapter.mjs';
 import { probe } from '../../dubbing/lib/ffmpeg.mjs';
 import { persoBaseUrl, VIDEO_EXT, AUDIO_EXT } from '../../dubbing/lib/config.mjs';
 import { makeTempDir, cleanupTempDirs } from '../../dubbing/lib/tmp.mjs';
-import { track, initTelemetry, setAgentHost, primeTelemetrySpace, setTelemetrySpace } from '../../dubbing/lib/telemetry.mjs';
+import { track, initTelemetry, setAgentHost, primeTelemetrySpace, setTelemetrySpace, setKeyUsed } from '../../dubbing/lib/telemetry.mjs';
 import { listPresets, findPreset, defaultPresetFor, parseSrt, buildAss, burn, writeAss, fontFamilyName } from '../lib/subtitle_style.mjs';
 
 const notify = (m) => console.log(`[progress] ${m}`);
@@ -47,7 +47,7 @@ const USAGE = [
 ].join('\n');
 
 const BOOL_FLAGS = { '--karaoke': ['karaoke', true], '--no-karaoke': ['karaoke', false], '--uppercase': ['uppercase', true], '--bold': ['bold', true], '--no-bold': ['bold', false] };
-const VALUE_FLAGS = ['project', 'preset', 'lang', 'word-timestamps', 'out', 'position', 'font', 'font-file', 'fontsize', 'primary', 'outline', 'outline-width', 'box', 'highlight', 'host'];
+const VALUE_FLAGS = ['project', 'preset', 'lang', 'word-timestamps', 'out', 'position', 'font', 'font-file', 'fontsize', 'primary', 'outline', 'outline-width', 'box', 'highlight', 'host', 'origin'];
 
 function parseArgs(argv) {
   const a = { inputs: [], overrides: {} };
@@ -197,13 +197,41 @@ async function run(a) {
   for (let n = 2; existsSync(outPath); n++) outPath = join(outDir, `${stem}_${n}.mp4`);
   await burn(inp.video, ass, outPath, { fontsDir });
 
+  // Which style fields the user set on top of / instead of a preset — names + values (never the font FILE
+  // path, only its family). Sorted "field=value;…" so identical custom looks group for "promote to preset".
+  const ov = {};
+  if (a.position) ov.position = a.position;
+  if (a.fontsize) ov.fontsize = a.fontsize;
+  if (a.primary) ov.primary = a.primary;
+  if (a.outline) ov.outline = a.outline;
+  if (a['outline-width']) ov.outline_width = a['outline-width'];
+  if (a.box) ov.box = a.box;
+  if (a.highlight) ov.highlight = a.highlight;
+  if (a.font || a['font-file']) ov.font = preset.font; // family name (from --font, or read out of --font-file)
+  for (const [k, v] of Object.entries(a.overrides || {})) ov[k] = v; // karaoke / uppercase / bold booleans
+  const ovKeys = Object.keys(ov);
+  const overrides = ovKeys.length ? ovKeys.sort().map((k) => `${k}=${ov[k]}`).join(';') : null;
   track('style_completed', {
-    preset: preset.id, karaoke: !!preset.karaoke, karaoke_measured: !!wordTs,
-    source: a.project ? 'project' : 'local', cue_count: cues.length,
-    orientation: height > width ? 'portrait' : 'landscape', lang: inp.lang,
+    preset: (!a.preset && ovKeys.length) ? 'custom' : base.id, // no preset picked + a style requested → custom
+    overrides,
+    video_shape: height > width ? 'vertical' : 'horizontal',
+    duration_sec: secs,
+    source: a.project ? 'project' : 'local',
+    lang: inp.lang,
   });
   console.log(`[styled-output] ${JSON.stringify({ preset: preset.id, name: preset.name, lang: inp.lang, path: outPath })}`);
   notify(`Done — styled video saved: ${outPath}`);
+}
+
+// Classify a burn failure for telemetry — a token only, never the file path or raw message.
+function styleFailReason(e) {
+  if (e?.code === 'ENOENT' && /ffmpeg|ffprobe/i.test(`${e.syscall ?? ''} ${e.path ?? ''}`)) return 'ffmpeg_missing';
+  const m = String(e?.message ?? '');
+  if (/not found:|not available on the server|Provide a video file and a \.srt/i.test(m)) return 'input_not_found';
+  if (/no readable cues/i.test(m)) return 'srt_no_cues';
+  if (/read the video dimensions/i.test(m)) return 'probe_failed';
+  if (e?.stderr != null) return 'burn_failed'; // ffmpeg ran but exited non-zero
+  return 'unknown';
 }
 
 function printMenu() {
@@ -220,6 +248,7 @@ async function main() {
     primeTelemetrySpace();
     const a = parseArgs(process.argv.slice(2));
     if (a.project) preloadKeyEnv(); // API mode only — local video+srt burns offline (no key material touched)
+    setKeyUsed(!!a.project || a.origin === 'perso'); // --project pulls from Perso (keyed) → true; --origin perso marks a local burn of an STT-derived SRT as keyed; plain local burn → false
     if (a.host) setAgentHost(a.host);
     if (a.help) { console.log(USAGE); return; }
     if (a.listPresets) { printMenu(); return; }
@@ -229,7 +258,7 @@ async function main() {
   } catch (e) {
     if (e?.name === 'ExitCode') exitCode = e.code;
     else if (e?.name === 'UsageError') { console.error(`${e.message}\n${USAGE}`); exitCode = 1; }
-    else { track('error', { error_class: errorClass(e) }); console.error(friendlyError(e)); exitCode = 1; }
+    else { track('style_failed', { reason: styleFailReason(e), error_class: errorClass(e) }); console.error(friendlyError(e)); exitCode = 1; }
   } finally {
     await cleanupTempDirs();
   }

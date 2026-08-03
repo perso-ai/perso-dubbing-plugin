@@ -117,7 +117,7 @@ Còn thắc mắc khác? Xem **[FAQ](FAQ.md)**.
 
 ## Quyền riêng tư & Telemetry
 
-`/dubbing` và `/srt` gửi các sự kiện sử dụng để cải thiện skill — ví dụ như hành động nào đã chạy, có thành công hay không, thời lượng media, phiên bản ứng dụng, và hệ điều hành. Mỗi sự kiện mang một ID ngẫu nhiên theo từng lượt cài đặt và số workspace của bạn. API key và nội dung media của bạn không bao giờ được đưa vào. Bạn có thể tắt bất cứ lúc nào bằng `PERSO_NO_TELEMETRY`.
+`/dubbing`, `/srt` và `/clip` gửi các sự kiện sử dụng ẩn danh để cải thiện skill — hành động nào đã chạy và kết quả ra sao, thời lượng media, lựa chọn kiểu, ngôn ngữ vùng đại khái, phiên bản ứng dụng/hệ điều hành, và liệu có dùng khóa API Perso hay không (và đã đăng ký chưa). Mỗi sự kiện mang một ID ngẫu nhiên theo lượt cài đặt và số workspace của bạn; không bao giờ có khóa, media, tên tệp hay nội dung phụ đề của bạn. Tắt bằng `PERSO_NO_TELEMETRY`.
 
 ---
 

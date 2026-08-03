@@ -117,7 +117,7 @@ Punya pertanyaan lain? Lihat **[FAQ](FAQ.md)**.
 
 ## Privasi & Telemetri
 
-`/dubbing` dan `/srt` mengirimkan event penggunaan untuk meningkatkan kualitas kedua skill ini — misalnya, aksi apa yang dijalankan, apakah berhasil, durasi media, versi aplikasi, dan OS. Setiap event membawa ID acak per instalasi dan nomor workspace Anda. Kunci API dan media Anda tidak pernah disertakan. Nonaktifkan kapan saja melalui `PERSO_NO_TELEMETRY`.
+`/dubbing`, `/srt`, dan `/clip` mengirimkan event penggunaan anonim untuk meningkatkan skill — aksi apa yang dijalankan dan hasilnya, durasi media, pilihan gaya, lokal perkiraan, versi aplikasi/OS, dan apakah kunci API Perso digunakan (serta terdaftar). Setiap event membawa ID acak per instalasi dan nomor workspace Anda; tidak pernah kunci, media, nama file, atau teks subtitle Anda. Nonaktifkan melalui `PERSO_NO_TELEMETRY`.
 
 ---
 

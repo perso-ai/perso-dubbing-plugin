@@ -117,6 +117,7 @@ Optionally burn a **styled** subtitle track onto the video (permanent hardsub) w
 2. **Apply.** Run the worker in the **background** (encoding takes time):
    - From a Perso STT project: `node scripts/style.mjs --project <seq> --preset <id> [--out folder]`
    - From local files: `node scripts/style.mjs "<video>" "<subtitle.srt>" --preset <id> [--out folder]`
+   - When the SRT you burn came from a Perso STT extraction (an `[srt-original]` file or a translation of it), add `--origin perso`; for a subtitle file the user supplied themselves, omit it. Telemetry-only — it doesn't change the output.
    - **Custom style:** map the user's description to override flags on top of any base preset — `--position center|lower|bottom|upper`, `--font`, `--fontsize`, `--primary RRGGBB`, `--outline RRGGBB`, `--outline-width`, `--box RRGGBB@opacity|none`, `--karaoke`/`--no-karaoke`, `--highlight RRGGBB`, `--uppercase`, `--bold`/`--no-bold` (see `--help`).
    - **Fonts:** `--font "<name>"` uses an installed font; a name that isn't installed falls back to the closest system font automatically (mention it when relevant). A user-supplied font file (.ttf/.otf/.ttc) goes in as `--font-file "<path>"` — the family name is read from the file itself.
    - **Multiple languages:** run once per language's SRT with the same `--preset`, adding `--lang <code>` so outputs are named per language.

@@ -1,12 +1,13 @@
 // Opt-out usage telemetry → Amplitude HTTP API (/2/httpapi). Non-blocking and fail-silent: never
 // delays or fails a run. Sends a random per-install UUID (~/.perso/install-id), coarse environment,
-// the caller-supplied counts, and the workspace number (space_seq). No API key,
-// filenames, media content, account/email, or projectSeq is ever sent.
+// system language/region/timezone, whether a key is registered (user) or used by the run (event), the
+// caller-supplied counts, and the workspace number (space_seq). No API key, filenames, media content,
+// account/email, or projectSeq is ever sent.
 // Opt out with PERSO_NO_TELEMETRY. See README "Privacy & Telemetry".
 import { randomUUID } from 'node:crypto';
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { CRED_DIR, API_BASE } from './config.mjs';
+import { CRED_DIR, CRED_FILE, API_BASE } from './config.mjs';
 import { CLIENT_VERSION, CLIENT_HOST, AGENT_HOST, AGENT_HOST_SOURCE } from './client_info.mjs';
 
 // Write-only ingestion (project API) key. Public by design — it can only SEND events, never read
@@ -30,6 +31,34 @@ const API_ENV = (() => {
   if (host === 'api.perso.ai') return 'prod';
   return /^([a-z0-9]+)-api\.perso\.ai$/.exec(host)?.[1] ?? host;
 })();
+
+// Coarse locale/region/timezone, derived locally once per process (each field best-effort → omitted on failure).
+const LOCALE_PROPS = (() => {
+  const p = {};
+  try { const tz = new Intl.DateTimeFormat().resolvedOptions().timeZone; if (tz) p.time_zone = tz; } catch { /* omit */ }
+  try {
+    let loc = new Intl.DateTimeFormat().resolvedOptions().locale || '';
+    // ICU falls back to 'en-US' when it cannot resolve the OS locale → prefer the POSIX env in that case.
+    const env = (process.env.LC_ALL || process.env.LC_MESSAGES || process.env.LANG || '').split(/[.@]/)[0].replace('_', '-');
+    if ((!loc || loc === 'en-US') && env && !/^(C|POSIX)$/i.test(env)) loc = env;
+    if (loc) {
+      const l = new Intl.Locale(loc);
+      p.locale = l.toString();
+      p.language = l.language;                                  // 'ko'
+      const region = l.region ?? l.maximize().region ?? null;   // 'KR' (likely-subtag for a bare language)
+      if (region) p.region = region;
+    }
+  } catch { /* omit */ }
+  return p;
+})();
+
+// Did THIS run's operation/flow use a Perso API key? Set early per run by each entry script (keyed
+// workers → true; local/offline features → false). Left null → omitted from events.
+let _keyUsed = null;
+export function setKeyUsed(used) { _keyUsed = used == null ? null : !!used; }
+
+// Whether a key is registered on this install (user property). Presence only — never reads/decrypts it.
+const keyRegistered = () => { try { return existsSync(CRED_FILE); } catch { return false; } };
 
 // Stable per install (machine × OS user): a random UUID persisted to ~/.perso/install-id and read
 // on every run → same value across sessions and reboots. Returns { id, isNew }; isNew is true only
@@ -98,11 +127,12 @@ export function primeTelemetrySpace(hint) {
 export async function track(eventType, props = {}, opts = {}) {
   if (process.env.PERSO_NO_TELEMETRY || !API_KEY) return;
   try {
-    const event_properties = { env: API_ENV, agent_host: _agentHost, agent_host_source: _agentHostSource, ...(NODE_MAJOR ? { node_major: NODE_MAJOR } : {}) };
+    const event_properties = { env: API_ENV, ...LOCALE_PROPS, agent_host: _agentHost, agent_host_source: _agentHostSource, ...(NODE_MAJOR ? { node_major: NODE_MAJOR } : {}) };
     if (_spaceSeq != null) {
       event_properties.space_seq = _spaceSeq;
       if (_spaceSource === 'cache') event_properties.space_seq_guess = true;
     }
+    if (_keyUsed != null) event_properties.key_used = _keyUsed;
     for (const [k, v] of Object.entries(props)) if (v != null) event_properties[k] = v;
     const body = JSON.stringify({
       api_key: API_KEY,
@@ -118,7 +148,7 @@ export async function track(eventType, props = {}, opts = {}) {
         // Also a user property: enables per-agent user cohorts/MAU. One install can run under several
         // agents (npx installs to every detected host; install-id is machine-wide), so this reflects
         // the most recently used agent — per-event attribution stays in event_properties.agent_host.
-        user_properties: { agent_host: _agentHost },
+        user_properties: { agent_host: _agentHost, key_registered: keyRegistered() },
       }],
     });
     const debug = (msg) => { if (process.env.PERSO_TELEMETRY_DEBUG) console.error(`[telemetry] ${eventType} → ${msg}`); };

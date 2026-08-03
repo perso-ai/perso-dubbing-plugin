@@ -25,7 +25,7 @@ import { findSpaceForProject } from '../../dubbing/lib/space.mjs';
 import { probe, pickVideoEncoder, encoderVideoArgs } from '../../dubbing/lib/ffmpeg.mjs';
 import { persoBaseUrl } from '../../dubbing/lib/config.mjs';
 import { makeTempDir, cleanupTempDirs } from '../../dubbing/lib/tmp.mjs';
-import { track, initTelemetry, setAgentHost, primeTelemetrySpace, setTelemetrySpace } from '../../dubbing/lib/telemetry.mjs';
+import { track, initTelemetry, setAgentHost, primeTelemetrySpace, setTelemetrySpace, setKeyUsed } from '../../dubbing/lib/telemetry.mjs';
 import { orderMap, clipRange, reframe, clipCues, clipTimestamps, sanitize } from '../lib/clipper.mjs';
 
 const exec = promisify(execFile);
@@ -155,7 +155,7 @@ async function runClips(a, loc) {
   notify(`Fetching project ${a.project}…`);
   const video = await streamToFile(mediaUrl(rel), join(dl, `src${extname(rel) || '.mp4'}`));
   const map = orderMap(await fetchTimestamps(Number(a.project), spaceSeq));
-  let { width, height, rotation } = await probe(video);
+  let { width, height, rotation, durationMs } = await probe(video);
   if (Math.abs(rotation) % 180 === 90) [width, height] = [height, width];
   const rf = reframe(width, height);
   const outDir = resolve(a.out || process.cwd());
@@ -164,10 +164,11 @@ async function runClips(a, loc) {
   const enc = await pickVideoEncoder();
 
   const done = [];
+  const skipped = new Set();
   for (let i = 0; i < clips.length; i++) {
     const clip = clips[i];
     const range = clipRange(map, clip.start, clip.end);
-    if (!range) { notify(`Skipped "${clip.title}" — orders ${clip.start}-${clip.end} not found.`); continue; }
+    if (!range) { skipped.add('not_found'); notify(`Skipped "${clip.title}" — orders ${clip.start}-${clip.end} not found.`); continue; }
     const dur = range.end - range.start;
     const band = dur < used.min ? ' (shorter than target)' : dur > used.max ? ' (longer than target)' : '';
     const name = `${String(i + 1).padStart(2, '0')}_${sanitize(clip.title) || 'clip'}.mp4`;
@@ -181,7 +182,7 @@ async function runClips(a, loc) {
   }
   const manifest = join(outDir, 'clips.json');
   writeFileSync(manifest, JSON.stringify({ project: Number(a.project), reframed: !!rf.filter, clips: done, transcript: mapToObj(map) }, null, 2));
-  track('clips_completed', { clip_count: done.length, reframed: !!rf.filter });
+  track('clips_completed', { clip_count: done.length, reframed: !!rf.filter, source: 'project', skipped_count: clips.length - done.length, ...(skipped.size ? { skipped_reason: [...skipped].sort().join(';') } : {}), clip_secs: done.map((c) => c.seconds), source_duration_sec: durationMs != null ? Math.round(durationMs / 1000) : null });
   console.log(`[clips-output] ${JSON.stringify({ count: done.length, outDir, manifest, clips: done.map(({ path, title, seconds }) => ({ path, title, seconds })) })}`);
   notify(`Done — ${done.length} clip${done.length === 1 ? '' : 's'} saved to ${outDir}. To add subtitles, generate sidecars then style with the srt skill.`);
 }
@@ -210,7 +211,7 @@ async function runLocalCut(a) {
   if (!existsSync(video)) throw new Error(`Video not found: ${a.video}`);
   const ranges = parseRanges(a.ranges);
   const titles = a.titles ? a.titles.split(',').map((s) => s.trim()) : [];
-  let { width, height, rotation } = await probe(video);
+  let { width, height, rotation, durationMs } = await probe(video);
   if (Math.abs(rotation) % 180 === 90) [width, height] = [height, width];
   const rf = reframe(width, height);
   const outDir = resolve(a.out || process.cwd());
@@ -218,10 +219,11 @@ async function runLocalCut(a) {
   const enc = await pickVideoEncoder();
 
   const done = [];
+  const skipped = new Set();
   for (let i = 0; i < ranges.length; i++) {
     const { start, end } = ranges[i];
     const dur = end - start;
-    if (!(dur > 0)) { notify(`Skipped range ${i + 1} — end must be after start.`); continue; }
+    if (!(dur > 0)) { skipped.add('invalid_range'); notify(`Skipped range ${i + 1} — end must be after start.`); continue; }
     const title = titles[i] || `clip_${i + 1}`;
     const outPath = join(outDir, `${String(i + 1).padStart(2, '0')}_${sanitize(title) || 'clip'}.mp4`);
     const args = ['-y', '-hide_banner', '-loglevel', 'error', '-ss', start.toFixed(3), '-t', dur.toFixed(3), '-i', video];
@@ -231,22 +233,24 @@ async function runLocalCut(a) {
     await exec('ffmpeg', args, { maxBuffer: 1 << 20 });
     done.push({ path: outPath, title, start, end, seconds: Math.round(dur) });
   }
-  track('clips_completed', { clip_count: done.length, reframed: !!rf.filter, source: 'local' });
+  track('clips_completed', { clip_count: done.length, reframed: !!rf.filter, source: 'local', skipped_count: ranges.length - done.length, ...(skipped.size ? { skipped_reason: [...skipped].sort().join(';') } : {}), clip_secs: done.map((c) => c.seconds), source_duration_sec: durationMs != null ? Math.round(durationMs / 1000) : null });
   console.log(`[clips-output] ${JSON.stringify({ count: done.length, outDir, clips: done.map(({ path, title, seconds }) => ({ path, title, seconds })) })}`);
   notify(`Done — ${done.length} clip${done.length === 1 ? '' : 's'} saved to ${outDir}.`);
 }
 
 async function main() {
   let exitCode = 0;
+  let a = {};
   try {
     primeTelemetrySpace();
-    const a = parseArgs(process.argv.slice(2));
+    a = parseArgs(process.argv.slice(2));
     if (a.host) setAgentHost(a.host);
     if (a.help) { console.log(USAGE); return; }
-    if (a.sidecars) { initTelemetry(); track('run_started', { mode: 'clip-sidecars' }); runSidecars(a); return; }
-    if (a.video) { initTelemetry(); track('run_started', { mode: 'clip-local' }); await runLocalCut(a); return; }
+    if (a.sidecars) { setKeyUsed(false); initTelemetry(); track('run_started', { mode: 'clip-sidecars' }); runSidecars(a); return; } // offline, no key
+    if (a.video) { setKeyUsed(false); initTelemetry(); track('run_started', { mode: 'clip-local' }); await runLocalCut(a); return; } // local cut, no key
     preloadKeyEnv(); // project mode only — reached after the offline modes have returned (still synchronous, before ensureKey's await)
     await ensureKey();
+    setKeyUsed(true); // project mode pulls clips from a Perso project → key used
     initTelemetry();
     track('run_started', { mode: a.plan ? 'clip-plan' : 'clip-cut' });
     const loc = await findSpaceForProject(Number(a.project));
@@ -257,7 +261,7 @@ async function main() {
   } catch (e) {
     if (e?.name === 'ExitCode') exitCode = e.code;
     else if (e?.name === 'UsageError') { console.error(`${e.message}\n${USAGE}`); exitCode = 1; }
-    else { track('error', { error_class: errorClass(e) }); console.error(friendlyError(e)); exitCode = 1; }
+    else { track('error', { error_class: errorClass(e), mode: a.sidecars ? 'clip-sidecars' : a.video ? 'clip-local' : a.plan ? 'clip-plan' : 'clip-cut' }); console.error(friendlyError(e)); exitCode = 1; }
   } finally {
     await cleanupTempDirs();
   }

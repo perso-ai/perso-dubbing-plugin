@@ -18,7 +18,7 @@ import { download, getStatus, upload, requestAudioSeparation, downloadSeparation
 import { mergeGroups, friendlyReason } from '../lib/merge.mjs';
 import { messages, withUtm, SUBSCRIPTION_URL, projectUrl } from '../lib/messages.mjs';
 import { checkForUpdate } from '../lib/update_check.mjs';
-import { track, initTelemetry, setTelemetrySpace, primeTelemetrySpace, setAgentHost } from '../lib/telemetry.mjs';
+import { track, initTelemetry, setTelemetrySpace, primeTelemetrySpace, setAgentHost, setKeyUsed } from '../lib/telemetry.mjs';
 import { makeStatusTicker, statusIntervalMs } from '../lib/status.mjs';
 import { cleanupTempDirs, makeTempDir } from '../lib/tmp.mjs';
 import { probe } from '../lib/ffmpeg.mjs';
@@ -540,7 +540,7 @@ async function runPool(args) {
         try { if (existsSync(file)) unlinkSync(file); } catch { /* ignore */ }
         throw new ExitCode(0); // stop and ask the user — a normal pause, not a failure
       }
-      if (isAuthError(e)) { track('error', { error_class: 'auth' }); console.log(`\n${friendlyError(e)}`); return; } // key issues abort everything
+      if (isAuthError(e)) { track('error', { error_class: 'auth', mode: dubMode(args) }); console.log(`\n${friendlyError(e)}`); return; } // key issues abort everything
       if (e?.name === 'UnsupportedMediaError') { notify(skipMsg(labelOf(inp), e)); continue; } // unsupported → skip
       console.log(`${tag} — split/upload failed: ${friendlyError(e)}`); continue;
     }
@@ -1120,14 +1120,21 @@ function earlySpaceHint(args) {
   return null;
 }
 
+// Telemetry mode label for a dubbing run — mirrors the run_started mode so errors correlate with the flow.
+function dubMode(a) {
+  return a?.resume ? 'resume' : a?.separate ? 'separate' : a?.lipsyncOnly ? 'lipsync-only' : a?.lipsync ? 'lipsync' : 'dub';
+}
+
 async function main() {
   let exitCode = 0;
   let updateNotice = null; // daily version check, kicked off in the background and printed after the work finishes
+  let args = {};
   try {
     preloadKeyEnv(); // pre-inject the key into env before async (at a clean point) → avoid a synchronous powershell call/crash in the main process
     primeTelemetrySpace(); // env pin / previous run — parseArgs itself can emit lang_invalid
-    const args = parseArgs(process.argv.slice(2));
+    args = parseArgs(process.argv.slice(2));
     if (args.host) setAgentHost(args.host); // agent self-reports its runtime (telemetry only) — set before any track()
+    setKeyUsed(true); // dubbing/lip-sync/separation all run on Perso's servers → key always used
     if (!args.help) {
       updateNotice = checkForUpdate().catch(() => null); // non-blocking; never fails the run
       primeTelemetrySpace(earlySpaceHint(args));
@@ -1157,7 +1164,7 @@ async function main() {
   } catch (e) {
     if (e?.name === 'ExitCode') exitCode = e.code; // message already printed at the throw site
     else if (e?.name === 'UsageError') { console.error(`${e.message}\n${USAGE}`); exitCode = 1; }
-    else { track('error', { error_class: errorClass(e) }); console.error(friendlyError(e)); exitCode = 1; }
+    else { track('error', { error_class: errorClass(e), mode: dubMode(args) }); console.error(friendlyError(e)); exitCode = 1; }
   } finally {
     await cleanupTempDirs(); // bulk-clean the cut/schedule/merge/download temp folders
   }

@@ -18,7 +18,7 @@ import { upload, requestStt, downloadAudioScript, getStatus, classifyUploadError
 import { probe } from '../../dubbing/lib/ffmpeg.mjs';
 import { messages } from '../../dubbing/lib/messages.mjs';
 import { checkForUpdate } from '../../dubbing/lib/update_check.mjs';
-import { track, initTelemetry, setTelemetrySpace, primeTelemetrySpace, setAgentHost } from '../../dubbing/lib/telemetry.mjs';
+import { track, initTelemetry, setTelemetrySpace, primeTelemetrySpace, setAgentHost, setKeyUsed } from '../../dubbing/lib/telemetry.mjs';
 import { makeStatusTicker, statusIntervalMs } from '../../dubbing/lib/status.mjs';
 import { cleanupTempDirs } from '../../dubbing/lib/tmp.mjs';
 import { POLL_INTERVAL_MS, MAX_IDLE_MS } from '../../dubbing/lib/config.mjs';
@@ -511,23 +511,23 @@ function wrapTwoLines(text, width) {
 // Compare a translated SRT against its source: structure must match 1:1 (the translation step never
 // retimes), and every cue must respect the layout and reading-speed limits above.
 function checkCues(cues, src) {
-  const problems = [];
+  const problems = []; // kind: 'structure' (cue-count/timestamp drift) | 'layout' (lines) | 'speed' (reading rate)
   if (cues.length !== src.length) {
-    problems.push({ level: 'FAIL', cue: 0, why: `cue count is ${cues.length} but the source has ${src.length} — cues were merged, dropped, or renumbered` });
+    problems.push({ level: 'FAIL', kind: 'structure', cue: 0, why: `cue count is ${cues.length} but the source has ${src.length} — cues were merged, dropped, or renumbered` });
   } else {
     src.forEach((s, i) => {
-      if (cues[i].ts !== s.ts) problems.push({ level: 'FAIL', cue: i + 1, why: `timestamp differs from the source ("${cues[i].ts}" vs "${s.ts}")` });
+      if (cues[i].ts !== s.ts) problems.push({ level: 'FAIL', kind: 'structure', cue: i + 1, why: `timestamp differs from the source ("${cues[i].ts}" vs "${s.ts}")` });
     });
   }
   cues.forEach((c, i) => {
     const lim = limitsFor(c.text.join(''));
-    if (c.text.length > 2) problems.push({ level: 'FAIL', cue: i + 1, why: `${c.text.length} text lines (max 2)` });
+    if (c.text.length > 2) problems.push({ level: 'FAIL', kind: 'layout', cue: i + 1, why: `${c.text.length} text lines (max 2)` });
     for (const l of c.text) {
-      if (l.length > lim.lineChars) problems.push({ level: 'FAIL', cue: i + 1, why: `line is ${l.length} chars (max ${lim.lineChars}): "${l}"` });
+      if (l.length > lim.lineChars) problems.push({ level: 'FAIL', kind: 'layout', cue: i + 1, why: `line is ${l.length} chars (max ${lim.lineChars}): "${l}"` });
     }
     const cps = cpsOf(c);
-    if (cps > lim.cpsFail) problems.push({ level: 'FAIL', cue: i + 1, why: `reading speed ${cps.toFixed(1)} chars/sec (cap ${lim.cpsFail}) — shorten the text` });
-    else if (cps > lim.cpsWarn) problems.push({ level: 'WARN', cue: i + 1, why: `reading speed ${cps.toFixed(1)} chars/sec (comfortable is ≤${lim.cpsWarn}) — shorten if it costs no meaning` });
+    if (cps > lim.cpsFail) problems.push({ level: 'FAIL', kind: 'speed', cue: i + 1, why: `reading speed ${cps.toFixed(1)} chars/sec (cap ${lim.cpsFail}) — shorten the text` });
+    else if (cps > lim.cpsWarn) problems.push({ level: 'WARN', kind: 'speed', cue: i + 1, why: `reading speed ${cps.toFixed(1)} chars/sec (comfortable is ≤${lim.cpsWarn}) — shorten if it costs no meaning` });
   });
   return problems;
 }
@@ -582,12 +582,23 @@ function retimeCues(cues) {
 }
 
 function runCheck(file, sourceFile) {
-  const problems = checkCues(parseSrtCues(readFileSync(file, 'utf8')), parseSrtCues(readFileSync(sourceFile, 'utf8')));
+  const cues = parseSrtCues(readFileSync(file, 'utf8'));
+  const src = parseSrtCues(readFileSync(sourceFile, 'utf8'));
+  const problems = checkCues(cues, src);
   for (const p of problems) console.log(`[check] ${p.level} cue ${p.cue}: ${p.why}`);
-  const fails = problems.filter((p) => p.level === 'FAIL').length;
-  console.log(fails
-    ? `[check] ${file}: ${fails} FAIL · ${problems.length - fails} WARN — rewrite ONLY the failing cues and re-run.`
+  const fails = problems.filter((p) => p.level === 'FAIL');
+  console.log(fails.length
+    ? `[check] ${file}: ${fails.length} FAIL · ${problems.length - fails.length} WARN — rewrite ONLY the failing cues and re-run.`
     : `[check] ${file}: PASS (${problems.length} WARN) — structure and layout are within delivery limits.`);
+  const nFail = (kind) => fails.filter((p) => p.kind === kind).length;
+  track('srt_quality_completed', {
+    result: fails.length ? 'fail' : 'pass',
+    duration_sec: cues.length ? Math.round(cues[cues.length - 1].end) : null,
+    structure_fail_count: nFail('structure'),
+    layout_fail_count: nFail('layout'),
+    speed_fail_count: nFail('speed'),
+    no_cues: (cues.length === 0 || src.length === 0) || null,
+  });
 }
 
 function runRetime(file) {
@@ -599,6 +610,13 @@ function runRetime(file) {
   console.log(still.length
     ? `[retime] ${still.length} cues still read too fast — shorten their text (meaning first): ${still.join(', ')}`
     : '[retime] every cue is within the reading-speed cap.');
+  track('srt_timing_completed', {
+    duration_sec: before.length ? Math.round(before[before.length - 1].end) : null,
+    extended_count: extended,
+    merged_count: merged.length,
+    still_fast_count: still.length,
+    no_cues: before.length === 0 || null,
+  });
 }
 
 // Pure helper exports for testing (when run directly, only main below executes).
@@ -616,24 +634,31 @@ function earlySpaceHint(args) {
 async function main() {
   let exitCode = 0;
   let updateNotice = null; // daily version check, kicked off in the background and printed after the work finishes
+  let args = {};
+  let offline = false;
   try {
     primeTelemetrySpace(); // env pin / previous run — parseArgs itself can throw before any event
-    const args = parseArgs(process.argv.slice(2));
-    const offline = !!(args.check || args.retime); // local QA — no update check, no telemetry, no key gate
+    args = parseArgs(process.argv.slice(2));
+    offline = !!(args.check || args.retime); // local QA — no update check, no telemetry, no key gate
     // pre-inject the key into env before async (at a clean point) → avoid a synchronous powershell call/crash in the main
     // process; skipped for offline QA so those runs never touch key material (parseArgs is synchronous, still before await).
     if (!args.help && !offline) preloadKeyEnv();
     if (args.host) setAgentHost(args.host); // agent self-reports its runtime (telemetry only) — set before any track()
-    if (!args.help && !offline) {
-      updateNotice = checkForUpdate().catch(() => null); // non-blocking; never fails the run
-      primeTelemetrySpace(earlySpaceHint(args));
+    setKeyUsed(!offline); // keyed extraction/resume → true; offline QA (--check/--retime) uses no key → false
+    if (!args.help) {
+      if (!offline) {
+        updateNotice = checkForUpdate().catch(() => null); // non-blocking; never fails the run (online modes only)
+        primeTelemetrySpace(earlySpaceHint(args));
+      }
       initTelemetry(); // emits first_run once per install
-      track('run_started', {
-        mode: args.resume ? 'srt-resume' : 'srt',
-        input_count: args.inputs.length || null,
-        target_count: args.transcribeOnly ? null : String(args.target).split(',').map((s) => s.trim()).filter(Boolean).length || null,
-        transcribe_only: !!args.transcribeOnly,
-      });
+      track('run_started', offline
+        ? { mode: args.check ? 'srt-quality' : 'srt-timing' } // offline QA — the srt_quality/timing_completed events carry the detail
+        : {
+          mode: args.resume ? 'srt-resume' : 'srt',
+          input_count: args.inputs.length || null,
+          target_count: args.transcribeOnly ? null : String(args.target).split(',').map((s) => s.trim()).filter(Boolean).length || null,
+          transcribe_only: !!args.transcribeOnly,
+        });
     }
     if (args.help) console.log(USAGE);
     else if (args.check) runCheck(args.check, args.source);
@@ -646,7 +671,7 @@ async function main() {
   } catch (e) {
     if (e?.name === 'ExitCode') exitCode = e.code; // message already printed at the throw site
     else if (e?.name === 'UsageError') { console.error(`${e.message}\n${USAGE}`); exitCode = 1; }
-    else { track('error', { error_class: errorClass(e) }); console.error(friendlyError(e)); exitCode = 1; }
+    else { track('error', { error_class: errorClass(e), mode: offline ? (args.check ? 'srt-quality' : 'srt-timing') : (args.resume ? 'srt-resume' : 'srt') }); console.error(friendlyError(e)); exitCode = 1; }
   } finally {
     await cleanupTempDirs(); // clean the URL-download temp folders
   }
