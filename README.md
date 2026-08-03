@@ -117,7 +117,7 @@ More questions? See the **[FAQ](FAQ.md)**.
 
 ## Privacy & Telemetry
 
-`/dubbing` and `/srt` send usage events to improve the skills — for example, which action ran, whether it succeeded, media length, app version, and OS. Each event carries a random per-install ID and your workspace number. Your API key and your media are never included. Opt out anytime with `PERSO_NO_TELEMETRY`.
+`/dubbing`, `/srt`, and `/clip` send anonymous usage events to improve the skills — what ran and how it went, media length, style choices, coarse locale, app version/OS, and whether a Perso API key was used (and registered). Each event has a random per-install ID and your workspace number; never your key, media, filenames, or subtitle text. Opt out with `PERSO_NO_TELEMETRY`.
 
 ---
 
