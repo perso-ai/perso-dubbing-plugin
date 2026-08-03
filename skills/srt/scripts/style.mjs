@@ -21,7 +21,7 @@ import { downloadAudioScript } from '../../dubbing/lib/api_adapter.mjs';
 import { probe } from '../../dubbing/lib/ffmpeg.mjs';
 import { persoBaseUrl, VIDEO_EXT, AUDIO_EXT } from '../../dubbing/lib/config.mjs';
 import { makeTempDir, cleanupTempDirs } from '../../dubbing/lib/tmp.mjs';
-import { track, initTelemetry, setAgentHost, primeTelemetrySpace, setTelemetrySpace } from '../../dubbing/lib/telemetry.mjs';
+import { track, initTelemetry, setAgentHost, primeTelemetrySpace, setTelemetrySpace, setKeyUsed } from '../../dubbing/lib/telemetry.mjs';
 import { listPresets, findPreset, defaultPresetFor, parseSrt, buildAss, burn, writeAss, fontFamilyName } from '../lib/subtitle_style.mjs';
 
 const notify = (m) => console.log(`[progress] ${m}`);
@@ -220,6 +220,7 @@ async function main() {
     primeTelemetrySpace();
     const a = parseArgs(process.argv.slice(2));
     if (a.project) preloadKeyEnv(); // API mode only — local video+srt burns offline (no key material touched)
+    setKeyUsed(!!a.project); // --project pulls from Perso (keyed) → true; local video+SRT burn → false
     if (a.host) setAgentHost(a.host);
     if (a.help) { console.log(USAGE); return; }
     if (a.listPresets) { printMenu(); return; }

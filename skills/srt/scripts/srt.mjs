@@ -18,7 +18,7 @@ import { upload, requestStt, downloadAudioScript, getStatus, classifyUploadError
 import { probe } from '../../dubbing/lib/ffmpeg.mjs';
 import { messages } from '../../dubbing/lib/messages.mjs';
 import { checkForUpdate } from '../../dubbing/lib/update_check.mjs';
-import { track, initTelemetry, setTelemetrySpace, primeTelemetrySpace, setAgentHost } from '../../dubbing/lib/telemetry.mjs';
+import { track, initTelemetry, setTelemetrySpace, primeTelemetrySpace, setAgentHost, setKeyUsed } from '../../dubbing/lib/telemetry.mjs';
 import { makeStatusTicker, statusIntervalMs } from '../../dubbing/lib/status.mjs';
 import { cleanupTempDirs } from '../../dubbing/lib/tmp.mjs';
 import { POLL_INTERVAL_MS, MAX_IDLE_MS } from '../../dubbing/lib/config.mjs';
@@ -624,6 +624,7 @@ async function main() {
     // process; skipped for offline QA so those runs never touch key material (parseArgs is synchronous, still before await).
     if (!args.help && !offline) preloadKeyEnv();
     if (args.host) setAgentHost(args.host); // agent self-reports its runtime (telemetry only) — set before any track()
+    setKeyUsed(!offline); // keyed extraction/resume → true; offline QA (--check/--retime) uses no key → false
     if (!args.help && !offline) {
       updateNotice = checkForUpdate().catch(() => null); // non-blocking; never fails the run
       primeTelemetrySpace(earlySpaceHint(args));

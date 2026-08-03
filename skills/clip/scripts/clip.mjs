@@ -25,7 +25,7 @@ import { findSpaceForProject } from '../../dubbing/lib/space.mjs';
 import { probe, pickVideoEncoder, encoderVideoArgs } from '../../dubbing/lib/ffmpeg.mjs';
 import { persoBaseUrl } from '../../dubbing/lib/config.mjs';
 import { makeTempDir, cleanupTempDirs } from '../../dubbing/lib/tmp.mjs';
-import { track, initTelemetry, setAgentHost, primeTelemetrySpace, setTelemetrySpace } from '../../dubbing/lib/telemetry.mjs';
+import { track, initTelemetry, setAgentHost, primeTelemetrySpace, setTelemetrySpace, setKeyUsed } from '../../dubbing/lib/telemetry.mjs';
 import { orderMap, clipRange, reframe, clipCues, clipTimestamps, sanitize } from '../lib/clipper.mjs';
 
 const exec = promisify(execFile);
@@ -243,10 +243,11 @@ async function main() {
     const a = parseArgs(process.argv.slice(2));
     if (a.host) setAgentHost(a.host);
     if (a.help) { console.log(USAGE); return; }
-    if (a.sidecars) { initTelemetry(); track('run_started', { mode: 'clip-sidecars' }); runSidecars(a); return; }
-    if (a.video) { initTelemetry(); track('run_started', { mode: 'clip-local' }); await runLocalCut(a); return; }
+    if (a.sidecars) { setKeyUsed(false); initTelemetry(); track('run_started', { mode: 'clip-sidecars' }); runSidecars(a); return; } // offline, no key
+    if (a.video) { setKeyUsed(false); initTelemetry(); track('run_started', { mode: 'clip-local' }); await runLocalCut(a); return; } // local cut, no key
     preloadKeyEnv(); // project mode only — reached after the offline modes have returned (still synchronous, before ensureKey's await)
     await ensureKey();
+    setKeyUsed(true); // project mode pulls clips from a Perso project → key used
     initTelemetry();
     track('run_started', { mode: a.plan ? 'clip-plan' : 'clip-cut' });
     const loc = await findSpaceForProject(Number(a.project));

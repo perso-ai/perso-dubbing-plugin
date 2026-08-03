@@ -8,7 +8,7 @@ import { ExitCode, UsageError, ensureKey, ensureSpace, friendlyError, errorClass
 import { findSpaceForProject, spacePlanProps } from '../lib/space.mjs';
 import { getProjectDetail, getProjectScript, addSpeakerFromSentence } from '../lib/api_adapter.mjs';
 import { projectUrl } from '../lib/messages.mjs';
-import { track, initTelemetry, setTelemetrySpace, setAgentHost } from '../lib/telemetry.mjs';
+import { track, initTelemetry, setTelemetrySpace, setAgentHost, setKeyUsed } from '../lib/telemetry.mjs';
 
 const notify = (m) => console.log('[progress] ' + m);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -468,6 +468,7 @@ async function main() {
     preloadKeyEnv(); // pre-inject the key into env before async (at a clean point)
     const args = parseArgs(process.argv.slice(2));
     if (args.host) setAgentHost(args.host); // agent self-report (telemetry only) — before any track()
+    setKeyUsed(true); // speaker operations run against a Perso project → key always used
     if (args.help) console.log(USAGE);
     else {
       initTelemetry();

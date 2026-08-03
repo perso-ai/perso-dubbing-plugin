@@ -18,7 +18,7 @@ import { download, getStatus, upload, requestAudioSeparation, downloadSeparation
 import { mergeGroups, friendlyReason } from '../lib/merge.mjs';
 import { messages, withUtm, SUBSCRIPTION_URL, projectUrl } from '../lib/messages.mjs';
 import { checkForUpdate } from '../lib/update_check.mjs';
-import { track, initTelemetry, setTelemetrySpace, primeTelemetrySpace, setAgentHost } from '../lib/telemetry.mjs';
+import { track, initTelemetry, setTelemetrySpace, primeTelemetrySpace, setAgentHost, setKeyUsed } from '../lib/telemetry.mjs';
 import { makeStatusTicker, statusIntervalMs } from '../lib/status.mjs';
 import { cleanupTempDirs, makeTempDir } from '../lib/tmp.mjs';
 import { probe } from '../lib/ffmpeg.mjs';
@@ -1128,6 +1128,7 @@ async function main() {
     primeTelemetrySpace(); // env pin / previous run — parseArgs itself can emit lang_invalid
     const args = parseArgs(process.argv.slice(2));
     if (args.host) setAgentHost(args.host); // agent self-reports its runtime (telemetry only) — set before any track()
+    setKeyUsed(true); // dubbing/lip-sync/separation all run on Perso's servers → key always used
     if (!args.help) {
       updateNotice = checkForUpdate().catch(() => null); // non-blocking; never fails the run
       primeTelemetrySpace(earlySpaceHint(args));
