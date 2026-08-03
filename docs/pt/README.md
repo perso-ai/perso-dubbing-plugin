@@ -117,7 +117,7 @@ Mais dúvidas? Consulte o **[FAQ](FAQ.md)**.
 
 ## Privacidade e telemetria
 
-`/dubbing` e `/srt` enviam eventos de uso para melhorar as skills — por exemplo, qual ação foi executada, se teve sucesso, a duração da mídia, a versão do app e o sistema operacional. Cada evento carrega um ID aleatório por instalação e o número do seu espaço de trabalho. Sua chave de API e sua mídia nunca são incluídas. Desative quando quiser com `PERSO_NO_TELEMETRY`.
+`/dubbing`, `/srt` e `/clip` enviam eventos de uso anônimos para melhorar as skills — qual ação foi executada e o resultado, a duração da mídia, as opções de estilo, a localidade aproximada, a versão do app/SO e se uma chave de API da Perso foi usada (e registrada). Cada evento carrega um ID aleatório por instalação e o número do seu espaço de trabalho; nunca sua chave, mídia, nomes de arquivo ou texto de legenda. Desative com `PERSO_NO_TELEMETRY`.
 
 ---
 

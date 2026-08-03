@@ -117,7 +117,7 @@ Weitere Fragen? Sieh dir die **[FAQ](FAQ.md)** an.
 
 ## Datenschutz & Telemetrie
 
-`/dubbing` und `/srt` senden Nutzungsereignisse, um die Skills zu verbessern — zum Beispiel, welche Aktion ausgeführt wurde, ob sie erfolgreich war, die Medienlänge, die App-Version und das Betriebssystem. Jedes Ereignis enthält eine zufällige, installationsspezifische ID und deine Workspace-Nummer. Dein API-Schlüssel und deine Medien sind niemals enthalten. Mit `PERSO_NO_TELEMETRY` kannst du dies jederzeit deaktivieren.
+`/dubbing`, `/srt` und `/clip` senden anonyme Nutzungsereignisse, um die Skills zu verbessern — welche Aktion lief und wie sie ausging, die Medienlänge, Stiloptionen, das grobe Gebietsschema, App-Version/OS sowie ob ein Perso-API-Schlüssel verwendet wurde (und registriert ist). Jedes Ereignis enthält eine zufällige, installationsspezifische ID und deine Workspace-Nummer; niemals deinen Schlüssel, deine Medien, Dateinamen oder Untertiteltexte. Deaktivieren mit `PERSO_NO_TELEMETRY`.
 
 ---
 
