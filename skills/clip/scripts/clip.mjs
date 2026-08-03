@@ -240,9 +240,10 @@ async function runLocalCut(a) {
 
 async function main() {
   let exitCode = 0;
+  let a = {};
   try {
     primeTelemetrySpace();
-    const a = parseArgs(process.argv.slice(2));
+    a = parseArgs(process.argv.slice(2));
     if (a.host) setAgentHost(a.host);
     if (a.help) { console.log(USAGE); return; }
     if (a.sidecars) { setKeyUsed(false); initTelemetry(); track('run_started', { mode: 'clip-sidecars' }); runSidecars(a); return; } // offline, no key
@@ -260,7 +261,7 @@ async function main() {
   } catch (e) {
     if (e?.name === 'ExitCode') exitCode = e.code;
     else if (e?.name === 'UsageError') { console.error(`${e.message}\n${USAGE}`); exitCode = 1; }
-    else { track('error', { error_class: errorClass(e) }); console.error(friendlyError(e)); exitCode = 1; }
+    else { track('error', { error_class: errorClass(e), mode: a.sidecars ? 'clip-sidecars' : a.video ? 'clip-local' : a.plan ? 'clip-plan' : 'clip-cut' }); console.error(friendlyError(e)); exitCode = 1; }
   } finally {
     await cleanupTempDirs();
   }

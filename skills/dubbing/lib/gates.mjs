@@ -41,6 +41,9 @@ export function errorClass(e) {
   if (e?.name === 'MissingKeyError' || isAuthError(e)) return 'auth';
   if (e?.name === 'UnsupportedMediaError') return 'unsupported';
   if (e?.name === 'PersoApiError') return 'network';
+  const msg = `${e?.message ?? ''} ${e?.path ?? ''}`;
+  if (e?.code === 'ENOENT' && /ffmpeg|ffprobe/i.test(msg)) return 'ffmpeg_missing';
+  if (e?.code === 'ENOENT' || /\bnot found\b|no such file/i.test(msg)) return 'not_found';
   return 'unknown';
 }
 

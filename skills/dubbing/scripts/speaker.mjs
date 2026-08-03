@@ -435,7 +435,7 @@ async function run(args) {
       console.log(`${added} of ${targets.length} added. Re-run with the rest:`);
       console.log(`  node scripts/speaker.mjs "${projectUrl(ref.seq, 'dub')}" --sentence ${remaining}`);
       await trackAdd(spaceSeq, matchMode, requestedCount, added, requestedCount - added);
-      track('error', { error_class: errorClass(e) });
+      track('error', { error_class: errorClass(e), mode: 'speaker' });
       throw new ExitCode(1);
     }
     added++;
@@ -478,7 +478,7 @@ async function main() {
   } catch (e) {
     if (e?.name === 'ExitCode') exitCode = e.code; // message already printed at the throw site
     else if (e?.name === 'UsageError') { console.error(`${e.message}\n${USAGE}`); exitCode = 1; }
-    else { track('error', { error_class: errorClass(e) }); console.error(friendlyError(e)); exitCode = 1; }
+    else { track('error', { error_class: errorClass(e), mode: 'speaker' }); console.error(friendlyError(e)); exitCode = 1; }
   }
   process.exitCode = exitCode;
   // Natural exit (loop drain) — process.exit() while fetch sockets are closing hits a Windows libuv assert

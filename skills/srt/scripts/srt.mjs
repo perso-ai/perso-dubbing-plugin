@@ -634,10 +634,12 @@ function earlySpaceHint(args) {
 async function main() {
   let exitCode = 0;
   let updateNotice = null; // daily version check, kicked off in the background and printed after the work finishes
+  let args = {};
+  let offline = false;
   try {
     primeTelemetrySpace(); // env pin / previous run — parseArgs itself can throw before any event
-    const args = parseArgs(process.argv.slice(2));
-    const offline = !!(args.check || args.retime); // local QA — no update check, no telemetry, no key gate
+    args = parseArgs(process.argv.slice(2));
+    offline = !!(args.check || args.retime); // local QA — no update check, no telemetry, no key gate
     // pre-inject the key into env before async (at a clean point) → avoid a synchronous powershell call/crash in the main
     // process; skipped for offline QA so those runs never touch key material (parseArgs is synchronous, still before await).
     if (!args.help && !offline) preloadKeyEnv();
@@ -669,7 +671,7 @@ async function main() {
   } catch (e) {
     if (e?.name === 'ExitCode') exitCode = e.code; // message already printed at the throw site
     else if (e?.name === 'UsageError') { console.error(`${e.message}\n${USAGE}`); exitCode = 1; }
-    else { track('error', { error_class: errorClass(e) }); console.error(friendlyError(e)); exitCode = 1; }
+    else { track('error', { error_class: errorClass(e), mode: offline ? (args.check ? 'srt-quality' : 'srt-timing') : (args.resume ? 'srt-resume' : 'srt') }); console.error(friendlyError(e)); exitCode = 1; }
   } finally {
     await cleanupTempDirs(); // clean the URL-download temp folders
   }
