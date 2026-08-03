@@ -17,7 +17,7 @@ const OUT = join(HERE, '..', '..', '..', 'docs', 'media', 'subtitle-presets.gif'
 
 const DUR = 6.8, FPS = 12, IN = 0.4, OUT_T = 6.5, K_SWEEP = 1.8;
 const MONTAGE = '0xECE9E3', M = 10, LB = 28;
-const CW = 460, CH = 170, COLS = 4;
+const CW = 460, CH = 170, COLS = 3;
 const K = 650, FMIN = 24, FMAX = 40; // normalize each style's font into a readable band across cells
 const even = (n) => (n % 2 ? n + 1 : n);
 const CCW = even(CW + 2 * M), CCH = even(CH + 2 * M + LB);
@@ -135,7 +135,7 @@ async function main() {
   args.push('-filter_complex', parts.join(';'), '-map', '[out]', '-r', String(FPS), grid);
   await exec('ffmpeg', args, { maxBuffer: 1 << 26 });
 
-  const W = 960, pal = join(tmp, 'pal.png');
+  const W = 1200, pal = join(tmp, 'pal.png');
   await exec('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-i', grid,
     '-vf', `fps=${FPS},scale=${W}:-2:flags=lanczos,palettegen=stats_mode=diff`, pal]);
   await exec('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-i', grid, '-i', pal,
