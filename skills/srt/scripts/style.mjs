@@ -47,7 +47,7 @@ const USAGE = [
 ].join('\n');
 
 const BOOL_FLAGS = { '--karaoke': ['karaoke', true], '--no-karaoke': ['karaoke', false], '--uppercase': ['uppercase', true], '--bold': ['bold', true], '--no-bold': ['bold', false] };
-const VALUE_FLAGS = ['project', 'preset', 'lang', 'word-timestamps', 'out', 'position', 'font', 'font-file', 'fontsize', 'primary', 'outline', 'outline-width', 'box', 'highlight', 'host'];
+const VALUE_FLAGS = ['project', 'preset', 'lang', 'word-timestamps', 'out', 'position', 'font', 'font-file', 'fontsize', 'primary', 'outline', 'outline-width', 'box', 'highlight', 'host', 'origin'];
 
 function parseArgs(argv) {
   const a = { inputs: [], overrides: {} };
@@ -248,7 +248,7 @@ async function main() {
     primeTelemetrySpace();
     const a = parseArgs(process.argv.slice(2));
     if (a.project) preloadKeyEnv(); // API mode only — local video+srt burns offline (no key material touched)
-    setKeyUsed(!!a.project); // --project pulls from Perso (keyed) → true; local video+SRT burn → false
+    setKeyUsed(!!a.project || a.origin === 'perso'); // --project pulls from Perso (keyed) → true; --origin perso marks a local burn of an STT-derived SRT as keyed; plain local burn → false
     if (a.host) setAgentHost(a.host);
     if (a.help) { console.log(USAGE); return; }
     if (a.listPresets) { printMenu(); return; }
