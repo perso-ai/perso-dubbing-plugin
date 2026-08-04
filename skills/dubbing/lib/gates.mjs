@@ -56,6 +56,7 @@ export async function ensureKey() {
   if (resolveKey()) { track('key_check', { has_key: true }); return; }
   track('key_check', { has_key: false });
   if (process.env.PERSO_NO_WATCH) {
+    track('key_onboarding_blocked', { reason: 'headless' }); // no key + no interactive registration allowed → guidance only
     console.error(onboardingHelp());
     throw new ExitCode(2);
   }
@@ -76,6 +77,7 @@ export async function ensureKey() {
   const code = await runChild('../scripts/resolve_key.mjs', ['--watch']);
   preloadKeyEnv();
   if (code !== 0 || !resolveKey()) {
+    track('key_onboarding_blocked', { reason: 'registration_failed' }); // both connect + watch flows ended without a key
     console.error(onboardingHelp());
     throw new ExitCode(2);
   }
