@@ -3,7 +3,7 @@
 # Perso Dubbing Plugin
 
 **모든 영상을 모든 언어로. 더빙, 자막, 숏츠까지 코딩 에이전트에서 바로.**
-*"이 영상 영어로 더빙해줘" 한마디면 됩니다.*
+*"이 영상 한국어로 더빙해줘" 한마디면 됩니다.*
 
 [![Perso AI](https://img.shields.io/badge/Perso%20AI-Dubbing-5A4FF3?style=flat-square)](https://perso.ai/dubbing)
 ![Node.js](https://img.shields.io/badge/Node.js-18%2B-1a1a1a?style=flat-square)

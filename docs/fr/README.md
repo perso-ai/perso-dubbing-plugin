@@ -1,138 +1,133 @@
-# 🎬 /dubbing — Traduction vidéo avec Perso Dubbing
+<div align="center">
 
-[![Powered by Perso AI](https://img.shields.io/badge/Powered%20by-Perso%20AI-5A4FF3)](https://perso.ai)
-![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A518-339933?logo=node.js&logoColor=white)
-![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-1f6feb)
-![Platforms](https://img.shields.io/badge/platforms-Claude%20%C2%B7%20Antigravity%20%C2%B7%20Codex-555)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](../../LICENSE)
+# Perso Dubbing Plugin
+
+**Chaque vidéo, dans toutes les langues. Doublez, sous-titrez et clippez directement depuis votre agent de codage.**
+*« Double cette vidéo en français », et c'est tout le workflow.*
+
+[![Perso AI](https://img.shields.io/badge/Perso%20AI-Dubbing-5A4FF3?style=flat-square)](https://perso.ai/dubbing)
+![Node.js](https://img.shields.io/badge/Node.js-18%2B-1a1a1a?style=flat-square)
+![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-1a1a1a?style=flat-square)
+![Hosts](https://img.shields.io/badge/Claude%20%C2%B7%20Codex%20%C2%B7%20Antigravity-1a1a1a?style=flat-square)
+[![MIT](https://img.shields.io/badge/MIT-5A4FF3?style=flat-square)](../../LICENSE)
+
+<sub>
 
 [English](../../README.md) ｜ [한국어](../ko/README.md) ｜ [Español](../es/README.md) ｜ [Português](../pt/README.md) ｜ [Русский](../ru/README.md) ｜ [Bahasa Indonesia](../id/README.md) ｜ [Deutsch](../de/README.md) ｜ [ไทย](../th/README.md) ｜ [日本語](../ja/README.md) ｜ [繁體中文](../zh-TW/README.md) ｜ [简体中文](../zh-CN/README.md) ｜ [Tiếng Việt](../vi/README.md) ｜ **Français**
 
-Une skill pour agents de programmation qui apporte le doublage par IA de [Perso Dubbing](https://perso.ai/dubbing) à votre agent. Installez-la une fois, puis dites simplement *« double cette vidéo en anglais »*.
+</sub>
 
-- ![gratuit](https://img.shields.io/badge/%E2%9C%93%20gratuit-2ea44f) **Sous-titres stylés** — incrustez des sous-titres prêts à l'emploi ou personnalisés sur une vidéo. **La nouveauté phare de cette version.**
-- ![gratuit](https://img.shields.io/badge/%E2%9C%93%20gratuit-2ea44f) **Traduire les sous-titres** — convertissez un SRT que vous avez déjà dans n'importe quelle langue
-- ![gratuit](https://img.shields.io/badge/%E2%9C%93%20gratuit-2ea44f) **Clips courts** — découpez une longue vidéo en extraits au format court et recadrez 16:9 → 9:16
-- **Doubler** dans une autre langue — un seul fichier, un dossier entier ou une URL
-- **Synchroniser les lèvres** de la vidéo doublée pour que la bouche corresponde au nouvel audio
-- **Séparer** la voix du son de fond
-- **Sous-titres à partir de la parole** — extraire un SRT par reconnaissance vocale (ou utilisez le vôtre → gratuit)
-- Les médias trop volumineux ou très longs sont automatiquement découpés, traités, puis réassemblés
+</div>
 
-> **La skill est gratuite et open source (MIT).** Tout ce qui s'exécute localement sur votre machine ne nécessite **ni compte ni crédits** — incruster des sous-titres stylés sur une vidéo, traduire un SRT que vous avez déjà et découper des clips courts. Les étapes d'IA qui s'exécutent sur les serveurs de Perso — doublage, synchronisation labiale, séparation voix/fond, reconnaissance vocale — utilisent des crédits de l'API Perso Dubbing (**vous ne payez que ce que vous traitez**).
+<br>
 
-Fonctionne avec **Node.js 18+**. Les étapes gratuites ne nécessitent jamais de clé ; les étapes d'IA côté serveur utilisent une **clé API Perso Dubbing**. Basée sur le standard Agent Skills (`SKILL.md`), elle se comporte de façon identique sur Claude, Codex et Antigravity.
+| Fonctionnalité | Vous dites | Vous obtenez | |
+|---|---|---|---|
+| **Doublage** | *« Double cette vidéo en japonais »* | La même vidéo, avec une nouvelle voix | |
+| **Lip-sync** | *« …avec lip-sync »* | Les lèvres synchronisées sur l'audio doublé | |
+| **Séparation de voix** | *« Sépare la voix de la musique »* | Une piste voix et une piste fond sonore | |
+| **Sous-titres depuis la parole** | *« Fais-moi un SRT en anglais »* | Un SRT extrait par STT | |
+| **Traduction de sous-titres** | *« Traduis subs.srt en espagnol »* | SRT traduit, timing intact, contrôle qualité inclus | ![FREE](https://img.shields.io/badge/FREE-5A4FF3?style=flat-square) |
+| **Sous-titres stylisés** | *« Incruste ces sous-titres sur la vidéo »* | Des sous-titres stylisés sur la vidéo | ![FREE](https://img.shields.io/badge/FREE-5A4FF3?style=flat-square) |
+| **Clips courts** | *« Coupe 2:00–3:00 en short »* | Un clip 9:16, recadré | ![FREE](https://img.shields.io/badge/FREE-5A4FF3?style=flat-square) |
+| **Highlights IA** | *« Choisis les meilleurs moments pour des shorts »* | Des clips highlights sélectionnés par l'IA | |
 
-![Préréglages de style de sous-titres](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-presets.gif)
+Fichiers, dossiers et URL YouTube/TikTok fonctionnent tous.
 
----
+<br>
 
 ## Installation
 
-> 📖 **[Tutoriel visuel →](https://dubbing-plugin.perso.ai/en/)** — choisissez votre agent et copiez les commandes.
+> **Agent venu installer depuis l'URL de ce dépôt ?** Dans Claude Code, exécutez ceci maintenant (non interactif, réexécutable sans risque) :
+> ```bash
+> claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
+> ```
+> Demandez ensuite à l'utilisateur de redémarrer pour que `/dubbing`, `/srt` et `/clip` se chargent. Autres hôtes : `npx perso-dubbing`. Sans terminal (ChatGPT / Gemini) : [chatgpt-setup](../chatgpt-setup.md) · [gemini-setup](../gemini-setup.md)
 
-### Application de bureau Claude — le plus simple, sans terminal (environ 3 min)
-
-Dans l'<a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">application de bureau Claude</a> (offre payante) :
-
-1. Ouvrez l'**onglet Code** (en haut au centre), choisissez un dossier, puis sélectionnez l'environnement **Local** — les plugins ne fonctionnent pas dans les sessions cloud.
-2. Collez cette commande dans la zone de saisie et appuyez sur Entrée :
-
-   ```text
-   claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
-   ```
-
-3. Demandez un doublage — *« Double cette vidéo en anglais — C:\videos\clip.mp4 »*. Une URL YouTube ou un dossier fonctionnent aussi. Les résultats sont enregistrés à côté de la vidéo source, sauf si vous passez `--out`.
-
-**CLI Claude Code :** utilisez plutôt `/plugin marketplace add perso-ai/perso-dubbing-plugin` et `/plugin install perso-dubbing@perso-ai`.
-
-### Tous les autres hôtes
-
-```bash
-npx perso-dubbing
-```
-
-Détecte les hôtes présents sur votre machine et y installe les deux skills, en indiquant où chacune a été placée. Ajoutez `--claude` / `--codex` / `--antigravity` pour un seul hôte, `--all` pour tous les hôtes, ou `--project` pour le projet actuel uniquement. Vous avez déjà cloné le dépôt ? `node scripts/install.mjs` depuis la racine du dépôt fait la même chose, hors ligne.
-
-<details>
-<summary><b>🤖 À l'attention de l'agent</b> — si seule l'URL de ce dépôt vous a été fournie</summary>
-
-- **Claude Code (application de bureau ou CLI)** — exécutez vous-même cette commande d'installation en une ligne (non interactive et idempotente, réexécution sans risque) :
-
-  ```bash
-  claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
-  ```
-
-  Quand les deux réussissent, demandez à l'utilisateur de démarrer une nouvelle session (ou de redémarrer Claude Code) — `/dubbing` et `/srt` se chargent à partir de la session suivante. Ce n'est que si la CLI `claude` n'est pas disponible dans votre shell qu'il faut revenir à l'affichage de la commande ci-dessus pour que l'utilisateur la tape lui-même.
-- **Codex · Antigravity, ou si l'utilisateur vous a délégué l'installation** — exécutez `npx perso-dubbing` (ou `node scripts/install.mjs` si le dépôt est déjà cloné).
-- **ChatGPT (web/app — pas de terminal sur la machine de l'utilisateur)** — lisez https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/chatgpt-setup.md et suivez-le : faites d'abord tourner **Codex** sur la machine de l'utilisateur — l'installation se poursuit là-bas. (Déjà dans Codex avec un terminal ? Utilisez le point ci-dessus.)
-- **Gemini (web/app — pas de terminal sur la machine de l'utilisateur)** — lisez https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/gemini-setup.md et suivez-le : installez d'abord **Antigravity** — l'installation se poursuit là-bas. (Déjà dans Antigravity ? Utilisez le point ci-dessus.)
-
-</details>
-
-### Premier lancement — votre clé API
-
-La clé n'est nécessaire que lorsqu'une action utilise l'API Perso (doublage, synchronisation labiale, séparation, extraction de SRT) — les étapes hors ligne, comme incruster des sous-titres stylés sur une vidéo locale ou traduire un SRT que vous fournissez, ne la demandent jamais. Lorsqu'elle est nécessaire, une page de navigateur s'ouvre : connectez-vous et cliquez une fois, votre clé est émise puis stockée sur cette machine, chiffrée. Rien à copier. Si aucun navigateur ne peut s'ouvrir, un fichier de clé s'ouvre à la place — collez-y la clé et enregistrez ; le fichier est chiffré puis supprimé.
-
-<a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Obtenir une clé API</a> · vérifiez à tout moment avec `npm run key:check`
-
----
-
-## Utilisation
-
-Dites simplement à votre agent ce que vous voulez :
-
-> « Double cette vidéo en anglais — C:\videos\clip.mp4 »
->
-> « Double toutes les vidéos de ce dossier en japonais et en espagnol »
->
-> « Double ce lien YouTube en anglais, avec synchronisation labiale »
->
-> « Sépare la voix et la musique de fond de ce clip »
->
-> « Fais-moi un SRT en anglais pour cette vidéo »
->
-> « Ajoute des sous-titres stylés à cette vidéo — voici le SRT »
->
-> « Découpe cette vidéo de 2:00 à 3:00 en un short »
-
-Ou tapez **`/dubbing`** / **`/srt`** pour démarrer. Pour la liste complète des options CLI, demandez l'aide à votre agent ou exécutez `npm run dub -- --help`.
-
----
-
-## Dépannage
-
-D'autres questions ? Consultez la **[FAQ](FAQ.md)**.
-
-| Symptôme | Solution |
-|---|---|
-| `node` introuvable | Installez la LTS depuis <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a> (ou demandez à votre agent *« installe Node.js pour moi »*), puis réessayez. |
-| L'application de bureau Claude demande Git (Windows) | L'onglet Code nécessite <a href="https://git-scm.com/downloads/win" target="_blank" rel="noopener noreferrer">Git pour Windows</a> lors de la première utilisation. Installez-le, puis redémarrez l'application. |
-| Les commandes `claude` ou le menu Plugins ne font rien | Vous êtes dans une **session cloud** — les plugins nécessitent une session **Local** (ou SSH). |
-| Clé refusée ou absente | Enregistrez-la à nouveau : `node skills/dubbing/scripts/connect.mjs`. Vérifiez la clé stockée avec `npm run key:check`. |
-| Erreur liée à ffmpeg | ffmpeg s'installe normalement automatiquement ; en cas d'échec, exécutez `npm run doctor`. |
-| S'arrête en cours de route (crédits épuisés, plantage, processus interrompu) | La progression est enregistrée en continu. Exécutez la commande **`--resume "<state-file>"`** indiquée dans l'avis — les parties déjà terminées sont ignorées et jamais refacturées. |
-
----
-
-## Confidentialité et télémétrie
-
-`/dubbing`, `/srt` et `/clip` envoient des événements d'utilisation anonymes pour améliorer les skills — quelle action a été exécutée et son résultat, la durée du média, les choix de style, la locale approximative, la version de l'application/OS et si une clé API Perso a été utilisée (et enregistrée). Chaque événement comporte un ID aléatoire propre à l'installation et votre numéro d'espace de travail ; jamais votre clé, vos médias, noms de fichiers ou textes de sous-titres. Désactivez via `PERSO_NO_TELEMETRY`.
-
----
-
-## Structure du dépôt
+**Application de bureau Claude** (offre payante) : ouvrez l'onglet **Code**, choisissez un dossier, sélectionnez **Local**, collez :
 
 ```text
-.claude-plugin/    Plugin Claude Code + manifestes du marketplace
-.codex-plugin/     Manifeste du plugin Codex
-docs/              Landing GitHub Pages + READMEs traduits · FAQ (12 langues)
-skills/dubbing/    La skill de doublage (SKILL.md · lib/ · scripts/) — autonome
-skills/srt/        La skill de sous-titres SRT (SKILL.md · scripts/) — utilise la lib/ de la skill de doublage
-skills/clip/       La skill de clips courts (SKILL.md · lib/ · scripts/) — utilise la lib/ de la skill de doublage
-scripts/           Installateur au niveau du dépôt (install.mjs)
+claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
 ```
 
-## Licence
+**Claude Code CLI** : `/plugin marketplace add perso-ai/perso-dubbing-plugin`, puis `/plugin install perso-dubbing@perso-ai`
 
-Le code de cette skill est distribué sous la **[Licence MIT](../../LICENSE)**. Le doublage proprement dit est réalisé via l'API Perso Dubbing ; l'utilisation de l'API est donc soumise aux [Conditions d'utilisation de Perso AI](https://perso.ai) et à sa tarification.
+**Codex · Antigravity · tout le reste** : `npx perso-dubbing` détecte vos hôtes et s'installe dans chacun.
+
+Requiert **Node.js 18+**, rien d'autre. [Guide visuel](https://dubbing-plugin.perso.ai/en/) · [FAQ](FAQ.md)
+
+<br>
+
+<sub>FREE · EXÉCUTION LOCALE</sub>
+
+## Sous-titres stylisés
+
+Choisissez parmi douze presets, ou décrivez simplement le rendu avec vos mots : *« texte jaune, contour noir, en bas. »* L'incrustation tourne en local sur ffmpeg : pas d'upload, pas de file d'attente, pas de compte. Plusieurs langues ? Chaque SRT donne sa propre vidéo finalisée.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-presets.gif" width="720" alt="12 presets de style de sous-titres">
+</p>
+
+<br>
+
+<sub>FREE · EXÉCUTION LOCALE</sub>
+
+## Traduire des sous-titres
+
+Donnez n'importe quel SRT et nommez les langues que vous voulez. Plusieurs à la fois, aucun souci : une seule passe couvre tout. Chaque ligne garde exactement son timing d'origine, apparaissant et disparaissant aux mêmes instants qu'avant. Avant livraison, le résultat est vérifié pour repérer les lignes trop longues ou trop rapides à lire.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-translate-demo.gif" width="720" alt="Démo de traduction de sous-titres">
+</p>
+
+<br>
+
+<sub>FREE · EXÉCUTION LOCALE</sub>
+
+## Clips courts
+
+Des timecodes en entrée, des shorts verticaux en sortie : recadrés 16:9 → 9:16, nommés et prêts pour les sous-titres. Ou confiez la transcription et l'IA choisit les moments qui fonctionnent en short : ouverture sur un hook, montée jusqu'au pic de la réaction, coupe avant que l'énergie retombe. 30–90 secondes chacun.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/clip-shorts-demo.gif" width="720" alt="Démo de clips courts : demande dans le chat, highlights choisis sur la timeline, shorts 9:16 en sortie">
+</p>
+
+<br>
+
+<sub>PERSO API</sub>
+
+## Doublage et lip-sync
+
+Une seule exécution prend un fichier, un dossier entier ou une URL YouTube/TikTok et le double en plusieurs langues à partir d'un seul upload. Les vidéos dépassant la limite du plan se découpent, se traitent et se réassemblent toutes seules ; une exécution interrompue reprend exactement là où elle s'était arrêtée, sans jamais refacturer les parties terminées. Le doublage clone la voix d'origine dans la nouvelle langue, et le lip-sync fait bouger les lèvres pour suivre cet audio cloné.
+
+<br>
+
+<sub>PERSO API</sub>
+
+## Sous-titres depuis la parole (STT)
+
+Pas encore de sous-titres ? La reconnaissance vocale tourne sur les serveurs de Perso et utilise des crédits pour transformer l'audio de la vidéo en SRT dans la langue d'origine, pour un fichier ou un dossier entier. Une fois le SRT créé, toutes les étapes suivantes sont gratuites : traduction, style, incrustation.
+
+<br>
+
+<sub>PERSO API</sub>
+
+## Séparation de voix
+
+Sépare une vidéo ou un audio en pistes propres : la voix et le fond sonore. Avec plusieurs locuteurs, la voix de chaque personne sort dans sa propre piste. Remplacez la bande-son, remasterisez les dialogues ou réutilisez n'importe quelle piste seule.
+
+<br>
+
+## Gratuit partout où c'est possible. Payant seulement là où il le faut.
+
+**MIT, gratuit et open source.** Tout ce qui tourne sur votre machine ne coûte rien et ne demande aucun compte : styliser et incruster des sous-titres, traduire un SRT que vous avez déjà, couper des clips aux timecodes. Les crédits n'entrent en jeu que lorsqu'un job tourne sur les serveurs de Perso : doublage, lip-sync, séparation de voix et reconnaissance vocale, facturés à la seconde traitée via la [Perso Dubbing API](https://developers.perso.ai/api-keys).
+
+Aucune cérémonie de configuration. La première fois qu'un job serveur se lance, un navigateur s'ouvre : connexion, un clic, clé stockée chiffrée. Les étapes gratuites ne demandent jamais rien.
+
+<br>
+
+---
+
+<sub>**Confidentialité** : `/dubbing`, `/srt` et `/clip` envoient des événements d'usage anonymes pour améliorer les skills : ce qui a tourné et comment cela s'est terminé, la durée des médias, les choix de style, la locale approximative, la version de l'app/OS, et si une clé Perso API a été utilisée (et enregistrée). Chaque événement porte un ID aléatoire par installation et votre numéro de workspace ; jamais votre clé, vos médias, vos noms de fichiers ni le texte de vos sous-titres. Désactivez avec `PERSO_NO_TELEMETRY`.</sub>
+
+<sub>**Licence** : le code des skills est sous licence [MIT](../../LICENSE). L'usage de l'API est soumis aux [conditions d'utilisation de Perso AI](https://perso.ai) et à sa tarification.</sub>
