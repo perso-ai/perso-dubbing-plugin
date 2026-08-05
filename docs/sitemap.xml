@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Lists the canonical perso.ai URLs, not the dubbing-skill.perso.ai ones this
+  file is served from — those pages all declare perso.ai as canonical, so the
+  canonical URLs are what we want crawled and indexed.
+
+  Submit this under the perso.ai property in Search Console. Google accepts a
+  sitemap hosted on another host once ownership of the target site is verified.
+
+  The real fix is still to get these four URLs into perso.ai's own
+  sitemap_<locale>.xml files; this is the stopgap that does not need a deploy
+  on the main site.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
+  <url>
+    <loc>https://perso.ai/dubbing/agents</loc>
+    <lastmod>2026-08-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://perso.ai/dubbing/agents"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://perso.ai/ko/dubbing/agents"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://perso.ai/es/dubbing/agents"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://perso.ai/pt/dubbing/agents"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://perso.ai/dubbing/agents"/>
+  </url>
+
+  <url>
+    <loc>https://perso.ai/ko/dubbing/agents</loc>
+    <lastmod>2026-08-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://perso.ai/dubbing/agents"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://perso.ai/ko/dubbing/agents"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://perso.ai/es/dubbing/agents"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://perso.ai/pt/dubbing/agents"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://perso.ai/dubbing/agents"/>
+  </url>
+
+  <url>
+    <loc>https://perso.ai/es/dubbing/agents</loc>
+    <lastmod>2026-08-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://perso.ai/dubbing/agents"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://perso.ai/ko/dubbing/agents"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://perso.ai/es/dubbing/agents"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://perso.ai/pt/dubbing/agents"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://perso.ai/dubbing/agents"/>
+  </url>
+
+  <url>
+    <loc>https://perso.ai/pt/dubbing/agents</loc>
+    <lastmod>2026-08-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://perso.ai/dubbing/agents"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://perso.ai/ko/dubbing/agents"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://perso.ai/es/dubbing/agents"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://perso.ai/pt/dubbing/agents"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://perso.ai/dubbing/agents"/>
+  </url>
+
+</urlset>

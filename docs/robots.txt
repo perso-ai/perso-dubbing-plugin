@@ -1,0 +1,8 @@
+# dubbing-skill.perso.ai — the GitHub Pages origin behind perso.ai/dubbing/agents.
+# Every page here declares perso.ai as canonical, so crawling is welcome; the
+# canonical tag is what keeps the two hosts from competing.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://dubbing-skill.perso.ai/sitemap.xml
