@@ -1,138 +1,133 @@
-# 🎬 /dubbing — Terjemahan Video Perso Dubbing
+<div align="center">
 
-[![Powered by Perso AI](https://img.shields.io/badge/Powered%20by-Perso%20AI-5A4FF3)](https://perso.ai)
-![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A518-339933?logo=node.js&logoColor=white)
-![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-1f6feb)
-![Platforms](https://img.shields.io/badge/platforms-Claude%20%C2%B7%20Antigravity%20%C2%B7%20Codex-555)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](../../LICENSE)
+# Perso Dubbing Plugin
+
+**Setiap video, setiap bahasa. Dubbing, subtitle, dan klip langsung dari coding agent Anda.**
+*"Dubbing video ini ke bahasa Indonesia", dan itulah seluruh alurnya.*
+
+[![Perso AI](https://img.shields.io/badge/Perso%20AI-Dubbing-5A4FF3?style=flat-square)](https://perso.ai/dubbing)
+![Node.js](https://img.shields.io/badge/Node.js-18%2B-1a1a1a?style=flat-square)
+![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-1a1a1a?style=flat-square)
+![Hosts](https://img.shields.io/badge/Claude%20%C2%B7%20Codex%20%C2%B7%20Antigravity-1a1a1a?style=flat-square)
+[![MIT](https://img.shields.io/badge/MIT-5A4FF3?style=flat-square)](../../LICENSE)
+
+<sub>
 
 [English](../../README.md) ｜ [한국어](../ko/README.md) ｜ [Español](../es/README.md) ｜ [Português](../pt/README.md) ｜ [Русский](../ru/README.md) ｜ **Bahasa Indonesia** ｜ [Deutsch](../de/README.md) ｜ [ไทย](../th/README.md) ｜ [日本語](../ja/README.md) ｜ [繁體中文](../zh-TW/README.md) ｜ [简体中文](../zh-CN/README.md) ｜ [Tiếng Việt](../vi/README.md) ｜ [Français](../fr/README.md)
 
-Skill agen coding yang menghadirkan dubbing AI dari [Perso Dubbing](https://perso.ai/dubbing) ke agen Anda. Instal sekali, lalu cukup katakan *"dubbing video ini ke bahasa Inggris"*.
+</sub>
 
-- ![gratis](https://img.shields.io/badge/%E2%9C%93%20gratis-2ea44f) **Subtitle bergaya** — tanamkan subtitle siap pakai atau bergaya kustom ke dalam video. **Sorotan rilis ini.**
-- ![gratis](https://img.shields.io/badge/%E2%9C%93%20gratis-2ea44f) **Terjemahkan subtitle** — ubah SRT yang sudah Anda miliki ke bahasa apa pun
-- ![gratis](https://img.shields.io/badge/%E2%9C%93%20gratis-2ea44f) **Klip pendek** — potong video panjang menjadi sorotan format pendek, ubah rasio 16:9 → 9:16
-- **Dubbing** ke bahasa lain — satu file, seluruh folder, atau sebuah URL
-- **Lip-sync** pada video hasil dubbing agar gerakan mulut sesuai dengan audio barunya
-- **Pisahkan** suara dari audio latar
-- **Subtitle dari ucapan** — ekstrak SRT melalui speech-to-text (atau bawa SRT Anda sendiri → gratis)
-- Media yang berukuran terlalu besar dan sangat panjang otomatis dipecah, diproses, dan digabungkan kembali
+</div>
 
-> **Skill ini gratis dan open-source (MIT).** Segala hal yang berjalan secara lokal di komputer Anda tidak memerlukan **akun maupun kredit** — menanamkan subtitle bergaya ke video, menerjemahkan SRT yang sudah Anda miliki, dan memotong klip pendek. Langkah-langkah AI yang berjalan di server Perso — dubbing, lip-sync, pemisahan suara/latar, speech-to-text — menggunakan kredit Perso Dubbing API (**bayar hanya untuk yang Anda proses**).
+<br>
 
-Berjalan di atas **Node.js 18+**. Langkah-langkah gratis tidak pernah membutuhkan kunci; langkah AI sisi server menggunakan **kunci API Perso Dubbing**. Dibangun di atas standar Agent Skills (`SKILL.md`), sehingga berperilaku sama persis di Claude, Codex, dan Antigravity.
+| Fitur | Anda bilang | Anda dapatkan | |
+|---|---|---|---|
+| **Dubbing** | *"Dubbing video ini ke bahasa Jepang"* | Video yang sama, dengan suara baru | |
+| **Lip-sync** | *"…sekalian dengan lip-sync"* | Gerakan bibir menyesuaikan audio dubbing | |
+| **Pemisahan suara** | *"Pisahkan suara dari musiknya"* | Trek suara dan trek latar | |
+| **Subtitle dari ucapan** | *"Buatkan saya SRT bahasa Inggris"* | SRT hasil ekstraksi STT | |
+| **Terjemahan subtitle** | *"Terjemahkan subs.srt ke bahasa Spanyol"* | SRT terjemahan, timing tetap utuh, sudah termasuk QA | ![FREE](https://img.shields.io/badge/FREE-5A4FF3?style=flat-square) |
+| **Subtitle bergaya** | *"Bakar subtitle ini ke videonya"* | Subtitle bergaya menempel di video | ![FREE](https://img.shields.io/badge/FREE-5A4FF3?style=flat-square) |
+| **Klip pendek** | *"Potong 2:00–3:00 jadi short"* | Klip 9:16 yang sudah di-reframe | ![FREE](https://img.shields.io/badge/FREE-5A4FF3?style=flat-square) |
+| **Highlight AI** | *"Pilihkan momen terbaik sebagai shorts"* | Klip highlight pilihan AI | |
 
-![Preset gaya subtitle](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-presets.gif)
+File, folder, dan URL YouTube/TikTok semuanya bisa langsung dipakai.
 
----
+<br>
 
 ## Instalasi
 
-> 📖 **[Panduan visual →](https://dubbing-plugin.perso.ai/en/)** — pilih agen Anda dan salin perintahnya.
+> **Agen yang menginstal dari URL repo ini?** Di Claude Code, jalankan ini sekarang (non-interaktif, aman dijalankan ulang):
+> ```bash
+> claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
+> ```
+> Minta pengguna melakukan restart agar `/dubbing`, `/srt`, `/clip` termuat. Host lain: `npx perso-dubbing`. Tanpa terminal (ChatGPT / Gemini): [chatgpt-setup](../chatgpt-setup.md) · [gemini-setup](../gemini-setup.md)
 
-### Aplikasi desktop Claude — paling mudah, tanpa terminal (sekitar 3 menit)
-
-Di <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">aplikasi desktop Claude</a> (paket berbayar):
-
-1. Buka **tab Code** (di tengah atas), pilih folder apa pun, lalu pilih lingkungan **Local** — plugin tidak berfungsi dalam sesi cloud.
-2. Tempelkan perintah ini ke kotak prompt dan tekan Enter:
-
-   ```text
-   claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
-   ```
-
-3. Minta dubbing — *"Dubbing video ini ke bahasa Inggris — C:\videos\clip.mp4"*. URL YouTube atau sebuah folder juga bisa. Hasilnya disimpan di sebelah video sumber kecuali Anda menyertakan `--out`.
-
-**Claude Code CLI:** gunakan `/plugin marketplace add perso-ai/perso-dubbing-plugin` dan `/plugin install perso-dubbing@perso-ai` sebagai gantinya.
-
-### Host lainnya
-
-```bash
-npx perso-dubbing
-```
-
-Mendeteksi host mana yang Anda miliki dan menginstal kedua skill ke masing-masing host, sambil menampilkan lokasi pemasangannya. Tambahkan `--claude` / `--codex` / `--antigravity` untuk satu host, `--all` untuk semua host, atau `--project` hanya untuk proyek saat ini. Sudah meng-clone repositorinya? `node scripts/install.mjs` dari root repositori melakukan hal yang sama, tanpa jaringan.
-
-<details>
-<summary><b>🤖 Untuk agen</b> — jika Anda hanya diberi URL repositori ini</summary>
-
-- **Claude Code (aplikasi desktop atau CLI)** — jalankan sendiri satu baris perintah instalasi ini (non-interaktif dan idempoten, aman dijalankan ulang):
-
-  ```bash
-  claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
-  ```
-
-  Setelah keduanya berhasil, minta pengguna memulai sesi baru (atau memulai ulang Claude Code) — `/dubbing` dan `/srt` dimuat mulai sesi berikutnya. Hanya jika CLI `claude` tidak tersedia di shell Anda, kembali ke cara menunjukkan perintah di atas agar pengguna mengetikkannya sendiri.
-- **Codex · Antigravity, atau pengguna mendelegasikan instalasinya** — jalankan `npx perso-dubbing` (atau `node scripts/install.mjs` jika repositorinya sudah di-clone).
-- **ChatGPT (web/aplikasi — tanpa terminal di komputer pengguna)** — baca https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/chatgpt-setup.md dan ikuti: pertama jalankan **Codex** di komputer pengguna — instalasi berlanjut di sana. (Sudah di dalam Codex dengan terminal? Gunakan poin di atas.)
-- **Gemini (web/aplikasi — tanpa terminal di komputer pengguna)** — baca https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/gemini-setup.md dan ikuti: pertama instal **Antigravity** — instalasi berlanjut di sana. (Sudah di dalam Antigravity? Gunakan poin di atas.)
-
-</details>
-
-### Eksekusi pertama — kunci API Anda
-
-Kunci hanya diperlukan saat sebuah aksi menggunakan Perso API (dubbing, lip-sync, pemisahan, ekstraksi SRT) — langkah offline seperti menanamkan subtitle bergaya ke video lokal atau menerjemahkan SRT yang Anda sediakan tidak pernah memintanya. Saat kunci diperlukan, sebuah halaman browser akan terbuka: masuk dan klik sekali, lalu kunci Anda diterbitkan dan disimpan terenkripsi di komputer ini. Tidak ada yang perlu disalin. Jika tidak ada browser yang bisa dibuka, sebuah file kunci akan terbuka sebagai gantinya — tempelkan kunci di sana lalu simpan, dan file tersebut dienkripsi kemudian dihapus.
-
-<a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Dapatkan kunci API</a> · periksa kapan saja dengan `npm run key:check`
-
----
-
-## Penggunaan
-
-Cukup beri tahu agen Anda apa yang Anda inginkan:
-
-> "Dubbing video ini ke bahasa Inggris — C:\videos\clip.mp4"
->
-> "Dubbing setiap video di folder ini ke bahasa Jepang dan Spanyol"
->
-> "Dubbing tautan YouTube ini ke bahasa Inggris, dengan lip-sync"
->
-> "Pisahkan suara dan musik latar dari klip ini"
->
-> "Buatkan saya SRT bahasa Inggris untuk video ini"
->
-> "Tambahkan subtitle bergaya ke video ini — ini SRT-nya"
->
-> "Potong video ini dari 2:00 sampai 3:00 sebagai short"
-
-Atau ketik **`/dubbing`** / **`/srt`** untuk memulai. Untuk daftar lengkap opsi CLI, tanyakan cara penggunaannya kepada agen Anda atau jalankan `npm run dub -- --help`.
-
----
-
-## Pemecahan masalah
-
-Punya pertanyaan lain? Lihat **[FAQ](FAQ.md)**.
-
-| Gejala | Solusi |
-|---|---|
-| `node` tidak ditemukan | Instal versi LTS dari <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a> (atau minta agen Anda *"instalkan Node.js untuk saya"*), lalu coba lagi. |
-| Aplikasi desktop Claude meminta Git (Windows) | Tab Code membutuhkan <a href="https://git-scm.com/downloads/win" target="_blank" rel="noopener noreferrer">Git for Windows</a> saat pertama kali digunakan. Instal, lalu mulai ulang aplikasi. |
-| Perintah `claude` atau menu Plugins tidak merespons | Anda berada dalam **sesi cloud** — plugin membutuhkan sesi **Local** (atau SSH). |
-| Kunci ditolak atau tidak ada | Daftarkan ulang: `node skills/dubbing/scripts/connect.mjs`. Periksa kunci yang tersimpan dengan `npm run key:check`. |
-| Error terkait ffmpeg | ffmpeg biasanya terinstal otomatis; jika gagal, jalankan `npm run doctor`. |
-| Berhenti di tengah jalan (kredit habis, crash, proses dihentikan) | Progres disimpan terus-menerus. Jalankan perintah **`--resume "<state-file>"`** yang ditampilkan pada notifikasi — bagian yang sudah selesai dilewati dan tidak pernah ditagih ulang. |
-
----
-
-## Privasi & Telemetri
-
-`/dubbing`, `/srt`, dan `/clip` mengirimkan event penggunaan anonim untuk meningkatkan skill — aksi apa yang dijalankan dan hasilnya, durasi media, pilihan gaya, lokal perkiraan, versi aplikasi/OS, dan apakah kunci API Perso digunakan (serta terdaftar). Setiap event membawa ID acak per instalasi dan nomor workspace Anda; tidak pernah kunci, media, nama file, atau teks subtitle Anda. Nonaktifkan melalui `PERSO_NO_TELEMETRY`.
-
----
-
-## Struktur repositori
+**Aplikasi desktop Claude** (paket berbayar): buka **tab Code**, pilih folder, pilih **Local**, lalu tempel:
 
 ```text
-.claude-plugin/    Plugin Claude Code + manifest marketplace
-.codex-plugin/     Manifest plugin Codex
-docs/              Landing GitHub Pages + README terjemahan · FAQ (12 bahasa)
-skills/dubbing/    Skill dubbing (SKILL.md · lib/ · scripts/) — mandiri
-skills/srt/        Skill subtitle SRT (SKILL.md · scripts/) — memakai lib/ dari skill dubbing
-skills/clip/       Skill klip pendek (SKILL.md · lib/ · scripts/) — memakai lib/ dari skill dubbing
-scripts/           Installer tingkat repositori (install.mjs)
+claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
 ```
 
-## Lisensi
+**Claude Code CLI**: `/plugin marketplace add perso-ai/perso-dubbing-plugin`, lalu `/plugin install perso-dubbing@perso-ai`
 
-Kode skill ini didistribusikan di bawah **[Lisensi MIT](../../LICENSE)**. Proses dubbing itu sendiri berjalan melalui API Perso Dubbing, sehingga penggunaan API tunduk pada [Ketentuan Layanan Perso AI](https://perso.ai) dan kebijakan harganya.
+**Codex · Antigravity · lainnya**: `npx perso-dubbing` mendeteksi host Anda dan menginstal ke masing-masing.
+
+Hanya butuh **Node.js 18+**, tidak ada yang lain. [Panduan visual](https://dubbing-plugin.perso.ai/en/) · [FAQ](FAQ.md)
+
+<br>
+
+<sub>FREE · BERJALAN LOKAL</sub>
+
+## Subtitle bergaya
+
+Pilih salah satu dari dua belas preset, atau cukup jelaskan tampilannya dengan kata-kata biasa: *"teks kuning, garis tepi hitam, di bagian bawah."* Proses burn berjalan lokal dengan ffmpeg: tanpa unggah, tanpa antrean, tanpa akun. Beberapa bahasa sekaligus? Setiap SRT menghasilkan video jadinya sendiri.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-presets.gif" width="720" alt="12 preset gaya subtitle">
+</p>
+
+<br>
+
+<sub>FREE · BERJALAN LOKAL</sub>
+
+## Terjemahkan subtitle
+
+Serahkan SRT apa pun dan sebutkan bahasa yang Anda inginkan. Beberapa bahasa sekaligus pun tidak masalah, satu kali proses mencakup semuanya. Setiap baris mempertahankan timing aslinya persis, muncul dan menghilang di momen yang sama seperti sebelumnya. Sebelum diserahkan, hasilnya diperiksa untuk baris yang terlalu panjang atau terlalu cepat untuk dibaca.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-translate-demo.gif" width="720" alt="Demo terjemahan subtitle">
+</p>
+
+<br>
+
+<sub>FREE · BERJALAN LOKAL</sub>
+
+## Klip pendek
+
+Masukkan timecode, keluar shorts vertikal: di-reframe dari 16:9 ke 9:16, sudah dinamai, dan siap diberi subtitle. Atau serahkan transkripnya dan AI memilih momen yang cocok jadi shorts: dibuka dengan hook, mengikuti reaksi sampai puncaknya, dipotong sebelum energinya turun. Masing-masing 30–90 detik.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/clip-shorts-demo.gif" width="720" alt="Demo klip pendek: minta lewat chat, highlight dipilih di timeline, shorts 9:16 keluar">
+</p>
+
+<br>
+
+<sub>PERSO API</sub>
+
+## Dubbing dan lip-sync
+
+Satu kali jalan menerima satu file, satu folder penuh, atau URL YouTube/TikTok, lalu men-dubbing-nya ke beberapa bahasa dari satu kali unggah. Video yang melebihi batas paket akan terbagi, diproses, dan digabung kembali dengan sendirinya; proses yang terputus dilanjutkan tepat dari titik berhentinya, tanpa pernah menagih ulang bagian yang sudah selesai. Dubbing mengkloning suara asli ke bahasa baru, dan lip-sync menggerakkan bibir agar sesuai dengan audio hasil kloning itu.
+
+<br>
+
+<sub>PERSO API</sub>
+
+## Subtitle dari ucapan (STT)
+
+Belum punya subtitle? Speech-to-text berjalan di server Perso dan menggunakan kredit untuk mengubah audio video menjadi SRT dalam bahasa aslinya, untuk satu file atau satu folder penuh. Setiap langkah setelah SRT tersedia sepenuhnya gratis: menerjemahkan, memberi gaya, mem-burn.
+
+<br>
+
+<sub>PERSO API</sub>
+
+## Pemisahan suara
+
+Memisahkan video atau audio menjadi trek yang bersih: suara dan latar belakang. Jika ada beberapa pembicara, suara tiap orang keluar sebagai trek tersendiri. Ganti soundtrack-nya, remaster dialognya, atau pakai trek mana pun secara terpisah.
+
+<br>
+
+## Gratis di mana bisa. Berbayar di mana harus.
+
+**MIT, gratis dan open-source.** Semua yang berjalan di komputer Anda tidak berbiaya dan tidak butuh akun: memberi gaya dan mem-burn subtitle, menerjemahkan SRT yang sudah Anda punya, memotong klip di timecode. Kredit hanya terpakai saat pekerjaan berjalan di server Perso: dubbing, lip-sync, pemisahan suara, dan speech-to-text, ditagih per detik yang diproses lewat [Perso Dubbing API](https://developers.perso.ai/api-keys).
+
+Tanpa ritual persiapan. Saat pekerjaan server pertama kali berjalan, browser terbuka: masuk, satu klik, kunci tersimpan terenkripsi. Langkah gratis tidak pernah bertanya.
+
+<br>
+
+---
+
+<sub>**Privasi**: `/dubbing`, `/srt`, dan `/clip` mengirim event penggunaan anonim untuk menyempurnakan skill, mencakup apa yang dijalankan dan bagaimana hasilnya, durasi media, pilihan gaya, lokal secara garis besar, versi aplikasi/OS, serta apakah kunci Perso API digunakan (dan terdaftar). Setiap event memuat ID acak per instalasi dan nomor workspace Anda; tidak pernah kunci, media, nama file, atau teks subtitle Anda. Nonaktifkan dengan `PERSO_NO_TELEMETRY`.</sub>
+
+<sub>**Lisensi**: kode skill berlisensi [MIT](../../LICENSE). Penggunaan API tunduk pada [Ketentuan Layanan Perso AI](https://perso.ai) beserta tarifnya.</sub>
