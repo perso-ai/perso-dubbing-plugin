@@ -210,7 +210,7 @@ async function run(a) {
   if (a.font || a['font-file']) ov.font = preset.font; // family name (from --font, or read out of --font-file)
   for (const [k, v] of Object.entries(a.overrides || {})) ov[k] = v; // karaoke / uppercase / bold booleans
   const ovKeys = Object.keys(ov);
-  const overrides = ovKeys.length ? ovKeys.sort().map((k) => `${k}=${ov[k]}`).join(';') : null;
+  const overrides = ovKeys.length ? ovKeys.sort().map((k) => `${k}=${ov[k]}`) : null;
   track('style_completed', {
     preset: (!a.preset && ovKeys.length) ? 'custom' : base.id, // no preset picked + a style requested → custom
     overrides,

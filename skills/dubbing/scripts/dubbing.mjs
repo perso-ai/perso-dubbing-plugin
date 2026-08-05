@@ -8,7 +8,7 @@ import { rm } from 'node:fs/promises';
 import { join, basename, dirname, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { preloadKeyEnv } from './resolve_key.mjs';
-import { ExitCode, UsageError, isAuthError, friendlyError, errorClass, ensureKey, ensureSpace } from '../lib/gates.mjs';
+import { ExitCode, UsageError, isAuthError, friendlyError, errorClass, errorCode, ensureKey, ensureSpace } from '../lib/gates.mjs';
 import { expandInputs, prepareInput } from '../lib/input.mjs';
 import { getPlanStatus, spacePlanProps } from '../lib/space.mjs';
 import { getLanguages } from '../lib/languages.mjs';
@@ -456,7 +456,7 @@ async function finishPool(allResults, perInput, ctx) {
   } else {
     try { unlinkSync(ctx.file); } catch { /* done → clean up resume state-file (ignore if absent) */ }
   }
-  if (!ctx.lipsyncOnly) { // lipsync-only runs report via lipsync_only_started, not dubbing_completed
+  if (!ctx.lipsyncOnly) { // lipsync-only runs report via lipsync_only_completed below, not dubbing_completed
     // Dedicated funnel for upload-phase failures (one per input — the media is uploaded once, shared across languages).
     // These never created a project, so they are reported here and excluded from dubbing_completed below.
     const uploadFails = allResults.filter((r) => r.failKind === 'upload');
@@ -488,14 +488,25 @@ async function finishPool(allResults, perInput, ctx) {
         success_count: fullCount, partial_success_count: partialCount, fail_count: telemetryFail,
         failure_scope: failureScope,
         part_total: partSuccess + partFailed, part_success: partSuccess, part_failed: partFailed,
-        failure_reasons: reasons.size ? [...reasons].sort().join(',') : null,
+        failure_reasons: reasons.size ? [...reasons].sort() : null,
         had_split: perInput.some((p) => (p.chunks?.length ?? 0) > 1),
         had_lipsync: allResults.some((r) => r.lipsync),
         duration_sec: totalDurationSec(perInput),
-        source_lang: ctx.source, target_lang: (ctx.targets || []).join(','),
+        source_lang: ctx.source, target_lang: (ctx.targets || []).length ? ctx.targets : null,
         is_resume: !!ctx.isResume, recovered: !!ctx.isResume && ctx.resumedFrom === 'quota' && delivered > 0,
       });
     }
+  } else if (fullCount + partialCount + failCount > 0) {
+    // Lip-sync-only runs have no upload/language dimension — a dedicated completion event
+    // (counterpart of lipsync_only_started).
+    const failureScope = (failCount === 0 && partialCount === 0) ? 'none' : (fullCount === 0 && partialCount === 0 ? 'total' : 'partial');
+    track('lipsync_only_completed', {
+      ...await spacePlanProps(ctx.spaceSeq),
+      success_count: fullCount, partial_success_count: partialCount, fail_count: failCount,
+      failure_scope: failureScope,
+      duration_sec: totalDurationSec(perInput),
+      is_resume: !!ctx.isResume,
+    });
   }
 }
 
@@ -540,7 +551,7 @@ async function runPool(args) {
         try { if (existsSync(file)) unlinkSync(file); } catch { /* ignore */ }
         throw new ExitCode(0); // stop and ask the user — a normal pause, not a failure
       }
-      if (isAuthError(e)) { track('error', { error_class: 'auth', mode: dubMode(args) }); console.log(`\n${friendlyError(e)}`); return; } // key issues abort everything
+      if (isAuthError(e)) { track('error', { error_class: 'auth', code: errorCode(e), mode: dubMode(args) }); console.log(`\n${friendlyError(e)}`); return; } // key issues abort everything
       if (e?.name === 'UnsupportedMediaError') { notify(skipMsg(labelOf(inp), e)); continue; } // unsupported → skip
       console.log(`${tag} — split/upload failed: ${friendlyError(e)}`); continue;
     }
@@ -994,7 +1005,7 @@ async function separationProcess(perInput, spaceSeq, ctx, saver, materializeFor,
       success_count: fullCount, partial_success_count: partialCount, fail_count: telemetryFail,
       failure_scope: failureScope,
       part_total: partSuccess + failedParts.length, part_success: partSuccess, part_failed: failedParts.length,
-      failure_reasons: reasons.size ? [...reasons].sort().join(',') : null,
+      failure_reasons: reasons.size ? [...reasons].sort() : null,
       duration_sec: totalDurationSec(perInput), is_resume: isResume,
     });
   }
@@ -1164,7 +1175,7 @@ async function main() {
   } catch (e) {
     if (e?.name === 'ExitCode') exitCode = e.code; // message already printed at the throw site
     else if (e?.name === 'UsageError') { console.error(`${e.message}\n${USAGE}`); exitCode = 1; }
-    else { track('error', { error_class: errorClass(e), mode: dubMode(args) }); console.error(friendlyError(e)); exitCode = 1; }
+    else { track('error', { error_class: errorClass(e), code: errorCode(e), mode: dubMode(args) }); console.error(friendlyError(e)); exitCode = 1; }
   } finally {
     await cleanupTempDirs(); // bulk-clean the cut/schedule/merge/download temp folders
   }

@@ -117,7 +117,7 @@ O escribe **`/dubbing`** / **`/srt`** para empezar. Para la lista completa de op
 
 ## Privacidad y telemetría
 
-`/dubbing`, `/srt` y `/clip` envían eventos de uso anónimos para mejorar las skills — qué acción se ejecutó y cómo resultó, la duración del contenido, las opciones de estilo, la configuración regional aproximada, la versión de la app/SO y si se usó (y está registrada) una clave de API de Perso. Cada evento lleva un ID aleatorio por instalación y tu número de espacio de trabajo; nunca tu clave, contenido, nombres de archivo ni texto de subtítulos. Desactívalo con `PERSO_NO_TELEMETRY`.
+`/dubbing`, `/srt` y `/clip` envían eventos de uso para mejorar las skills — qué acción se ejecutó y cómo resultó, la duración del contenido, las opciones de estilo, la configuración regional aproximada, la versión de la app/SO y si se usó (y está registrada) una clave de API de Perso. Cada evento lleva un ID aleatorio por instalación y tu número de espacio de trabajo; nunca tu clave, contenido, nombres de archivo ni texto de subtítulos. Desactívalo con `PERSO_NO_TELEMETRY`.
 
 ---
 

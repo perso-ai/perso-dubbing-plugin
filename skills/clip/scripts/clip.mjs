@@ -19,7 +19,7 @@ import { join, extname, resolve, basename, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { realpathSync } from 'node:fs';
 import { preloadKeyEnv } from '../../dubbing/scripts/resolve_key.mjs';
-import { UsageError, friendlyError, errorClass, ensureKey } from '../../dubbing/lib/gates.mjs';
+import { UsageError, friendlyError, errorClass, errorCode, ensureKey } from '../../dubbing/lib/gates.mjs';
 import { get } from '../../dubbing/lib/http_client.mjs';
 import { findSpaceForProject } from '../../dubbing/lib/space.mjs';
 import { probe, pickVideoEncoder, encoderVideoArgs } from '../../dubbing/lib/ffmpeg.mjs';
@@ -133,6 +133,13 @@ async function runPlan(a, loc) {
   console.log('\nTranscript (order [start-end] text):');
   for (const o of orders) { const s = map.get(o); console.log(`  ${o} [${fmt(s.start)}-${fmt(s.end)}] ${s.text}`); }
   console.log('\nNext: choose clips (30-90s, hook-first, whole moment, sentence boundaries) and run --clips with [{title,start_order,end_order}].');
+  // Counterpart of run_started(mode clip-plan): the plan itself succeeded (transcript delivered).
+  track('clip_plan_completed', {
+    duration_sec: durSec,
+    sentence_count: orders.length,
+    section_count: summary.sections.length,
+    orientation: orient,
+  });
 }
 
 function parseClips(raw) {
@@ -182,7 +189,7 @@ async function runClips(a, loc) {
   }
   const manifest = join(outDir, 'clips.json');
   writeFileSync(manifest, JSON.stringify({ project: Number(a.project), reframed: !!rf.filter, clips: done, transcript: mapToObj(map) }, null, 2));
-  track('clips_completed', { clip_count: done.length, reframed: !!rf.filter, source: 'project', skipped_count: clips.length - done.length, ...(skipped.size ? { skipped_reason: [...skipped].sort().join(';') } : {}), clip_secs: done.map((c) => c.seconds), source_duration_sec: durationMs != null ? Math.round(durationMs / 1000) : null });
+  track('clips_completed', { clip_count: done.length, reframed: !!rf.filter, source: 'project', skipped_count: clips.length - done.length, ...(skipped.size ? { skipped_reason: [...skipped].sort() } : {}), clip_secs: done.map((c) => c.seconds), source_duration_sec: durationMs != null ? Math.round(durationMs / 1000) : null });
   console.log(`[clips-output] ${JSON.stringify({ count: done.length, outDir, manifest, clips: done.map(({ path, title, seconds }) => ({ path, title, seconds })) })}`);
   notify(`Done — ${done.length} clip${done.length === 1 ? '' : 's'} saved to ${outDir}. To add subtitles, generate sidecars then style with the srt skill.`);
 }
@@ -233,7 +240,7 @@ async function runLocalCut(a) {
     await exec('ffmpeg', args, { maxBuffer: 1 << 20 });
     done.push({ path: outPath, title, start, end, seconds: Math.round(dur) });
   }
-  track('clips_completed', { clip_count: done.length, reframed: !!rf.filter, source: 'local', skipped_count: ranges.length - done.length, ...(skipped.size ? { skipped_reason: [...skipped].sort().join(';') } : {}), clip_secs: done.map((c) => c.seconds), source_duration_sec: durationMs != null ? Math.round(durationMs / 1000) : null });
+  track('clips_completed', { clip_count: done.length, reframed: !!rf.filter, source: 'local', skipped_count: ranges.length - done.length, ...(skipped.size ? { skipped_reason: [...skipped].sort() } : {}), clip_secs: done.map((c) => c.seconds), source_duration_sec: durationMs != null ? Math.round(durationMs / 1000) : null });
   console.log(`[clips-output] ${JSON.stringify({ count: done.length, outDir, clips: done.map(({ path, title, seconds }) => ({ path, title, seconds })) })}`);
   notify(`Done — ${done.length} clip${done.length === 1 ? '' : 's'} saved to ${outDir}.`);
 }
@@ -261,7 +268,7 @@ async function main() {
   } catch (e) {
     if (e?.name === 'ExitCode') exitCode = e.code;
     else if (e?.name === 'UsageError') { console.error(`${e.message}\n${USAGE}`); exitCode = 1; }
-    else { track('error', { error_class: errorClass(e), mode: a.sidecars ? 'clip-sidecars' : a.video ? 'clip-local' : a.plan ? 'clip-plan' : 'clip-cut' }); console.error(friendlyError(e)); exitCode = 1; }
+    else { track('error', { error_class: errorClass(e), code: errorCode(e), mode: a.sidecars ? 'clip-sidecars' : a.video ? 'clip-local' : a.plan ? 'clip-plan' : 'clip-cut' }); console.error(friendlyError(e)); exitCode = 1; }
   } finally {
     await cleanupTempDirs();
   }

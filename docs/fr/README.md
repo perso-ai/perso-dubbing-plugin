@@ -117,7 +117,7 @@ D'autres questions ? Consultez la **[FAQ](FAQ.md)**.
 
 ## Confidentialité et télémétrie
 
-`/dubbing`, `/srt` et `/clip` envoient des événements d'utilisation anonymes pour améliorer les skills — quelle action a été exécutée et son résultat, la durée du média, les choix de style, la locale approximative, la version de l'application/OS et si une clé API Perso a été utilisée (et enregistrée). Chaque événement comporte un ID aléatoire propre à l'installation et votre numéro d'espace de travail ; jamais votre clé, vos médias, noms de fichiers ou textes de sous-titres. Désactivez via `PERSO_NO_TELEMETRY`.
+`/dubbing`, `/srt` et `/clip` envoient des événements d'utilisation pour améliorer les skills — quelle action a été exécutée et son résultat, la durée du média, les choix de style, la locale approximative, la version de l'application/OS et si une clé API Perso a été utilisée (et enregistrée). Chaque événement comporte un ID aléatoire propre à l'installation et votre numéro d'espace de travail ; jamais votre clé, vos médias, noms de fichiers ou textes de sous-titres. Désactivez via `PERSO_NO_TELEMETRY`.
 
 ---
 

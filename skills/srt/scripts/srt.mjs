@@ -11,7 +11,7 @@ import { writeFileSync, readFileSync, mkdirSync, readdirSync, unlinkSync, rename
 import { join, basename, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { preloadKeyEnv } from '../../dubbing/scripts/resolve_key.mjs';
-import { ExitCode, UsageError, friendlyError, errorClass, ensureKey, ensureSpace } from '../../dubbing/lib/gates.mjs';
+import { ExitCode, UsageError, friendlyError, errorClass, errorCode, ensureKey, ensureSpace } from '../../dubbing/lib/gates.mjs';
 import { expandInputs, prepareInput } from '../../dubbing/lib/input.mjs';
 import { getPlanStatus, spacePlanProps } from '../../dubbing/lib/space.mjs';
 import { upload, requestStt, downloadAudioScript, getStatus, classifyUploadError } from '../../dubbing/lib/api_adapter.mjs';
@@ -290,7 +290,7 @@ async function sttProcess(perInput, ctx, saver, isResume) {
       lang_count: transcribeOnly ? null : targets.length,
       success_count: ok, fail_count: telemetryFail, no_voice_count: noVoice,
       failure_scope: failureScope,
-      target_langs: transcribeOnly ? null : targets.join(','),
+      target_langs: transcribeOnly ? null : targets,
       transcribe_only: transcribeOnly,
       duration_sec: knownDur.length ? knownDur.reduce((a, b) => a + b, 0) : null,
       is_resume: isResume,
@@ -362,6 +362,7 @@ async function sttProcess(perInput, ctx, saver, isResume) {
           durSec = Number.isFinite(ms) && ms > 0 ? Math.round(ms / 1000) : null;
         }
         track('stt_over_limit', {
+          ...await spacePlanProps(spaceSeq),
           reason: e.code === 'F4008' ? 'length' : 'size',
           limit_min: Number(e.data?.maxLengthMs) > 0 ? Math.round(Number(e.data.maxLengthMs) / 60000) : null,
           duration_sec: durSec,
@@ -671,7 +672,7 @@ async function main() {
   } catch (e) {
     if (e?.name === 'ExitCode') exitCode = e.code; // message already printed at the throw site
     else if (e?.name === 'UsageError') { console.error(`${e.message}\n${USAGE}`); exitCode = 1; }
-    else { track('error', { error_class: errorClass(e), mode: offline ? (args.check ? 'srt-quality' : 'srt-timing') : (args.resume ? 'srt-resume' : 'srt') }); console.error(friendlyError(e)); exitCode = 1; }
+    else { track('error', { error_class: errorClass(e), code: errorCode(e), mode: offline ? (args.check ? 'srt-quality' : 'srt-timing') : (args.resume ? 'srt-resume' : 'srt') }); console.error(friendlyError(e)); exitCode = 1; }
   } finally {
     await cleanupTempDirs(); // clean the URL-download temp folders
   }
