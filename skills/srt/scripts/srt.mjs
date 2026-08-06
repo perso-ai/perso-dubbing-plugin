@@ -269,6 +269,7 @@ async function sttProcess(perInput, ctx, saver, isResume) {
   const usedByDir = new Map();
   let ok = 0, fail = 0, noVoice = 0; // per input (one STT project each)
   let uploadFailCount = 0; // subset of fail whose media never uploaded → no project created → excluded from stt_completed
+  let dlFailCount = 0; // subset of fail that extracted fine but couldn't be downloaded → download_failed, excluded from stt_completed
   const flags = { pending: false };
   const total = perInput.length;
   const allDur = perInput.map((p) => p.durationSec).filter((d) => d != null);
@@ -276,9 +277,9 @@ async function sttProcess(perInput, ctx, saver, isResume) {
   const streamDone = (msg) => notify(total > 1 ? `${msg} (${ok + fail + 1}/${total})` : msg); // stream each input as it settles — don't buffer to the end
   // Completed-funnel event — also fired on a quota stop (partial counts), like dubbing_completed.
   const trackCompleted = async () => {
-    // Upload-phase failures created no project → reported by upload_failed, excluded here. A run that only
-    // failed to upload has nothing to report.
-    const telemetryFail = fail - uploadFailCount;
+    // Upload-phase failures created no project (→ upload_failed) and download-phase failures are
+    // recoverable via resume (→ download_failed) — both excluded: fail_count is extraction failures only.
+    const telemetryFail = fail - uploadFailCount - dlFailCount;
     if (ok + telemetryFail <= 0) return;
     const knownDur = perInput.map((p) => p.durationSec).filter((d) => d != null);
     // STT is one project per input (no chunk split — long media is rejected with a "split it yourself" note),
@@ -334,7 +335,18 @@ async function sttProcess(perInput, ctx, saver, isResume) {
       }
       const dir = out ?? inputSaveDir(pin.inp?.localPath ? pin.inp : pin.ref);
       mkdirSync(dir, { recursive: true });
-      const saved = await downloadAudioScript(projectId, spaceSeq, (serverName) => join(dir, reserve(dir, serverName, usedByDir)));
+      let saved;
+      try {
+        saved = await downloadAudioScript(projectId, spaceSeq, (serverName) => join(dir, reserve(dir, serverName, usedByDir)));
+      } catch (e) {
+        // Extracted on the server — only the retrieval failed, recoverable via --resume at no extra
+        // charge → the shared download_failed event (same event as dubbing), not an extraction failure.
+        flags.pending = true;
+        dlFailCount++;
+        track('download_failed', { ...await spacePlanProps(spaceSeq), mode: 'srt', is_resume: isResume });
+        streamDone(`Could not extract: ${name} — ${friendlyError(e)}`); fail++;
+        continue;
+      }
       saver.onComplete(pin.inputId, projectId, saved.path);
       emitMapping(pin.inp ?? pin.ref, langs, saved.path, projectId);
       streamDone(`Subtitle ready: ${name} → ${basename(saved.path)}`); ok++;

@@ -372,7 +372,7 @@ async function finishPool(allResults, perInput, ctx) {
     const isSplit = pin.chunks.length > 1;
     for (const target of ctx.targets) {
       const tRes = inRes.filter((r) => r.target === target);
-      if (!tRes.length) { failCount++; continue; } // no results at all (e.g. every part dropped for quota before submit) → nothing delivered
+      if (!tRes.length) continue; // every part dropped before submit (quota stop) — resume delivers it, quota_exceeded already reported → not a failure
       const tlab = multiLang ? `${labelOf(pin.inp)} (${target})` : labelOf(pin.inp);
       const mergeable = tRes.filter((r) => r.status === 'OK' || r.status === 'PASSTHROUGH');
       if (mergeable.length && mergeable.every((r) => r.status === 'PASSTHROUGH')) {
@@ -421,8 +421,9 @@ async function finishPool(allResults, perInput, ctx) {
         emitProjectRef(pin, tRes, target, ctx, { lipsync: hasLs && !lsFailed && !lsPending });
       } else {
         lines.push(`Could not dub: ${tlab} — ${report ?? 'no result'}`);
-        failCount++;
-        if (tRes.every((r) => r.failKind === 'upload')) uploadFailUnits++; // upload-only failure: no project created → reported by upload_failed, not dubbing_completed
+        if (tRes.every((r) => r.failKind === 'upload')) { failCount++; uploadFailUnits++; } // upload-only failure: no project created → reported by upload_failed, not dubbing_completed
+        else if (tRes.some((r) => r.status === 'DLFAIL') && !tRes.some((r) => r.status === 'HARD_FAIL')) { /* generated on the server, only retrieval failed → download_failed below, not a failure */ }
+        else failCount++;
       }
     }
   }
@@ -456,6 +457,17 @@ async function finishPool(allResults, perInput, ctx) {
   } else {
     try { unlinkSync(ctx.file); } catch { /* done → clean up resume state-file (ignore if absent) */ }
   }
+  // Parts that finished on the server but weren't retrieved (download failure / poll timeout — both
+  // resumable at no extra charge): one shared download_failed event per affected input, same event
+  // as /srt. These are NOT counted in any fail/part_failed stat below.
+  const dlByInput = new Map();
+  for (const r of allResults) if (r.status === 'DLFAIL') dlByInput.set(r.inputId, (dlByInput.get(r.inputId) ?? 0) + 1);
+  if (dlByInput.size) {
+    const planProps = await spacePlanProps(ctx.spaceSeq);
+    const dlMode = ctx.lipsyncOnly ? 'lipsync-only' : ctx.lipsync ? 'lipsync' : 'dub';
+    for (const parts of dlByInput.values()) track('download_failed', { ...planProps, mode: dlMode, parts, is_resume: !!ctx.isResume });
+  }
+
   if (!ctx.lipsyncOnly) { // lipsync-only runs report via lipsync_only_completed below, not dubbing_completed
     // Dedicated funnel for upload-phase failures (one per input — the media is uploaded once, shared across languages).
     // These never created a project, so they are reported here and excluded from dubbing_completed below.
@@ -469,17 +481,16 @@ async function finishPool(allResults, perInput, ctx) {
         track('upload_failed', { ...planProps, source: r.failSource ?? 'local', reason: r.failToken ?? 'upload_failed', code: r.failCode ?? null, is_resume: !!ctx.isResume });
       }
     }
-    // dubbing_completed covers only work that reached the server (a project was created). A run that only
-    // failed to upload has no project → skip the event entirely.
+    // dubbing_completed covers only work that reached the server (a project was created). Upload-phase
+    // failures (→ upload_failed), unretrieved parts (→ download_failed), and quota-dropped parts
+    // (resume delivers them; → quota_exceeded) are all excluded: fail counts are permanent failures only.
     const telemetryFail = failCount - uploadFailUnits;
     if (fullCount + partialCount + telemetryFail > 0) {
       const projectResults = allResults.filter((r) => r.failKind !== 'upload'); // exclude upload-phase failures (no project)
       const partSuccess = projectResults.filter((r) => r.status === 'OK' || r.status === 'PASSTHROUGH').length;
-      const failedParts = projectResults.filter((r) => r.status === 'DLFAIL' || r.status === 'HARD_FAIL');
-      const quotaDropped = ctx.sched?.pendingLeft?.length ?? 0; // parts never submitted (quota/timeout stop) — no result record
-      const partFailed = failedParts.length + quotaDropped;
+      const failedParts = projectResults.filter((r) => r.status === 'HARD_FAIL');
+      const partFailed = failedParts.length;
       const reasons = new Set(failedParts.map((r) => r.failToken ?? reasonToken(r.reason)));
-      if (quotaDropped) reasons.add(ctx.sched?.stopReason === 'credit' ? 'quota' : 'incomplete');
       if (hadSilentFail) reasons.add('no_voice');
       const failureScope = (telemetryFail === 0 && partialCount === 0) ? 'none' : (fullCount === 0 && partialCount === 0 ? 'total' : 'partial');
       track('dubbing_completed', {
