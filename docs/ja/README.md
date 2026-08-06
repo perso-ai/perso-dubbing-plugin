@@ -1,138 +1,133 @@
-# 🎬 /dubbing — Perso Dubbing 動画翻訳
+<div align="center">
 
-[![Powered by Perso AI](https://img.shields.io/badge/Powered%20by-Perso%20AI-5A4FF3)](https://perso.ai)
-![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A518-339933?logo=node.js&logoColor=white)
-![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-1f6feb)
-![Platforms](https://img.shields.io/badge/platforms-Claude%20%C2%B7%20Antigravity%20%C2%B7%20Codex-555)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](../../LICENSE)
+# Perso Dubbing Plugin
+
+**すべての動画を、すべての言語へ。吹き替えも字幕もクリップも、コーディングエージェントから直接。**
+*「この動画を日本語に吹き替えて」の一言で完結します。*
+
+[![Perso AI](https://img.shields.io/badge/Perso%20AI-Dubbing-5A4FF3?style=flat-square)](https://perso.ai/dubbing)
+![Node.js](https://img.shields.io/badge/Node.js-18%2B-1a1a1a?style=flat-square)
+![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-1a1a1a?style=flat-square)
+![Hosts](https://img.shields.io/badge/Claude%20%C2%B7%20Codex%20%C2%B7%20Antigravity-1a1a1a?style=flat-square)
+[![MIT](https://img.shields.io/badge/MIT-5A4FF3?style=flat-square)](../../LICENSE)
+
+<sub>
 
 [English](../../README.md) ｜ [한국어](../ko/README.md) ｜ [Español](../es/README.md) ｜ [Português](../pt/README.md) ｜ [Русский](../ru/README.md) ｜ [Bahasa Indonesia](../id/README.md) ｜ [Deutsch](../de/README.md) ｜ [ไทย](../th/README.md) ｜ **日本語** ｜ [繁體中文](../zh-TW/README.md) ｜ [简体中文](../zh-CN/README.md) ｜ [Tiếng Việt](../vi/README.md) ｜ [Français](../fr/README.md)
 
-[Perso Dubbing](https://perso.ai/dubbing) のAI吹き替えをエージェントにもたらすコーディングエージェント向けスキルです。一度インストールすれば、あとは*「この動画を英語に吹き替えて」*と言うだけです。
+</sub>
 
-- ![無料](https://img.shields.io/badge/%E2%9C%93%20%E7%84%A1%E6%96%99-2ea44f) **スタイル付き字幕** — 既製またはカスタムスタイルの字幕を動画に焼き込み。**今回のリリースの目玉。**
-- ![無料](https://img.shields.io/badge/%E2%9C%93%20%E7%84%A1%E6%96%99-2ea44f) **字幕翻訳** — すでにあるSRTを好きな言語に
-- ![無料](https://img.shields.io/badge/%E2%9C%93%20%E7%84%A1%E6%96%99-2ea44f) **ショートクリップ** — 長い動画をショート形式のハイライトに、16:9 → 9:16 にリフレーム
-- **吹き替え** — 単一ファイル、フォルダ全体、URLのいずれからでも他の言語へ
-- **リップシンク** — 吹き替えた動画の口の動きを新しい音声に合わせます
-- **音声分離** — 音声と背景音を分離します
-- **音声認識字幕** — 音声からSRTを抽出（自分のSRTを使うことも → 無料）
-- サイズが大きすぎるメディアや非常に長いメディアは、自動的に分割・処理され、最後に結合されます
+</div>
 
-> **スキル自体は無料・オープンソース（MIT）。** 自分のPC上でローカルに動く処理は**アカウントもクレジットも不要**です — スタイル付き字幕の焼き込み、すでに持っているSRTの翻訳、ショートクリップの切り出し。Perso のサーバーで動くAI処理（吹き替え・リップシンク・音声/背景の分離・音声認識）だけが Perso Dubbing API クレジットを使い、**処理した分だけ**課金されます。
+<br>
 
-**Node.js 18以上**で動作します。無料の処理にキーは不要で、サーバー側のAI処理だけが**Perso Dubbing APIキー**を使います。Agent Skills標準（`SKILL.md`）に基づいているため、Claude・Codex・Antigravity のいずれでもまったく同じように動作します。
+| 機能 | こう頼むと | こうなります | |
+|---|---|---|---|
+| **吹き替え** | *「この動画を英語に吹き替えて」* | 同じ動画が、新しい言語の声で | |
+| **リップシンク** | *「…リップシンクも付けて」* | 吹き替え音声に合わせた口の動き | |
+| **音声分離** | *「声と音楽を分けて」* | 音声トラックと背景トラック | |
+| **音声から字幕** | *「英語のSRTを作って」* | STTで抽出したSRT | |
+| **字幕翻訳** | *「subs.srtをスペイン語に翻訳して」* | 翻訳済みSRT (タイミング維持、チェック込み) | ![FREE](https://img.shields.io/badge/FREE-5A4FF3?style=flat-square) |
+| **スタイル字幕** | *「この字幕を動画に焼き込んで」* | スタイル字幕入りの動画 | ![FREE](https://img.shields.io/badge/FREE-5A4FF3?style=flat-square) |
+| **ショートクリップ** | *「2:00–3:00をショートに切り出して」* | 9:16にリフレームされたクリップ | ![FREE](https://img.shields.io/badge/FREE-5A4FF3?style=flat-square) |
+| **AIハイライト** | *「ベストシーンをショートに選んで」* | AIが選んだハイライトクリップ | |
 
-![字幕スタイルプリセット](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-presets.gif)
+ファイル、フォルダ、YouTube/TikTok URL、どれでもそのまま使えます。
 
----
+<br>
 
 ## インストール
 
-> 📖 **[画面付きの手順 →](https://dubbing-plugin.perso.ai/en/)** — エージェントを選んでコマンドをコピーできます。
+> **リポジトリURLだけを渡されてインストールしに来たエージェントへ。** Claude Codeなら今すぐ実行してください (非対話型、再実行しても安全):
+> ```bash
+> claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
+> ```
+> 完了後、ユーザーに再起動を案内すると `/dubbing`、`/srt`、`/clip` が読み込まれます。他のホスト: `npx perso-dubbing`。ターミナルがない環境 (ChatGPT / Gemini): [chatgpt-setup](../chatgpt-setup.md) · [gemini-setup](../gemini-setup.md)
 
-### Claude デスクトップアプリ — 最も簡単、ターミナル不要（約3分）
-
-<a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude デスクトップアプリ</a>（有料プラン）で:
-
-1. **Code タブ**（画面上部中央）を開き、任意のフォルダを選んで、**Local** 環境を選択します — プラグインはクラウドセッションでは動作しません。
-2. このコマンドをプロンプト欄に貼り付けて Enter を押します。
-
-   ```text
-   claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
-   ```
-
-3. 吹き替えを依頼します — *「この動画を英語に吹き替えて — C:\videos\clip.mp4」*。YouTubeのURLやフォルダでも動作します。`--out` を指定しない限り、結果は元の動画と同じ場所に保存されます。
-
-**Claude Code CLI:** 代わりに `/plugin marketplace add perso-ai/perso-dubbing-plugin` と `/plugin install perso-dubbing@perso-ai` を使ってください。
-
-### その他のすべてのホスト
-
-```bash
-npx perso-dubbing
-```
-
-インストール済みのホストを検出して、それぞれに両方のスキルをインストールし、どこに配置されたかを表示します。特定のホストのみなら `--claude` / `--codex` / `--antigravity`、すべてのホストなら `--all`、現在のプロジェクトのみなら `--project` を追加してください。リポジトリを既にクローン済みですか？ リポジトリのルートで `node scripts/install.mjs` を実行すれば、ネットワーク不要で同じことができます。
-
-<details>
-<summary><b>🤖 エージェントへ</b> — このリポジトリのURLのみを渡された場合</summary>
-
-- **Claude Code（デスクトップまたはCLI）** — 次のインストールコマンド1行を自分で実行してください（非対話型かつ冪等なので、再実行しても安全です）:
-
-  ```bash
-  claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
-  ```
-
-  両方成功したら、新しいセッションを開始する（または Claude Code を再起動する）ようユーザーに伝えてください — `/dubbing` と `/srt` は次のセッションから読み込まれます。シェルで `claude` CLI が使えない場合に限り、上記のコマンドをユーザー自身に入力してもらう方法にフォールバックしてください。
-- **Codex・Antigravity、またはユーザーがインストールを委任した場合** — `npx perso-dubbing` を実行してください（リポジトリが既にクローン済みの場合は `node scripts/install.mjs`）。
-- **ChatGPT（ウェブ/アプリ — ユーザーのPCでターミナルを使えない場合）** — https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/chatgpt-setup.md を読んで従ってください: まずユーザーのPCに **Codex** を導入し、インストールはそちらで続行します。（すでにターミナル付きの Codex 内にいる場合は上の項目に従ってください。）
-- **Gemini（ウェブ/アプリ — ユーザーのPCでターミナルを使えない場合）** — https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/gemini-setup.md を読んで従ってください: まず **Antigravity** をインストールし、インストールはそちらで続行します。（すでに Antigravity 内にいる場合は上の項目に従ってください。）
-
-</details>
-
-### 初回実行 — APIキー
-
-キーが必要になるのは、Perso API を使う操作（吹き替え・リップシンク・音声分離・SRT抽出）のときだけです。ローカル動画へのスタイル付き字幕の焼き込みや、自分で用意したSRTの翻訳といったオフライン処理では要求されません。キーが必要になると、ブラウザのページが開きます。サインインして一度クリックするだけで、キーが発行され、このマシンに暗号化して保存されます。コピーする必要はありません。ブラウザを開けない場合は、代わりにキーファイルが開きます — そこにキーを貼り付けて保存すると、暗号化されファイルは削除されます。
-
-<a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">APIキーを取得</a> ・ `npm run key:check` でいつでも確認できます
-
----
-
-## 使い方
-
-やりたいことをエージェントに伝えるだけです:
-
-> 「この動画を英語に吹き替えて — C:\videos\clip.mp4」
->
-> 「このフォルダ内のすべての動画を日本語とスペイン語に吹き替えて」
->
-> 「このYouTubeリンクを英語に吹き替えて、リップシンクも付けて」
->
-> 「このクリップから音声と背景音楽を分離して」
->
-> 「この動画の英語のSRTを作って」
->
-> 「この動画にスタイル付き字幕を入れて — SRTはこちら」
->
-> 「この動画の2:00〜3:00をショートに切り出して」
-
-または **`/dubbing`** / **`/srt`** と入力して開始します。CLIオプションの全一覧は、エージェントに使い方を尋ねるか、`npm run dub -- --help` を実行してください。
-
----
-
-## トラブルシューティング
-
-さらに疑問がありますか？ **[FAQ](FAQ.md)** をご覧ください。
-
-| 症状 | 対処法 |
-|---|---|
-| `node` が見つからない | <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a> からLTS版をインストールし（またはエージェントに*「Node.jsをインストールして」*と依頼し）、再試行してください。 |
-| Claude デスクトップアプリがGitを要求する（Windows） | Code タブは初回利用時に <a href="https://git-scm.com/downloads/win" target="_blank" rel="noopener noreferrer">Git for Windows</a> を必要とします。インストール後、アプリを再起動してください。 |
-| `claude` コマンドやPluginsメニューが反応しない | **クラウドセッション**にいます — プラグインには **Local**（またはSSH）セッションが必要です。 |
-| キーが拒否される、または存在しない | もう一度登録してください: `node skills/dubbing/scripts/connect.mjs`。保存されているキーは `npm run key:check` で確認できます。 |
-| ffmpeg関連のエラー | ffmpegは通常自動的にインストールされます。失敗する場合は `npm run doctor` を実行してください。 |
-| 途中で停止した（クレジット切れ、クラッシュ、プロセスの強制終了） | 進捗は継続的に保存されています。通知に表示される **`--resume "<state-file>"`** コマンドを実行してください — 完了済みの部分はスキップされ、再課金されることはありません。 |
-
----
-
-## プライバシーとテレメトリー
-
-`/dubbing`、`/srt`、`/clip` は、スキルを改善するために利用イベントを送信します — 実行したアクションとその結果、メディアの長さ、スタイルの選択、おおまかなロケール、アプリバージョン/OS、および Perso API キーを使用したか（および登録済みか）どうか。各イベントにはインストールごとのランダムな ID とワークスペース番号が付きますが、API キー・メディア・ファイル名・字幕テキストが含まれることは一切ありません。`PERSO_NO_TELEMETRY` でオプトアウトできます。
-
----
-
-## リポジトリ構成
+**Claude デスクトップアプリ** (有料プラン): **Codeタブ**を開き、フォルダを選択、**Local** を選んで貼り付け:
 
 ```text
-.claude-plugin/    Claude Code プラグイン + マーケットプレイス マニフェスト
-.codex-plugin/     Codex プラグイン マニフェスト
-docs/              GitHub Pages ランディング + 翻訳版 README · FAQ（12言語）
-skills/dubbing/    吹き替えスキル本体 (SKILL.md · lib/ · scripts/) — 単体で完結
-skills/srt/        SRT字幕スキル (SKILL.md · scripts/) — dubbing スキルの lib/ を使用
-skills/clip/       ショートクリップスキル (SKILL.md · lib/ · scripts/) — dubbing スキルの lib/ を使用
-scripts/           リポジトリレベルのインストーラー (install.mjs)
+claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
 ```
 
-## ライセンス
+**Claude Code CLI**: `/plugin marketplace add perso-ai/perso-dubbing-plugin` のあと `/plugin install perso-dubbing@perso-ai`
 
-このスキルのコードは **[MIT](../../LICENSE)** です。実際の吹き替えは Perso Dubbing API を通じて実行されるため、APIの利用は [Perso AI利用規約](https://perso.ai) および料金体系に従います。
+**Codex · Antigravity · その他**: `npx perso-dubbing` がホストを検出し、それぞれにインストールします。
+
+必要なのは **Node.js 18+** だけ。[ビジュアルガイド](https://dubbing-plugin.perso.ai/en/) · [FAQ](FAQ.md)
+
+<br>
+
+<sub>FREE · ローカル実行</sub>
+
+## スタイル字幕
+
+12種類のプリセットから選ぶか、言葉でそのまま伝えるだけ: *「黄色い文字、黒い縁取り、下に」*。焼き込みはローカルのffmpegで完結します: アップロードも、待ち時間も、アカウントも不要。複数言語? SRTごとに完成した動画が1本ずつ出来上がります。
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-presets.gif" width="720" alt="字幕スタイルプリセット12種">
+</p>
+
+<br>
+
+<sub>FREE · ローカル実行</sub>
+
+## 字幕翻訳
+
+SRTを渡して、欲しい言語を伝えてください。複数まとめてでも、一度の処理で全部そろいます。各行のタイミングは元のまま、表示されるタイミングも消えるタイミングも以前とまったく同じです。納品前には、行が長すぎないか、読むには速すぎないかまでチェックします。
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-translate-demo.gif" width="720" alt="字幕翻訳デモ">
+</p>
+
+<br>
+
+<sub>FREE · ローカル実行</sub>
+
+## ショートクリップ
+
+タイムコードを入れれば縦型ショートが出てきます: 16:9 → 9:16のリフレームと名前付けが済み、字幕を載せる準備まで整った状態で。あるいは文字起こしを渡せば、ショートとして成立する瞬間をAIが選びます: フックで始まり、リアクションのピークまで引っ張り、勢いが落ちる前に切る。各30–90秒です。
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/clip-shorts-demo.gif" width="720" alt="ショートクリップのデモ: チャットで依頼、タイムラインでハイライトを選定、9:16のショートを出力">
+</p>
+
+<br>
+
+<sub>PERSO API</sub>
+
+## 吹き替えとリップシンク
+
+ファイル1本でも、フォルダ全体でも、YouTube/TikTok URLでも、一度の実行と一度のアップロードで複数言語の吹き替えまで終わります。プランの上限を超える動画は自動で分割・処理・結合され、中断された処理は止まった地点から正確に再開し、完了済みの部分に再課金されることはありません。吹き替えは元の声をクローンして新しい言語で話させ、リップシンクはそのクローン音声に合わせて口を動かします。
+
+<br>
+
+<sub>PERSO API</sub>
+
+## 音声から字幕 (STT)
+
+字幕がまだない? 音声認識がPersoのサーバー上でクレジットを使い、動画の音声を元の言語のSRTに変換します。ファイル1本でもフォルダ全体でも対応。SRTができた後の工程はすべて無料です: 翻訳、スタイル、焼き込み。
+
+<br>
+
+<sub>PERSO API</sub>
+
+## 音声分離
+
+動画や音声を、声と背景音のクリーンなトラックに分けます。話者が複数いる場合は、一人ひとりの声が別々のトラックとして出力されます。サウンドトラックを差し替える、セリフだけリマスターする、トラック1本だけ取り出して使う、どれも自由です。
+
+<br>
+
+## 無料にできるところは無料に。有料はどうしても必要なところだけ。
+
+**MITライセンスの無料オープンソースです。** 手元のマシンで動くものはすべて費用ゼロ、アカウントも不要です: 字幕のスタイル設定と焼き込み、手持ちのSRTの翻訳、タイムコード指定のクリップ切り出し。クレジットが必要になるのはPersoのサーバーで処理が走るときだけ: 吹き替え、リップシンク、音声分離、音声認識が対象で、[Perso Dubbing API](https://developers.perso.ai/api-keys)を通じて処理した秒数ぶんだけ課金されます。
+
+面倒な初期設定はありません。サーバー処理を初めて実行した瞬間にブラウザが開きます: サインインしてワンクリック、キーは暗号化して保存されます。無料の工程では何も聞かれません。
+
+<br>
+
+---
+
+<sub>**プライバシー**: `/dubbing`、`/srt`、`/clip` はスキル改善のため使用イベントを送信します。内容は、実行した処理とその結果、メディアの長さ、スタイルの選択、おおまかなロケール、アプリのバージョン/OS、Perso APIキーの使用 (および登録) の有無です。各イベントにはインストールごとのランダムIDとワークスペース番号が付きますが、APIキー・メディア・ファイル名・字幕テキストが含まれることは決してありません。`PERSO_NO_TELEMETRY` でオプトアウトできます。</sub>
+
+<sub>**ライセンス**: スキルのコードは [MIT](../../LICENSE) です。APIの利用には [Perso AI利用規約](https://perso.ai)と料金が適用されます。</sub>

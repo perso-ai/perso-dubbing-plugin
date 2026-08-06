@@ -1,138 +1,133 @@
-# 🎬 /dubbing — Perso Dubbing 影片翻譯配音
+<div align="center">
 
-[![Powered by Perso AI](https://img.shields.io/badge/Powered%20by-Perso%20AI-5A4FF3)](https://perso.ai)
-![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A518-339933?logo=node.js&logoColor=white)
-![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-1f6feb)
-![Platforms](https://img.shields.io/badge/platforms-Claude%20%C2%B7%20Antigravity%20%C2%B7%20Codex-555)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](../../LICENSE)
+# Perso Dubbing Plugin
+
+**每部影片、每種語言。配音、字幕、短影音剪輯，都在你的 coding agent 裡完成。**
+*「把這部影片配音成中文」一句話就是完整流程。*
+
+[![Perso AI](https://img.shields.io/badge/Perso%20AI-Dubbing-5A4FF3?style=flat-square)](https://perso.ai/dubbing)
+![Node.js](https://img.shields.io/badge/Node.js-18%2B-1a1a1a?style=flat-square)
+![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-1a1a1a?style=flat-square)
+![Hosts](https://img.shields.io/badge/Claude%20%C2%B7%20Codex%20%C2%B7%20Antigravity-1a1a1a?style=flat-square)
+[![MIT](https://img.shields.io/badge/MIT-5A4FF3?style=flat-square)](../../LICENSE)
+
+<sub>
 
 [English](../../README.md) ｜ [한국어](../ko/README.md) ｜ [Español](../es/README.md) ｜ [Português](../pt/README.md) ｜ [Русский](../ru/README.md) ｜ [Bahasa Indonesia](../id/README.md) ｜ [Deutsch](../de/README.md) ｜ [ไทย](../th/README.md) ｜ [日本語](../ja/README.md) ｜ **繁體中文** ｜ [简体中文](../zh-CN/README.md) ｜ [Tiếng Việt](../vi/README.md) ｜ [Français](../fr/README.md)
 
-一款編碼代理（coding-agent）技能，將 [Perso Dubbing](https://perso.ai/dubbing) 的 AI 配音帶入你的代理程式。安裝一次後，只要說一句「把這個影片配音成英文」即可。
+</sub>
 
-- ![免費](https://img.shields.io/badge/%E2%9C%93%20%E5%85%8D%E8%B2%BB-2ea44f) **樣式字幕**——將現成或自訂樣式的字幕壓制到影片上。**本次發布的重點。**
-- ![免費](https://img.shields.io/badge/%E2%9C%93%20%E5%85%8D%E8%B2%BB-2ea44f) **字幕翻譯**——將你已有的 SRT 轉成任何語言
-- ![免費](https://img.shields.io/badge/%E2%9C%93%20%E5%85%8D%E8%B2%BB-2ea44f) **短影片片段**——將長影片剪成短影片精華，並將 16:9 重新構圖為 9:16
-- **配音**成其他語言——單一檔案、整個資料夾或網址皆可
-- 為配音後的影片**對嘴（lip-sync）**，讓嘴型與新的音訊一致
-- **分離**人聲與背景音訊
-- **語音轉字幕**——透過語音轉文字擷取 SRT（或自行提供 → 免費）
-- 過大或過長的媒體會自動分割、處理後再合併回來
+</div>
 
-> **此技能免費且開放原始碼（MIT）。** 任何在你電腦本機執行的作業都**不需要帳號、也不需要點數**——將樣式字幕壓制到影片上、翻譯你已有的 SRT，以及剪輯短影片片段。在 Perso 伺服器上執行的 AI 步驟——配音、對嘴、人聲/背景分離、語音轉文字——會使用 Perso Dubbing API 點數（**只為你處理的部分付費**）。
+<br>
 
-需要 **Node.js 18+**。免費步驟完全不需要金鑰；伺服器端的 AI 步驟才需要 **Perso Dubbing API 金鑰**。基於 Agent Skills 標準（`SKILL.md`）打造，因此在 Claude、Codex 與 Antigravity 上的行為完全一致。
+| 功能 | 你這樣說 | 你會得到 | |
+|---|---|---|---|
+| **配音** | *「把這部影片配音成日文」* | 同一部影片，換上新語言的聲音 | |
+| **唇形同步** | *「…順便做唇形同步」* | 嘴型完全對上配音後的聲音 | |
+| **人聲分離** | *「把人聲和音樂分開」* | 人聲軌與背景音軌 | |
+| **語音轉字幕** | *「幫我做一份英文 SRT」* | 用 STT 擷取出的 SRT | |
+| **字幕翻譯** | *「把 subs.srt 翻譯成西班牙文」* | 翻譯完成的 SRT，時間軸原封不動，附品質檢查 | ![FREE](https://img.shields.io/badge/FREE-5A4FF3?style=flat-square) |
+| **樣式字幕** | *「把這些字幕燒錄到影片上」* | 套好樣式字幕的影片 | ![FREE](https://img.shields.io/badge/FREE-5A4FF3?style=flat-square) |
+| **短影音剪輯** | *「把 2:00–3:00 剪成短影音」* | 重新取景成 9:16 的片段 | ![FREE](https://img.shields.io/badge/FREE-5A4FF3?style=flat-square) |
+| **AI 精華** | *「挑最精彩的片段做成短影音」* | AI 挑選的精華片段 | |
 
-![字幕樣式預設](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-presets.gif)
+檔案、資料夾、YouTube/TikTok 網址都能直接丟進來。
 
----
+<br>
 
 ## 安裝
 
-> 📖 **[圖文教學 →](https://dubbing-plugin.perso.ai/en/)**——選擇你使用的代理程式並複製指令。
+> **拿著這個儲存庫網址來安裝的 agent？** 在 Claude Code 裡現在就執行（非互動式，可安全重複執行）：
+> ```bash
+> claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
+> ```
+> 請提醒使用者重新啟動，`/dubbing`、`/srt`、`/clip` 就會載入。其他 host：`npx perso-dubbing`。沒有終端機的環境（ChatGPT / Gemini）：[chatgpt-setup](../chatgpt-setup.md) · [gemini-setup](../gemini-setup.md)
 
-### Claude 桌面應用程式——最簡單，不需終端機（約 3 分鐘）
-
-在 <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">Claude 桌面應用程式</a>（付費方案）中：
-
-1. 開啟 **Code 分頁**（畫面上方中央），選擇任一資料夾，並選擇 **Local** 環境——雲端工作階段無法使用外掛程式。
-2. 將以下指令貼到提示輸入框並按下 Enter：
-
-   ```text
-   claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
-   ```
-
-3. 提出配音需求——「把這個影片配音成英文——C:\videos\clip.mp4」。YouTube 網址或整個資料夾也可以。除非指定 `--out`，否則結果會儲存在原始影片旁邊。
-
-**Claude Code CLI：**請改用 `/plugin marketplace add perso-ai/perso-dubbing-plugin` 與 `/plugin install perso-dubbing@perso-ai`。
-
-### 其他所有宿主環境
-
-```bash
-npx perso-dubbing
-```
-
-它會偵測你已安裝哪些宿主環境，並將兩個技能安裝到每一個環境中，同時印出各自的安裝位置。加上 `--claude` / `--codex` / `--antigravity` 可只安裝單一宿主環境，`--all` 為全部安裝，`--project` 則僅限目前專案。已經複製好儲存庫了嗎？在儲存庫根目錄執行 `node scripts/install.mjs` 也能達到相同效果，且不需要網路連線。
-
-<details>
-<summary><b>🤖 給代理程式的提示</b> — 若你只拿到本儲存庫的網址</summary>
-
-- **Claude Code（桌面應用程式或 CLI）**——請自行執行以下一行安裝指令（非互動且冪等，重複執行也安全）：
-
-  ```bash
-  claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
-  ```
-
-  兩者都成功後，請告知使用者開始新的工作階段（或重新啟動 Claude Code）——`/dubbing` 與 `/srt` 會從下一個工作階段開始載入。只有在你的 shell 無法使用 `claude` CLI 時，才改為向使用者展示上方指令、由其自行輸入。
-- **Codex · Antigravity，或使用者已將安裝工作委託給你**——執行 `npx perso-dubbing`（若儲存庫已複製到本機，則執行 `node scripts/install.mjs`）。
-- **ChatGPT（網頁/應用程式 — 無法在使用者電腦使用終端機）**——閱讀 https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/chatgpt-setup.md 並照做：先在使用者電腦安裝 **Codex**，安裝將在那裡繼續。（已在有終端機的 Codex 中？請改用上方項目。）
-- **Gemini（網頁/應用程式 — 無法在使用者電腦使用終端機）**——閱讀 https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/gemini-setup.md 並照做：先安裝 **Antigravity**，安裝將在那裡繼續。（已在 Antigravity 中？請改用上方項目。）
-
-</details>
-
-### 首次執行——你的 API 金鑰
-
-只有在某項操作會用到 Perso API（配音、對嘴、音訊分離、SRT 擷取）時才需要金鑰——像是將帶樣式的字幕壓制到本機影片上，或翻譯你自行提供的 SRT 這類離線步驟，絕不會要求金鑰。需要金鑰時，瀏覽器頁面會自動開啟：登入後點擊一次，金鑰就會核發並加密儲存在這台電腦上，不需要複製貼上。若無法開啟瀏覽器，則會改為開啟金鑰檔案——請將金鑰貼入並儲存，該檔案會被加密並隨即刪除。
-
-<a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">取得 API 金鑰</a> · 隨時可用 `npm run key:check` 確認
-
----
-
-## 使用方式
-
-只要告訴你的代理程式你想做什麼：
-
-> 「把這個影片配音成英文——C:\videos\clip.mp4」
->
-> 「把這個資料夾裡的每支影片都配音成日文和西班牙文」
->
-> 「把這個 YouTube 連結配音成英文，並加上對嘴」
->
-> 「把這段影片的人聲和背景音樂分離出來」
->
-> 「幫我做一份這個影片的英文 SRT 字幕」
->
-> 「幫這個影片加上樣式字幕——SRT 在這裡」
->
-> 「把這個影片從 2:00 到 3:00 剪成一支短影片」
-
-或輸入 **`/dubbing`** / **`/srt`** 開始。若需要完整的 CLI 選項清單，可詢問你的代理程式，或執行 `npm run dub -- --help`。
-
----
-
-## 疑難排解
-
-還有其他問題？請參考**[常見問答（FAQ）](FAQ.md)**。
-
-| 症狀 | 解決方式 |
-|---|---|
-| 找不到 `node` | 請至 <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a> 下載 LTS 版本（或直接請代理程式「幫我安裝 Node.js」），然後再試一次。 |
-| Claude 桌面應用程式要求安裝 Git（Windows） | Code 分頁首次使用時需要 <a href="https://git-scm.com/downloads/win" target="_blank" rel="noopener noreferrer">Git for Windows</a>。安裝後請重新啟動應用程式。 |
-| `claude` 指令或 Plugins 選單沒有反應 | 你目前處於**雲端工作階段**——外掛程式需要 **Local**（或 SSH）工作階段。 |
-| 金鑰遭拒或尚未設定 | 請重新註冊：`node skills/dubbing/scripts/connect.mjs`。可用 `npm run key:check` 檢查已儲存的金鑰。 |
-| ffmpeg 相關錯誤 | ffmpeg 通常會自動安裝；若安裝失敗，請執行 `npm run doctor`。 |
-| 執行到一半中止（點數用盡、當機、程序被終止） | 進度會持續儲存。請執行提示訊息中顯示的 **`--resume "<state-file>"`** 指令——已完成的部分會被略過，且不會重複計費。 |
-
----
-
-## 隱私權與遙測
-
-`/dubbing`、`/srt` 與 `/clip` 會傳送使用事件以協助改善這些技能——執行了哪個動作及其結果、媒體長度、樣式選擇、粗略的地區設定、應用程式版本/作業系統，以及是否使用了 Perso API 金鑰（以及是否已註冊）。每筆事件都會附帶隨機的每次安裝專屬 ID 以及你的工作區編號；絕不包含你的金鑰、媒體、檔名或字幕文字。可透過 `PERSO_NO_TELEMETRY` 選擇停用。
-
----
-
-## 儲存庫結構
+**Claude 桌面版**（付費方案）：打開 **Code 分頁**，選一個資料夾，選擇 **Local**，貼上：
 
 ```text
-.claude-plugin/    Claude Code 外掛程式 + 市集資訊清單
-.codex-plugin/     Codex 外掛程式資訊清單
-docs/              GitHub Pages 導覽頁 + 翻譯版 README · FAQ（12 種語言）
-skills/dubbing/    配音技能本體（SKILL.md · lib/ · scripts/）——自成一體
-skills/srt/        SRT 字幕技能（SKILL.md · scripts/）——使用 dubbing 技能的 lib/
-skills/clip/       短影片片段技能（SKILL.md · lib/ · scripts/）——使用 dubbing 技能的 lib/
-scripts/           儲存庫層級的安裝程式（install.mjs）
+claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
 ```
 
-## 授權條款
+**Claude Code CLI**：先執行 `/plugin marketplace add perso-ai/perso-dubbing-plugin`，再執行 `/plugin install perso-dubbing@perso-ai`
 
-此技能的程式碼以 **[MIT 授權](../../LICENSE)** 方式發布。實際的配音處理是透過 Perso Dubbing API 執行，因此 API 的使用須遵循 [Perso AI 服務條款](https://perso.ai) 及其計費方式。
+**Codex · Antigravity · 其他任何工具**：`npx perso-dubbing` 會自動偵測你安裝的 host，並逐一裝好。
+
+只需要 **Node.js 18+**，其他什麼都不用。[圖解安裝指南](https://dubbing-plugin.perso.ai/en/) · [FAQ](FAQ.md)
+
+<br>
+
+<sub>FREE · 本機執行</sub>
+
+## 樣式字幕
+
+從十二種預設樣式中挑一個，或直接用白話描述：*「黃色字、黑色外框、放在下方。」* 燒錄在你的電腦上用 ffmpeg 完成：不用上傳、不用排隊、不用帳號。要做好幾種語言？每份 SRT 都會產出一支完成的影片。
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-presets.gif" width="720" alt="12 種字幕樣式預設">
+</p>
+
+<br>
+
+<sub>FREE · 本機執行</sub>
+
+## 字幕翻譯
+
+把任何 SRT 交過來，說出你要的語言。一次好幾種也沒問題，一趟就全部處理完。每一句字幕都保留原本的精確時間軸，出現與消失的時間點和原本一模一樣。交付之前，還會檢查有沒有太長或閱讀速度太快的句子。
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-translate-demo.gif" width="720" alt="字幕翻譯示範">
+</p>
+
+<br>
+
+<sub>FREE · 本機執行</sub>
+
+## 短影音剪輯
+
+丟進時間碼，就拿到直式短影音：16:9 → 9:16 重新取景、命名整理好，隨時可以上字幕。或者把逐字稿交給 AI，讓它挑出適合做短影音的片段：用鉤子開場，把情緒帶到最高點，在能量下滑前收尾。每支 30–90 秒。
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/clip-shorts-demo.gif" width="720" alt="短影音剪輯示範：在聊天中提出需求，AI 在時間軸上挑出精華，產出 9:16 短影音">
+</p>
+
+<br>
+
+<sub>PERSO API</sub>
+
+## 配音與唇形同步
+
+一次執行就能處理單一檔案、整個資料夾或 YouTube/TikTok 網址，一次上傳就能配成多種語言。超過方案上限的影片會自動分割、處理、再合併；中斷的工作會從停下的地方精準續跑，已完成的部分絕不重複計費。配音會把原始聲音複製到新語言，唇形同步再讓嘴型跟著這段複製的聲音動起來。
+
+<br>
+
+<sub>PERSO API</sub>
+
+## 語音轉字幕（STT）
+
+還沒有字幕？語音辨識在 Perso 伺服器上執行，使用點數把影片的聲音轉成原始語言的 SRT，單一檔案或整個資料夾都可以。SRT 產出之後的每一步都是免費的：翻譯、套樣式、燒錄。
+
+<br>
+
+<sub>PERSO API</sub>
+
+## 人聲分離
+
+把影片或音訊拆成乾淨的音軌：人聲與背景音。有多位說話者時，每個人的聲音會各自成為獨立音軌。你可以換掉配樂、重新處理對白，或單獨取用任何一軌。
+
+<br>
+
+## 能免費的地方全部免費。必須付費的地方才付費。
+
+**MIT 授權，免費且開源。** 在你電腦上執行的一切都不花錢、不需要帳號：字幕套樣式與燒錄、翻譯你手上的 SRT、依時間碼剪片。只有工作跑在 Perso 伺服器上時才需要點數：配音、唇形同步、人聲分離、語音辨識，透過 [Perso Dubbing API](https://developers.perso.ai/api-keys) 依處理秒數計費。
+
+沒有繁瑣的前置設定。第一次執行伺服器工作時會自動開啟瀏覽器：登入、點一下、金鑰加密儲存。免費步驟從頭到尾都不會問你。
+
+<br>
+
+---
+
+<sub>**隱私**：`/dubbing`、`/srt`、`/clip` 會傳送使用事件來改進這些技能，內容包含執行了什麼與結果如何、媒體長度、樣式選擇、粗略的地區設定、應用程式版本/作業系統，以及是否使用（並註冊）了 Perso API 金鑰。每筆事件帶有安裝時產生的隨機 ID 與你的 workspace 編號；絕不包含你的金鑰、媒體、檔案名稱或字幕文字。可透過 `PERSO_NO_TELEMETRY` 選擇退出。</sub>
+
+<sub>**授權**：技能程式碼採 [MIT](../../LICENSE) 授權。API 的使用受 [Perso AI 服務條款](https://perso.ai)與其定價規範。</sub>

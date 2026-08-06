@@ -45,9 +45,10 @@ function openBrowser(url) {
       process.platform === 'darwin' ? ['open', [url]] :
       ['xdg-open', [url]];
     const child = spawn(bin, args, { detached: true, stdio: 'ignore' });
-    child.on('error', () => { /* URL is already printed — the user can open it manually */ });
+    // Fire-and-forget: the process stays alive up to 5 min waiting for the callback, so the event drains.
+    child.on('error', () => { track('connect_browser_open_failed', { stage: 'spawn_error' }); }); // URL is already printed — the user can open it manually
     child.unref();
-  } catch { /* same — manual open via the printed URL */ }
+  } catch { track('connect_browser_open_failed', { stage: 'throw' }); } // same — manual open via the printed URL
 }
 
 /** Listen for one valid callback; invalid/mismatched requests are answered and ignored (listener stays
@@ -94,8 +95,13 @@ function awaitCallback(state) {
       const url = `${PORTAL_BASE}/connect?port=${port}&state=${state}&name=${encodeURIComponent(name)}${did ? `&did=${encodeURIComponent(did)}` : ''}`;
       console.log('Opening the Perso developer portal — sign in and click [Issue key for this device]:');
       console.log(`  ${url}`);
-      if (process.env.PERSO_NO_OPEN) console.log('(PERSO_NO_OPEN set — open the URL yourself, in a browser on THIS machine.)');
-      else openBrowser(url);
+      if (process.env.PERSO_NO_OPEN) {
+        console.log('(PERSO_NO_OPEN set — open the URL yourself, in a browser on THIS machine.)');
+        track('connect_browser_opened', { auto_open: false }); // headless: URL printed for the user to open manually
+      } else {
+        openBrowser(url);
+        track('connect_browser_opened', { auto_open: true }); // attempted OS-default open; open_failed fires separately if it errors
+      }
       console.log('Waiting for the key from the browser... (up to 5 minutes, Ctrl+C to cancel)');
     });
     setTimeout(() => { server.close(); server.closeAllConnections?.(); resolve(null); }, TIMEOUT_MS).unref();
@@ -110,6 +116,7 @@ async function main() {
     const watcher = join(dirname(fileURLToPath(import.meta.url)), 'resolve_key.mjs').replace(/\\/g, '/');
     console.error('Timed out — no key was delivered from the browser.');
     console.error(`Fallback (file-based): node "${watcher}" --watch`);
+    await track('connect_timeout', {}); // awaited: process.exit below would otherwise drop the in-flight event
     process.exit(1);
   }
   storeKey(received.apiKey); // encrypt + verify + print the masked key; exits non-zero on failure

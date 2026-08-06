@@ -1,6 +1,6 @@
 {
   "name": "perso-dubbing",
-  "version": "0.8.7",
+  "version": "0.8.11",
   "description": "Perso AI video auto-dubbing agent skill — dubbing, lip-sync, audio separation, SRT subtitle extraction & translation (Claude Code / Codex / Cursor / Antigravity)",
   "license": "MIT",
   "type": "module",
@@ -42,6 +42,8 @@
   "scripts": {
     "version": "node scripts/sync-version.mjs && git add .claude-plugin .codex-plugin .cursor-plugin",
     "sync-version": "node scripts/sync-version.mjs",
+    "prerender": "node scripts/prerender-locales.mjs",
+    "prerender:check": "node scripts/prerender-locales.mjs --check",
     "doctor": "node skills/dubbing/scripts/check_deps.mjs",
     "key:check": "node skills/dubbing/scripts/resolve_key.mjs --check",
     "langs": "node skills/dubbing/scripts/languages.mjs",

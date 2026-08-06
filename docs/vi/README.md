@@ -1,138 +1,133 @@
-# 🎬 /dubbing — Dịch video với Perso Dubbing
+<div align="center">
 
-[![Powered by Perso AI](https://img.shields.io/badge/Powered%20by-Perso%20AI-5A4FF3)](https://perso.ai)
-![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A518-339933?logo=node.js&logoColor=white)
-![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-1f6feb)
-![Platforms](https://img.shields.io/badge/platforms-Claude%20%C2%B7%20Antigravity%20%C2%B7%20Codex-555)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](../../LICENSE)
+# Perso Dubbing Plugin
+
+**Mọi video, mọi ngôn ngữ. Lồng tiếng, phụ đề và cắt clip ngay từ coding agent của bạn.**
+*Chỉ cần nói "Lồng tiếng video này sang tiếng Việt" là xong toàn bộ quy trình.*
+
+[![Perso AI](https://img.shields.io/badge/Perso%20AI-Dubbing-5A4FF3?style=flat-square)](https://perso.ai/dubbing)
+![Node.js](https://img.shields.io/badge/Node.js-18%2B-1a1a1a?style=flat-square)
+![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-1a1a1a?style=flat-square)
+![Hosts](https://img.shields.io/badge/Claude%20%C2%B7%20Codex%20%C2%B7%20Antigravity-1a1a1a?style=flat-square)
+[![MIT](https://img.shields.io/badge/MIT-5A4FF3?style=flat-square)](../../LICENSE)
+
+<sub>
 
 [English](../../README.md) ｜ [한국어](../ko/README.md) ｜ [Español](../es/README.md) ｜ [Português](../pt/README.md) ｜ [Русский](../ru/README.md) ｜ [Bahasa Indonesia](../id/README.md) ｜ [Deutsch](../de/README.md) ｜ [ไทย](../th/README.md) ｜ [日本語](../ja/README.md) ｜ [繁體中文](../zh-TW/README.md) ｜ [简体中文](../zh-CN/README.md) ｜ **Tiếng Việt** ｜ [Français](../fr/README.md)
 
-Một skill dành cho agent lập trình, mang tính năng lồng tiếng AI của [Perso Dubbing](https://perso.ai/dubbing) đến agent của bạn. Chỉ cần cài đặt một lần, rồi nói *"lồng tiếng video này sang tiếng Anh"*.
+</sub>
 
-- ![miễn phí](https://img.shields.io/badge/%E2%9C%93%20mi%E1%BB%85n%20ph%C3%AD-2ea44f) **Phụ đề có kiểu** — ghép phụ đề dựng sẵn hoặc có kiểu tùy chỉnh lên video. **Điểm nhấn của bản phát hành này.**
-- ![miễn phí](https://img.shields.io/badge/%E2%9C%93%20mi%E1%BB%85n%20ph%C3%AD-2ea44f) **Dịch phụ đề** — chuyển một tệp SRT bạn đã có sang bất kỳ ngôn ngữ nào
-- ![miễn phí](https://img.shields.io/badge/%E2%9C%93%20mi%E1%BB%85n%20ph%C3%AD-2ea44f) **Clip ngắn** — cắt video dài thành các đoạn nổi bật dạng ngắn, đổi khung hình 16:9 → 9:16
-- **Lồng tiếng** sang ngôn ngữ khác — một tệp đơn lẻ, cả một thư mục, hoặc một URL
-- **Đồng bộ khẩu hình (lip-sync)** cho video đã lồng tiếng để khẩu hình khớp với âm thanh mới
-- **Tách** giọng nói khỏi âm thanh nền
-- **Phụ đề từ giọng nói** — trích xuất SRT bằng speech-to-text (hoặc dùng SRT của riêng bạn → miễn phí)
-- Media quá lớn hoặc quá dài sẽ được tự động chia nhỏ, xử lý, rồi ghép lại
+</div>
 
-> **Skill này miễn phí và mã nguồn mở (MIT).** Mọi thứ chạy cục bộ trên máy của bạn đều **không cần tài khoản và không cần credit** — ghép phụ đề có kiểu lên video, dịch một tệp SRT bạn đã có, và cắt clip ngắn. Các bước AI chạy trên máy chủ của Perso — lồng tiếng, lip-sync, tách giọng nói/nền, speech-to-text — sử dụng credit của Perso Dubbing API (**chỉ trả phí cho những gì bạn xử lý**).
+<br>
 
-Chạy trên **Node.js 18+**. Các bước miễn phí không bao giờ cần key; các bước AI phía máy chủ dùng **API key của Perso Dubbing**. Được xây dựng trên chuẩn Agent Skills (`SKILL.md`), nên skill hoạt động giống hệt nhau trên Claude, Codex, và Antigravity.
+| Tính năng | Bạn nói | Bạn nhận được | |
+|---|---|---|---|
+| **Lồng tiếng** | *"Lồng tiếng video này sang tiếng Nhật"* | Video y nguyên, với giọng nói mới | |
+| **Lip-sync** | *"…kèm lip-sync luôn"* | Khẩu hình khớp với âm thanh lồng tiếng | |
+| **Tách giọng nói** | *"Tách giọng nói khỏi nhạc nền"* | Track giọng nói và track nền riêng biệt | |
+| **Phụ đề từ giọng nói** | *"Tạo cho tôi file SRT tiếng Anh"* | File SRT trích xuất bằng STT | |
+| **Dịch phụ đề** | *"Dịch subs.srt sang tiếng Tây Ban Nha"* | SRT đã dịch, giữ nguyên timing, kèm kiểm tra chất lượng | ![FREE](https://img.shields.io/badge/FREE-5A4FF3?style=flat-square) |
+| **Phụ đề có style** | *"Gắn phụ đề này lên video"* | Phụ đề đã tạo kiểu ngay trên video | ![FREE](https://img.shields.io/badge/FREE-5A4FF3?style=flat-square) |
+| **Clip ngắn** | *"Cắt đoạn 2:00–3:00 thành video ngắn"* | Clip 9:16 đã reframe | ![FREE](https://img.shields.io/badge/FREE-5A4FF3?style=flat-square) |
+| **AI highlight** | *"Chọn những khoảnh khắc hay nhất làm video ngắn"* | Các clip highlight do AI tuyển chọn | |
 
-![Mẫu kiểu phụ đề](https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-presets.gif)
+File, thư mục hay URL YouTube/TikTok đều dùng được.
 
----
+<br>
 
 ## Cài đặt
 
-> 📖 **[Hướng dẫn trực quan →](https://dubbing-plugin.perso.ai/en/)** — chọn agent của bạn và sao chép lệnh.
+> **Bạn là agent đang cài từ URL repo này?** Trong Claude Code, hãy chạy ngay lệnh sau (không tương tác, chạy lại vẫn an toàn):
+> ```bash
+> claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
+> ```
+> Sau đó nhắc người dùng khởi động lại để `/dubbing`, `/srt`, `/clip` được nạp. Host khác: `npx perso-dubbing`. Không có terminal (ChatGPT / Gemini): [chatgpt-setup](../chatgpt-setup.md) · [gemini-setup](../gemini-setup.md)
 
-### Ứng dụng desktop Claude — dễ nhất, không cần terminal (khoảng 3 phút)
-
-Trong <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer">ứng dụng desktop Claude</a> (gói trả phí):
-
-1. Mở **tab Code** (ở giữa phía trên), chọn một thư mục bất kỳ, và chọn môi trường **Local** — plugin không hoạt động trong phiên cloud.
-2. Dán lệnh này vào ô nhập lệnh rồi nhấn Enter:
-
-   ```text
-   claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
-   ```
-
-3. Yêu cầu lồng tiếng — *"Lồng tiếng video này sang tiếng Anh — C:\videos\clip.mp4"*. URL YouTube hoặc cả một thư mục cũng dùng được. Kết quả được lưu cạnh video gốc, trừ khi bạn dùng `--out`.
-
-**Claude Code CLI:** hãy dùng `/plugin marketplace add perso-ai/perso-dubbing-plugin` và `/plugin install perso-dubbing@perso-ai` thay thế.
-
-### Mọi host khác
-
-```bash
-npx perso-dubbing
-```
-
-Tự động phát hiện các host bạn đang có và cài cả hai skill vào từng host, đồng thời in ra vị trí cài đặt của mỗi skill. Thêm `--claude` / `--codex` / `--antigravity` cho một host, `--all` cho mọi host, hoặc `--project` chỉ cho dự án hiện tại. Đã clone sẵn repo? `node scripts/install.mjs` từ thư mục gốc của repo cũng làm điều tương tự, không cần mạng.
-
-<details>
-<summary><b>🤖 Gửi agent</b> — nếu bạn chỉ được cung cấp URL của repository này</summary>
-
-- **Claude Code (desktop hoặc CLI)** — hãy tự chạy một dòng lệnh cài đặt sau (không tương tác và idempotent, chạy lại vẫn an toàn):
-
-  ```bash
-  claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
-  ```
-
-  Khi cả hai thành công, hãy bảo người dùng bắt đầu phiên mới (hoặc khởi động lại Claude Code) — `/dubbing` và `/srt` được nạp từ phiên tiếp theo. Chỉ khi CLI `claude` không khả dụng trong shell của bạn, mới quay lại cách hiển thị lệnh ở trên để người dùng tự gõ.
-- **Codex · Antigravity, hoặc người dùng đã giao việc cài đặt cho bạn** — chạy `npx perso-dubbing` (hoặc `node scripts/install.mjs` nếu repo đã được clone sẵn).
-- **ChatGPT (web/ứng dụng — không có terminal trên máy người dùng)** — đọc https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/chatgpt-setup.md và làm theo: trước hết cài **Codex** trên máy người dùng — việc cài đặt tiếp tục ở đó. (Đã ở trong Codex có terminal? Dùng mục phía trên.)
-- **Gemini (web/ứng dụng — không có terminal trên máy người dùng)** — đọc https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/gemini-setup.md và làm theo: trước hết cài **Antigravity** — việc cài đặt tiếp tục ở đó. (Đã ở trong Antigravity? Dùng mục phía trên.)
-
-</details>
-
-### Lần chạy đầu tiên — API key của bạn
-
-Key chỉ cần khi một tác vụ sử dụng Perso API (lồng tiếng, lip-sync, tách âm, trích xuất SRT) — các bước ngoại tuyến như ghép phụ đề có kiểu lên video cục bộ hoặc dịch một tệp SRT bạn cung cấp không bao giờ yêu cầu key. Khi cần key, một trang trình duyệt sẽ mở ra: đăng nhập và nhấn một lần, key của bạn sẽ được cấp và lưu trên máy này ở dạng mã hóa. Không cần sao chép gì cả. Nếu không mở được trình duyệt, một tệp key sẽ mở ra thay thế — dán key vào đó rồi lưu, tệp sẽ được mã hóa và xóa đi.
-
-<a href="https://developers.perso.ai/api-keys" target="_blank" rel="noopener noreferrer">Lấy API key</a> · kiểm tra bất cứ lúc nào bằng `npm run key:check`
-
----
-
-## Cách dùng
-
-Chỉ cần nói với agent của bạn điều bạn muốn:
-
-> "Lồng tiếng video này sang tiếng Anh — C:\videos\clip.mp4"
->
-> "Lồng tiếng mọi video trong thư mục này sang tiếng Nhật và tiếng Tây Ban Nha"
->
-> "Lồng tiếng link YouTube này sang tiếng Anh, kèm đồng bộ khẩu hình"
->
-> "Tách giọng nói và nhạc nền ra khỏi clip này"
->
-> "Tạo cho tôi một tệp SRT tiếng Anh cho video này"
->
-> "Thêm phụ đề có kiểu vào video này — SRT đây"
->
-> "Cắt video này từ 2:00 đến 3:00 thành clip ngắn"
-
-Hoặc gõ **`/dubbing`** / **`/srt`** để bắt đầu. Để xem danh sách đầy đủ các tùy chọn CLI, hãy hỏi agent của bạn về cách dùng hoặc chạy `npm run dub -- --help`.
-
----
-
-## Khắc phục sự cố
-
-Còn thắc mắc khác? Xem **[FAQ](FAQ.md)**.
-
-| Triệu chứng | Cách khắc phục |
-|---|---|
-| Không tìm thấy `node` | Cài bản LTS từ <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a> (hoặc nhờ agent *"cài Node.js giúp tôi"*), rồi thử lại. |
-| Ứng dụng desktop Claude yêu cầu Git (Windows) | Tab Code cần <a href="https://git-scm.com/downloads/win" target="_blank" rel="noopener noreferrer">Git for Windows</a> ở lần dùng đầu tiên. Cài đặt nó rồi khởi động lại ứng dụng. |
-| Lệnh `claude` hoặc menu Plugins không có phản hồi | Bạn đang ở trong **phiên cloud** — plugin cần phiên **Local** (hoặc SSH). |
-| Key bị từ chối hoặc chưa có | Hãy đăng ký lại: `node skills/dubbing/scripts/connect.mjs`. Kiểm tra key đã lưu bằng `npm run key:check`. |
-| Lỗi ffmpeg | ffmpeg thường tự cài đặt; nếu thất bại, hãy chạy `npm run doctor`. |
-| Dừng giữa chừng (hết credit, gặp lỗi, tiến trình bị kill) | Tiến trình được lưu liên tục. Chạy lệnh **`--resume "<state-file>"`** được hiển thị trong thông báo — các phần đã xong sẽ được bỏ qua và không bao giờ bị tính phí lại. |
-
----
-
-## Quyền riêng tư & Telemetry
-
-`/dubbing`, `/srt` và `/clip` gửi các sự kiện sử dụng để cải thiện skill — hành động nào đã chạy và kết quả ra sao, thời lượng media, lựa chọn kiểu, ngôn ngữ vùng đại khái, phiên bản ứng dụng/hệ điều hành, và liệu có dùng khóa API Perso hay không (và đã đăng ký chưa). Mỗi sự kiện mang một ID ngẫu nhiên theo lượt cài đặt và số workspace của bạn; không bao giờ có khóa, media, tên tệp hay nội dung phụ đề của bạn. Tắt bằng `PERSO_NO_TELEMETRY`.
-
----
-
-## Cấu trúc repository
+**Ứng dụng Claude desktop** (gói trả phí): mở **tab Code**, chọn một thư mục, chọn **Local**, rồi dán:
 
 ```text
-.claude-plugin/    Plugin Claude Code + manifest marketplace
-.codex-plugin/     Manifest plugin Codex
-docs/              Trang landing GitHub Pages + README đã dịch · FAQ (12 ngôn ngữ)
-skills/dubbing/    Skill lồng tiếng (SKILL.md · lib/ · scripts/) — độc lập
-skills/srt/        Skill phụ đề SRT (SKILL.md · scripts/) — dùng lib/ của skill lồng tiếng
-skills/clip/       Skill clip ngắn (SKILL.md · lib/ · scripts/) — dùng lib/ của skill lồng tiếng
-scripts/           Trình cài đặt cấp repository (install.mjs)
+claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
 ```
 
-## Giấy phép
+**Claude Code CLI**: chạy `/plugin marketplace add perso-ai/perso-dubbing-plugin`, rồi `/plugin install perso-dubbing@perso-ai`
 
-Mã nguồn của skill là **[MIT](../../LICENSE)**. Việc lồng tiếng thực tế chạy qua Perso Dubbing API, vì vậy việc sử dụng API tuân theo [Điều khoản dịch vụ của Perso AI](https://perso.ai) và biểu phí của Perso AI.
+**Codex · Antigravity · và mọi môi trường khác**: `npx perso-dubbing` tự phát hiện các host của bạn và cài vào từng host.
+
+Chỉ cần **Node.js 18+**, không cần gì thêm. [Hướng dẫn trực quan](https://dubbing-plugin.perso.ai/en/) · [FAQ](FAQ.md)
+
+<br>
+
+<sub>FREE · CHẠY CỤC BỘ</sub>
+
+## Phụ đề có style
+
+Chọn một trong mười hai preset, hoặc chỉ cần mô tả bằng lời thường: *"chữ vàng, viền đen, đặt ở dưới."* Việc gắn phụ đề chạy cục bộ bằng ffmpeg: không upload, không xếp hàng, không cần tài khoản. Nhiều ngôn ngữ? Mỗi file SRT cho ra một video hoàn chỉnh riêng.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-presets.gif" width="720" alt="12 preset style phụ đề">
+</p>
+
+<br>
+
+<sub>FREE · CHẠY CỤC BỘ</sub>
+
+## Dịch phụ đề
+
+Đưa vào bất kỳ file SRT nào và nêu các ngôn ngữ bạn muốn. Nhiều ngôn ngữ cùng lúc cũng được, một lượt chạy xử lý hết. Mỗi dòng giữ đúng timing gốc, xuất hiện và biến mất đúng những thời điểm như trước. Trước khi bàn giao, kết quả còn được kiểm tra xem có dòng nào quá dài hoặc phải đọc quá nhanh không.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/subtitle-translate-demo.gif" width="720" alt="Demo dịch phụ đề">
+</p>
+
+<br>
+
+<sub>FREE · CHẠY CỤC BỘ</sub>
+
+## Clip ngắn
+
+Đưa timecode vào, nhận video ngắn dọc ra: đã reframe 16:9 → 9:16, đã đặt tên và sẵn sàng gắn phụ đề. Hoặc đưa transcript và để AI chọn những khoảnh khắc phù hợp làm video ngắn: mở đầu bằng một cú hook, đẩy cảm xúc lên đến đỉnh, và cắt trước khi năng lượng chùng xuống. Mỗi clip dài 30–90 giây.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/perso-ai/perso-dubbing-plugin/main/docs/media/clip-shorts-demo.gif" width="720" alt="Demo clip ngắn: yêu cầu trong chat, highlight được chọn trên timeline, xuất video ngắn 9:16">
+</p>
+
+<br>
+
+<sub>PERSO API</sub>
+
+## Lồng tiếng và lip-sync
+
+Một lượt chạy nhận một file, cả thư mục, hoặc URL YouTube/TikTok và lồng tiếng sang nhiều ngôn ngữ chỉ với một lần upload. Video vượt giới hạn gói sẽ tự tách, xử lý rồi ghép lại; lượt chạy bị gián đoạn sẽ tiếp tục đúng chỗ đã dừng, không bao giờ tính phí lại phần đã hoàn thành. Lồng tiếng nhân bản giọng gốc sang ngôn ngữ mới, còn lip-sync điều chỉnh khẩu hình khớp với chính âm thanh nhân bản đó.
+
+<br>
+
+<sub>PERSO API</sub>
+
+## Phụ đề từ giọng nói (STT)
+
+Chưa có phụ đề? Nhận dạng giọng nói chạy trên máy chủ của Perso và dùng credit để chuyển âm thanh của video thành file SRT ở ngôn ngữ gốc, cho một file hay cả thư mục. Mọi bước sau khi đã có SRT đều miễn phí: dịch, tạo kiểu, gắn lên video.
+
+<br>
+
+<sub>PERSO API</sub>
+
+## Tách giọng nói
+
+Tách video hoặc audio thành các track sạch: giọng nói và phần nền. Nếu có nhiều người nói, giọng của mỗi người sẽ thành một track riêng. Thay nhạc nền, remaster phần thoại, hoặc dùng riêng bất kỳ track nào.
+
+<br>
+
+## Miễn phí ở mọi chỗ có thể. Trả phí chỉ khi bắt buộc.
+
+**MIT, miễn phí và mã nguồn mở.** Mọi thứ chạy trên máy của bạn đều không tốn phí và không cần tài khoản: tạo kiểu và gắn phụ đề, dịch file SRT bạn có sẵn, cắt clip theo timecode. Credit chỉ dùng đến khi công việc chạy trên máy chủ của Perso: lồng tiếng, lip-sync, tách giọng nói và nhận dạng giọng nói, tính phí theo từng giây xử lý qua [Perso Dubbing API](https://developers.perso.ai/api-keys).
+
+Không có thủ tục thiết lập rườm rà. Lần đầu một tác vụ máy chủ chạy, trình duyệt sẽ mở ra: đăng nhập, một cú nhấp, key được lưu ở dạng mã hóa. Các bước miễn phí không bao giờ hỏi.
+
+<br>
+
+---
+
+<sub>**Quyền riêng tư**: `/dubbing`, `/srt` và `/clip` gửi các sự kiện sử dụng để cải thiện các skill, gồm tác vụ đã chạy và kết quả ra sao, độ dài media, lựa chọn style, locale ở mức khái quát, phiên bản app/hệ điều hành, và việc có dùng (và đã đăng ký) Perso API key hay không. Mỗi sự kiện mang một ID ngẫu nhiên theo từng bản cài và số workspace của bạn; không bao giờ chứa key, media, tên file hay nội dung phụ đề. Tắt bằng `PERSO_NO_TELEMETRY`.</sub>
+
+<sub>**Giấy phép**: mã nguồn skill theo giấy phép [MIT](../../LICENSE). Việc sử dụng API tuân theo [Điều khoản dịch vụ của Perso AI](https://perso.ai) và biểu phí hiện hành.</sub>
