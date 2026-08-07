@@ -1,0 +1,11 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "Perso AI Video",
+      "description": "Dub, subtitle, and clip any video right from your coding agent — Claude, Codex, Cursor, Antigravity.",
+      "skills": ["dubbing", "srt", "clip"]
+    }
+  ]
+}

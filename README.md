@@ -10,6 +10,7 @@
 ![Agent Skills](https://img.shields.io/badge/Agent%20Skills-SKILL.md-1a1a1a?style=flat-square)
 ![Hosts](https://img.shields.io/badge/Claude%20%C2%B7%20Codex%20%C2%B7%20Antigravity-1a1a1a?style=flat-square)
 [![MIT](https://img.shields.io/badge/MIT-5A4FF3?style=flat-square)](LICENSE)
+[![skills.sh](https://skills.sh/b/perso-ai/perso-dubbing-plugin)](https://skills.sh/perso-ai/perso-dubbing-plugin)
 
 <sub>
 
@@ -52,7 +53,11 @@ claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dub
 
 **Claude Code CLI**: `/plugin marketplace add perso-ai/perso-dubbing-plugin`, then `/plugin install perso-dubbing@perso-ai`
 
-**Codex · Antigravity · anything else**: `npx perso-dubbing` detects your hosts and installs into each.
+**Codex · Antigravity · anything else**: `npx perso-dubbing` detects your hosts and installs into each — or, cross-agent via [skills.sh](https://skills.sh/perso-ai/perso-dubbing-plugin):
+
+```bash
+npx skills add perso-ai/perso-dubbing-plugin
+```
 
 Requires **Node.js 18+**, nothing else. [Visual walkthrough](https://dubbing-plugin.perso.ai/en/) · [FAQ](FAQ.md)
 
