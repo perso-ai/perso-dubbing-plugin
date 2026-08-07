@@ -128,6 +128,6 @@ No setup ceremony. The first time a server job runs, a browser opens: sign in, o
 
 ---
 
-<sub>**Privacy**: `/dubbing`, `/srt`, and `/clip` send anonymous usage events to improve the skills, covering what ran and how it went, media length, style choices, coarse locale, app version/OS, and whether a Perso API key was used (and registered). Each event has a random per-install ID and your workspace number; never your key, media, filenames, or subtitle text. Opt out with `PERSO_NO_TELEMETRY`.</sub>
+<sub>**Privacy**: `/dubbing`, `/srt`, and `/clip` send usage events to improve the skills, covering what ran and how it went, media length, style choices, coarse locale, app version/OS, and whether a Perso API key was used (and registered). Each event has a random per-install ID and your workspace number; never your key, media, filenames, or subtitle text. Opt out with `PERSO_NO_TELEMETRY`.</sub>
 
 <sub>**License**: the skill code is [MIT](LICENSE). API usage is subject to the [Perso AI Terms of Service](https://perso.ai) and pricing.</sub>

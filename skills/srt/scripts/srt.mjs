@@ -11,7 +11,7 @@ import { writeFileSync, readFileSync, mkdirSync, readdirSync, unlinkSync, rename
 import { join, basename, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { preloadKeyEnv } from '../../dubbing/scripts/resolve_key.mjs';
-import { ExitCode, UsageError, friendlyError, errorClass, ensureKey, ensureSpace } from '../../dubbing/lib/gates.mjs';
+import { ExitCode, UsageError, friendlyError, errorClass, errorCode, ensureKey, ensureSpace } from '../../dubbing/lib/gates.mjs';
 import { expandInputs, prepareInput } from '../../dubbing/lib/input.mjs';
 import { getPlanStatus, spacePlanProps } from '../../dubbing/lib/space.mjs';
 import { upload, requestStt, downloadAudioScript, getStatus, classifyUploadError } from '../../dubbing/lib/api_adapter.mjs';
@@ -269,6 +269,7 @@ async function sttProcess(perInput, ctx, saver, isResume) {
   const usedByDir = new Map();
   let ok = 0, fail = 0, noVoice = 0; // per input (one STT project each)
   let uploadFailCount = 0; // subset of fail whose media never uploaded → no project created → excluded from stt_completed
+  let dlFailCount = 0; // subset of fail that extracted fine but couldn't be downloaded → download_failed, excluded from stt_completed
   const flags = { pending: false };
   const total = perInput.length;
   const allDur = perInput.map((p) => p.durationSec).filter((d) => d != null);
@@ -276,9 +277,9 @@ async function sttProcess(perInput, ctx, saver, isResume) {
   const streamDone = (msg) => notify(total > 1 ? `${msg} (${ok + fail + 1}/${total})` : msg); // stream each input as it settles — don't buffer to the end
   // Completed-funnel event — also fired on a quota stop (partial counts), like dubbing_completed.
   const trackCompleted = async () => {
-    // Upload-phase failures created no project → reported by upload_failed, excluded here. A run that only
-    // failed to upload has nothing to report.
-    const telemetryFail = fail - uploadFailCount;
+    // Upload-phase failures created no project (→ upload_failed) and download-phase failures are
+    // recoverable via resume (→ download_failed) — both excluded: fail_count is extraction failures only.
+    const telemetryFail = fail - uploadFailCount - dlFailCount;
     if (ok + telemetryFail <= 0) return;
     const knownDur = perInput.map((p) => p.durationSec).filter((d) => d != null);
     // STT is one project per input (no chunk split — long media is rejected with a "split it yourself" note),
@@ -290,7 +291,7 @@ async function sttProcess(perInput, ctx, saver, isResume) {
       lang_count: transcribeOnly ? null : targets.length,
       success_count: ok, fail_count: telemetryFail, no_voice_count: noVoice,
       failure_scope: failureScope,
-      target_langs: transcribeOnly ? null : targets.join(','),
+      target_langs: transcribeOnly ? null : targets,
       transcribe_only: transcribeOnly,
       duration_sec: knownDur.length ? knownDur.reduce((a, b) => a + b, 0) : null,
       is_resume: isResume,
@@ -334,7 +335,18 @@ async function sttProcess(perInput, ctx, saver, isResume) {
       }
       const dir = out ?? inputSaveDir(pin.inp?.localPath ? pin.inp : pin.ref);
       mkdirSync(dir, { recursive: true });
-      const saved = await downloadAudioScript(projectId, spaceSeq, (serverName) => join(dir, reserve(dir, serverName, usedByDir)));
+      let saved;
+      try {
+        saved = await downloadAudioScript(projectId, spaceSeq, (serverName) => join(dir, reserve(dir, serverName, usedByDir)));
+      } catch (e) {
+        // Extracted on the server — only the retrieval failed, recoverable via --resume at no extra
+        // charge → the shared download_failed event (same event as dubbing), not an extraction failure.
+        flags.pending = true;
+        dlFailCount++;
+        track('download_failed', { ...await spacePlanProps(spaceSeq), mode: 'srt', is_resume: isResume });
+        streamDone(`Could not extract: ${name} — ${friendlyError(e)}`); fail++;
+        continue;
+      }
       saver.onComplete(pin.inputId, projectId, saved.path);
       emitMapping(pin.inp ?? pin.ref, langs, saved.path, projectId);
       streamDone(`Subtitle ready: ${name} → ${basename(saved.path)}`); ok++;
@@ -362,6 +374,7 @@ async function sttProcess(perInput, ctx, saver, isResume) {
           durSec = Number.isFinite(ms) && ms > 0 ? Math.round(ms / 1000) : null;
         }
         track('stt_over_limit', {
+          ...await spacePlanProps(spaceSeq),
           reason: e.code === 'F4008' ? 'length' : 'size',
           limit_min: Number(e.data?.maxLengthMs) > 0 ? Math.round(Number(e.data.maxLengthMs) / 60000) : null,
           duration_sec: durSec,
@@ -671,7 +684,7 @@ async function main() {
   } catch (e) {
     if (e?.name === 'ExitCode') exitCode = e.code; // message already printed at the throw site
     else if (e?.name === 'UsageError') { console.error(`${e.message}\n${USAGE}`); exitCode = 1; }
-    else { track('error', { error_class: errorClass(e), mode: offline ? (args.check ? 'srt-quality' : 'srt-timing') : (args.resume ? 'srt-resume' : 'srt') }); console.error(friendlyError(e)); exitCode = 1; }
+    else { track('error', { error_class: errorClass(e), code: errorCode(e), mode: offline ? (args.check ? 'srt-quality' : 'srt-timing') : (args.resume ? 'srt-resume' : 'srt') }); console.error(friendlyError(e)); exitCode = 1; }
   } finally {
     await cleanupTempDirs(); // clean the URL-download temp folders
   }

@@ -128,6 +128,6 @@ Không có thủ tục thiết lập rườm rà. Lần đầu một tác vụ m
 
 ---
 
-<sub>**Quyền riêng tư**: `/dubbing`, `/srt` và `/clip` gửi các sự kiện sử dụng ẩn danh để cải thiện các skill, gồm tác vụ đã chạy và kết quả ra sao, độ dài media, lựa chọn style, locale ở mức khái quát, phiên bản app/hệ điều hành, và việc có dùng (và đã đăng ký) Perso API key hay không. Mỗi sự kiện mang một ID ngẫu nhiên theo từng bản cài và số workspace của bạn; không bao giờ chứa key, media, tên file hay nội dung phụ đề. Tắt bằng `PERSO_NO_TELEMETRY`.</sub>
+<sub>**Quyền riêng tư**: `/dubbing`, `/srt` và `/clip` gửi các sự kiện sử dụng để cải thiện các skill, gồm tác vụ đã chạy và kết quả ra sao, độ dài media, lựa chọn style, locale ở mức khái quát, phiên bản app/hệ điều hành, và việc có dùng (và đã đăng ký) Perso API key hay không. Mỗi sự kiện mang một ID ngẫu nhiên theo từng bản cài và số workspace của bạn; không bao giờ chứa key, media, tên file hay nội dung phụ đề. Tắt bằng `PERSO_NO_TELEMETRY`.</sub>
 
 <sub>**Giấy phép**: mã nguồn skill theo giấy phép [MIT](../../LICENSE). Việc sử dụng API tuân theo [Điều khoản dịch vụ của Perso AI](https://perso.ai) và biểu phí hiện hành.</sub>

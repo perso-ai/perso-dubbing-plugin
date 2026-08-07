@@ -128,6 +128,6 @@ Aucune cérémonie de configuration. La première fois qu'un job serveur se lanc
 
 ---
 
-<sub>**Confidentialité** : `/dubbing`, `/srt` et `/clip` envoient des événements d'usage anonymes pour améliorer les skills : ce qui a tourné et comment cela s'est terminé, la durée des médias, les choix de style, la locale approximative, la version de l'app/OS, et si une clé Perso API a été utilisée (et enregistrée). Chaque événement porte un ID aléatoire par installation et votre numéro de workspace ; jamais votre clé, vos médias, vos noms de fichiers ni le texte de vos sous-titres. Désactivez avec `PERSO_NO_TELEMETRY`.</sub>
+<sub>**Confidentialité** : `/dubbing`, `/srt` et `/clip` envoient des événements d'usage pour améliorer les skills : ce qui a tourné et comment cela s'est terminé, la durée des médias, les choix de style, la locale approximative, la version de l'app/OS, et si une clé Perso API a été utilisée (et enregistrée). Chaque événement porte un ID aléatoire par installation et votre numéro de workspace ; jamais votre clé, vos médias, vos noms de fichiers ni le texte de vos sous-titres. Désactivez avec `PERSO_NO_TELEMETRY`.</sub>
 
 <sub>**Licence** : le code des skills est sous licence [MIT](../../LICENSE). L'usage de l'API est soumis aux [conditions d'utilisation de Perso AI](https://perso.ai) et à sa tarification.</sub>

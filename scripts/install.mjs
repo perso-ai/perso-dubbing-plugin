@@ -9,6 +9,11 @@ import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { emitInstall } from './install_beacon.mjs';
+import { captureWebAttribution, lingerWebAttribution } from '../skills/dubbing/lib/web_attribution.mjs';
+
+// Landing → plugin handshake: listen for the landing tab's GA-attribution delivery, overlapping the
+// copy work below; awaited before the install beacon so a delivered payload rides `install`.
+const attribution = captureWebAttribution(6000, { hold: true });
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url))); // package root (= parent of scripts/)
 // Skill payloads → each installs under its own name (→ /dubbing, /srt). They must land side by side:
@@ -66,4 +71,6 @@ for (const root of roots) {
 console.log('\nInstalled! Use  /dubbing  ("dub this video for me")  or  /srt  ("make me an English SRT for this video").');
 
 // Count the install (once per version; deduped in the beacon). Non-blocking, fail-silent.
+const delivered = await attribution;
 await emitInstall('npx', { hosts: targets.join(',') });
+if (!delivered) lingerWebAttribution(); // late delivery (throttled tab) rides first_run instead

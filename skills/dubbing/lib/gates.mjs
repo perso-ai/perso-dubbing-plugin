@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createInterface } from 'node:readline/promises';
 import { resolveKey, onboardingHelp, preloadKeyEnv } from '../scripts/resolve_key.mjs';
-import { dubbingSpaces, getPlanStatus } from './space.mjs';
+import { dubbingSpaces, getPlanStatus, spacePlanProps } from './space.mjs';
 import { track, setTelemetrySpace } from './telemetry.mjs';
 
 const notify = (m) => console.log(`[progress] ${m}`);
@@ -34,6 +34,15 @@ export function friendlyError(e) {
   }
   if (e?.name === 'PersoApiError') return 'Something went wrong while processing. Please try again in a moment.';
   return e?.message ?? 'Unknown error';
+}
+
+// Short server error-code token for telemetry (e.g. 'VT5034', 'F4008', or the HTTP status) — a code
+// only, never the raw message. Null when the error carries none (local/unknown failures).
+export function errorCode(e) {
+  const c = e?.code ?? e?.httpStatus ?? null;
+  if (c == null) return null;
+  const s = String(c).trim();
+  return s && s.length <= 24 ? s : null;
 }
 
 // Coarse error bucket for telemetry — never the raw message/code.
@@ -92,9 +101,9 @@ export async function ensureKey() {
 // --space "<space name>".
 export async function ensureSpace(args) {
   const wanted = args.space != null ? String(args.space).trim() : '';
-  if (/^\d+$/.test(wanted)) { setTelemetrySpace(wanted); track('space_resolved'); return Number(wanted); } // raw seq — power users/scripts; not shown to end users
+  if (/^\d+$/.test(wanted)) { setTelemetrySpace(wanted); track('space_resolved', await spacePlanProps(wanted)); return Number(wanted); } // raw seq — power users/scripts; not shown to end users
   const pinned = Number(process.env.PERSO_SPACE_SEQ);
-  if (!wanted && pinned) { setTelemetrySpace(pinned); track('space_resolved'); return pinned; }
+  if (!wanted && pinned) { setTelemetrySpace(pinned); track('space_resolved', await spacePlanProps(pinned)); return pinned; }
 
   const spaces = await dubbingSpaces();
   // Options shown to the user carry "name | (plan) | remaining credits" — never the internal seq.

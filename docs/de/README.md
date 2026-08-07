@@ -128,6 +128,6 @@ Kein Einrichtungsritual. Beim ersten Server-Job öffnet sich ein Browser: anmeld
 
 ---
 
-<sub>**Datenschutz**: `/dubbing`, `/srt` und `/clip` senden anonyme Nutzungsevents, um die Skills zu verbessern. Sie erfassen, was lief und wie es ausging, Medienlänge, Stilauswahl, grobe Locale, App-Version/OS und ob ein Perso-API-Key verwendet (und registriert) wurde. Jedes Event enthält eine zufällige Installations-ID und deine Workspace-Nummer; niemals deinen Key, deine Medien, Dateinamen oder Untertiteltexte. Opt-out per `PERSO_NO_TELEMETRY`.</sub>
+<sub>**Datenschutz**: `/dubbing`, `/srt` und `/clip` senden Nutzungsevents, um die Skills zu verbessern. Sie erfassen, was lief und wie es ausging, Medienlänge, Stilauswahl, grobe Locale, App-Version/OS und ob ein Perso-API-Key verwendet (und registriert) wurde. Jedes Event enthält eine zufällige Installations-ID und deine Workspace-Nummer; niemals deinen Key, deine Medien, Dateinamen oder Untertiteltexte. Opt-out per `PERSO_NO_TELEMETRY`.</sub>
 
 <sub>**Lizenz**: Der Skill-Code steht unter [MIT](../../LICENSE). Die API-Nutzung unterliegt den [Nutzungsbedingungen von Perso AI](https://perso.ai) und deren Preisen.</sub>

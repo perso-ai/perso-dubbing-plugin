@@ -13,7 +13,7 @@ import { realpathSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { persoBaseUrl } from '../lib/config.mjs';
 import { storeKey } from './resolve_key.mjs';
-import { track, primeTelemetrySpace } from '../lib/telemetry.mjs';
+import { track, primeTelemetrySpace, telemetryDeviceId } from '../lib/telemetry.mjs';
 
 const PORTAL_BASE = persoBaseUrl('PERSO_PORTAL_BASE', process.env.PERSO_PORTAL_BASE, 'https://developers.perso.ai');
 const PORTAL_ORIGIN = new URL(PORTAL_BASE).origin;
@@ -89,7 +89,10 @@ function awaitCallback(state) {
       // The portal prefills its key-name input with this, truncated to 16 chars — anything longer
       // (a hostname suffix, say) gets cut mid-word, so keep it short enough to survive intact.
       const name = 'perso-dubbing';
-      const url = `${PORTAL_BASE}/connect?port=${port}&state=${state}&name=${encodeURIComponent(name)}`;
+      // did: this install's Amplitude device_id — the page's events merge into the same user.
+      const did = telemetryDeviceId(); // null when opted out → param omitted, page sends nothing to merge
+
+      const url = `${PORTAL_BASE}/connect?port=${port}&state=${state}&name=${encodeURIComponent(name)}${did ? `&did=${encodeURIComponent(did)}` : ''}`;
       console.log('Opening the Perso developer portal — sign in and click [Issue key for this device]:');
       console.log(`  ${url}`);
       if (process.env.PERSO_NO_OPEN) {

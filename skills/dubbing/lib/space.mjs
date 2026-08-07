@@ -1,6 +1,7 @@
 // spaceSeq resolution. Commonly needed by validate, translate, and quota.
 import { get } from './http_client.mjs';
 import { getProjectDetail } from './api_adapter.mjs';
+import { setTelemetryAccount, setTelemetryPlan, hasTelemetryUser } from './telemetry.mjs';
 
 let _cache = null;
 
@@ -8,7 +9,19 @@ export async function listSpaces() {
   if (_cache) return _cache;
   const res = await get('/portal/api/v1/spaces');
   _cache = res?.result ?? [];
+  await resolveTelemetryAccount(_cache);
   return _cache;
+}
+
+// Telemetry user_id source: the caller's userSeq from the member endpoint. Fetched once per install
+// (persisted; skipped on later runs). Fail-silent — telemetry-only, never affects the run.
+async function resolveTelemetryAccount(spaces) {
+  try {
+    if (process.env.PERSO_NO_TELEMETRY || hasTelemetryUser() || !spaces.length) return;
+    const s = spaces.find((x) => x.isDefaultSpaceOwned === true) ?? spaces[0];
+    const m = (await get(`/portal/api/v1/spaces/${s.spaceSeq}/member`))?.result;
+    if (Number(m?.userSeq) > 0) setTelemetryAccount(m.userSeq);
+  } catch { /* telemetry only */ }
 }
 
 /** Spaces where dubbing can run, with display names for the user to choose from.
@@ -36,6 +49,7 @@ export async function dubbingSpaces() {
 export async function spacePlanProps(spaceSeq) {
   try {
     const s = (await listSpaces()).find((x) => x.spaceSeq === Number(spaceSeq));
+    setTelemetryPlan(s?.tier ?? null, s?.planName ?? null); // also the plan_tier/plan_name user properties
     return { plan_tier: s?.tier ?? null, plan_name: s?.planName ?? null };
   } catch { return { plan_tier: null, plan_name: null }; }
 }
