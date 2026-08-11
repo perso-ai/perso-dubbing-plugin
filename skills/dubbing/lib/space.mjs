@@ -85,6 +85,17 @@ export async function findSpaceForProject(projectSeq) {
   return null;
 }
 
+/** Is this space on the Free plan? Free spaces can generate projects but the server refuses every result
+ *  download (VT5003), so the workers deliver a Perso link instead of a file and cap submissions at a preview.
+ *  plan/status first, the (cached) spaces list as fallback. Unknown tier → false: never restrict a paid run. */
+export async function isFreePlan(spaceSeq) {
+  const free = (t) => String(t ?? '').trim().toLowerCase() === 'free';
+  if (free((await getPlanStatus(spaceSeq))?.planTier)) return true;
+  try {
+    return free((await listSpaces()).find((x) => x.spaceSeq === Number(spaceSeq))?.tier);
+  } catch { return false; }
+}
+
 /** Query plan/quota → { planTier, remainingQuota, resetDateTime }. Returns null on failure. */
 export async function getPlanStatus(spaceSeq) {
   try {

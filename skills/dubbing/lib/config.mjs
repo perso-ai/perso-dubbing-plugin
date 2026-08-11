@@ -34,6 +34,10 @@ export const LIPSYNC_POLL_INTERVAL_MS = 30_000;
 export const LIPSYNC_IDLE_PER_DURATION = 15; // no-progress allowance = video duration × this (when the duration is known)
 export const LIPSYNC_IDLE_MS = Number(process.env.PERSO_LIPSYNC_IDLE_MS) || 3 * 60 * 60_000; // fallback allowance when the duration is unknown
 
+// Free plan: only the first slice of a video is ever dubbed/lip-synced (the server does not truncate —
+// the worker trims locally before submitting). Results are never downloadable on a free space.
+export const FREE_PREVIEW_MS = 30_000;
+
 // Credit pre-check estimate (per second of video). The server's billing is authoritative — these only power an upfront warning.
 export const CREDIT_RATE_DUB = 1;
 export const CREDIT_RATE_LIPSYNC = 2;

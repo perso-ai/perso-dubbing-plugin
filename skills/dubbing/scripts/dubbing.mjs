@@ -3,15 +3,15 @@
 //   key gate → input(s) → per-input split → global pool scheduler (all inputs×parts×languages in one queue) → per-input/per-language merge → notice.
 //   usage: node scripts/dubbing.mjs "<local|URL|folder>" ["<another input>" ...] [--source auto] [--target en,ja] [--space "space name"] [--out path|folder]
 //          node scripts/dubbing.mjs --resume "<statefile>"
-import { writeFileSync, readFileSync, copyFileSync, mkdirSync, readdirSync, unlinkSync, renameSync, realpathSync, existsSync } from 'node:fs';
+import { writeFileSync, readFileSync, copyFileSync, mkdirSync, readdirSync, unlinkSync, renameSync, realpathSync, existsSync, statSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { join, basename, dirname, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { preloadKeyEnv } from './resolve_key.mjs';
 import { ExitCode, UsageError, isAuthError, friendlyError, errorClass, errorCode, ensureKey, ensureSpace } from '../lib/gates.mjs';
 import { expandInputs, prepareInput } from '../lib/input.mjs';
-import { getPlanStatus, spacePlanProps } from '../lib/space.mjs';
-import { getLanguages } from '../lib/languages.mjs';
+import { getPlanStatus, spacePlanProps, isFreePlan } from '../lib/space.mjs';
+import { getLanguageIndex, resolveLanguage, languageOptions, supportedSummary } from '../lib/languages.mjs';
 import { resolveChunks, recutChunk, SplitConfirmNeeded } from '../lib/split.mjs';
 import { runSchedule } from '../lib/scheduler.mjs';
 import { download, getStatus, upload, requestAudioSeparation, downloadSeparation, classifyUploadError } from '../lib/api_adapter.mjs';
@@ -22,7 +22,7 @@ import { track, initTelemetry, setTelemetrySpace, primeTelemetrySpace, setAgentH
 import { makeStatusTicker, statusIntervalMs } from '../lib/status.mjs';
 import { cleanupTempDirs, makeTempDir } from '../lib/tmp.mjs';
 import { probe } from '../lib/ffmpeg.mjs';
-import { AUDIO_EXT, CREDIT_RATE_DUB, CREDIT_RATE_LIPSYNC, UHD_CREDIT_MULT, UHD_BILLED_TIERS, POLL_INTERVAL_MS, MAX_IDLE_MS } from '../lib/config.mjs';
+import { AUDIO_EXT, CREDIT_RATE_DUB, CREDIT_RATE_LIPSYNC, UHD_CREDIT_MULT, UHD_BILLED_TIERS, POLL_INTERVAL_MS, MAX_IDLE_MS, FREE_PREVIEW_MS } from '../lib/config.mjs';
 
 const log = (m) => console.error('  ' + m); // background verbose log (stderr)
 // Milestones exposed to the user (stdout). The agent relays these [progress] lines to chat per the SKILL rules.
@@ -81,16 +81,21 @@ function reasonToken(reason) {
 const reasonPhrase = (parts) => [...new Set(parts.map((r) => friendlyReason(r.reason)))].join(', ');
 
 const USAGE = [
-  'Usage: node scripts/dubbing.mjs "<file|folder|URL>" ["<another input>" ...] [--source auto] [--target en,ja] [--space "space name"] [--out path|folder] [--recursive] [--lipsync] [--force] [--no-save]',
-  '       node scripts/dubbing.mjs --lipsync-only "<project-ref JSON | projectSeq[,projectSeq...]>" [--space "space name"] [--out path|folder]',
+  'Usage: node scripts/dubbing.mjs "<file|folder|URL>" ["<another input>" ...] [--source auto] [--target en,ja] [--space "space name"] [--out <file|folder>] [--recursive] [--lipsync] [--force] [--no-save]',
+  '       node scripts/dubbing.mjs --lipsync-only "<project-ref JSON | projectSeq[,projectSeq...]>" [--space "space name"] [--out <file|folder>]',
   '       node scripts/dubbing.mjs --separate "<file|folder|URL>" ["<another input>" ...] [--space "space name"] [--out folder]',
   '       node scripts/dubbing.mjs --resume "<state-file>"',
   '',
+  '  --out           <file|folder> — an existing folder (or a path ending in / or \\) collects the results inside it;',
+  '                  any other path is the output file itself (the real extension is added when it has none)',
+  '  --target        language code(s), comma-separated — a code (en, ja) or a regional tag (en-GB, pt-PT, es-ES)',
   '  --lipsync       dub, then generate the lip-synced video (extra credits; takes much longer than dubbing)',
   '  --lipsync-only  lip-sync an already-dubbed project (uses the [project-ref] line printed by a finished run; no re-dub charge)',
   '  --separate      split the source into voice / background / sub-background audio tracks (no dubbing; ~0.5 credit per second)',
   '  --force         skip the upfront credit-estimate gate of --lipsync',
   '  --no-save       leave the result on the server without downloading it (single/unsplit input only; not with --lipsync)',
+  '  --allow-split   confirm the automatic split → process → merge of an over-limit input (set on the re-run after [split-confirm])',
+  '  --allow-preview confirm dubbing only the first 30 seconds on a Free plan (set on the re-run after [free-limit])',
 ].join('\n');
 
 function parseArgs(argv) {
@@ -104,6 +109,7 @@ function parseArgs(argv) {
     else if (t === '--lipsync') a.lipsync = true;
     else if (t === '--force') a.force = true;
     else if (t === '--allow-split') a.allowSplit = true; // user confirmed auto split→dub→merge (set on the re-run after [split-confirm])
+    else if (t === '--allow-preview') a.allowPreview = true; // free plan: user confirmed dubbing only the first 30s (set on the re-run after [free-limit])
     else if (t === '--no-save') a.noSave = true; // server-only: skip downloading the result (single/unsplit input only)
     else if (t in VALUE_FLAGS) {
       const v = argv[++i];
@@ -118,29 +124,22 @@ function parseArgs(argv) {
 
 // Language codes are validated up-front: a typo is a permanent error, so fail with the supported list
 // instead of a mid-run "try again". Best-effort — if the list can't be fetched, let the server decide.
+// Targets keep their regional tag (en-GB); a source tag is dropped — detection has no regional variants.
 async function validateLanguages(targets, source) {
-  const langs = await getLanguages().catch(() => []);
-  const codes = langs.map((l) => (typeof l === 'string' ? l : l.code ?? l.languageCode)).filter(Boolean);
-  if (!codes.length) return { targets, source };
-  const canon = new Map(codes.map((c) => [String(c).toLowerCase(), c]));
-  const fixed = targets.map((t) => {
-    const hit = canon.get(t.toLowerCase());
-    if (!hit) {
-      track('lang_invalid', { field: 'target' });
-      console.error(`Unsupported target language code: "${t}"\nSupported: ${codes.join(', ')}`);
-      throw new ExitCode(1);
-    }
-    return hit;
-  });
+  const index = await getLanguageIndex();
+  if (!index.size) return { targets, source };
+  const reject = (field, token, hint) => {
+    track('lang_invalid', { field });
+    const options = languageOptions(index, token); // known code, unknown tag → that language's options
+    console.error(options
+      ? `Unsupported ${field} language: "${token}"${hint}\n${options}`
+      : `Unsupported ${field} language code: "${token}"${hint}\nSupported: ${supportedSummary(index)}`);
+    throw new ExitCode(1);
+  };
+  const fixed = targets.map((t) => resolveLanguage(index, t)?.token ?? reject('target', t, ''));
   let src = source;
   if (source && source !== 'auto') {
-    const hit = canon.get(source.toLowerCase());
-    if (!hit) {
-      track('lang_invalid', { field: 'source' });
-      console.error(`Unsupported source language code: "${source}" (use "auto" to detect)\nSupported: ${codes.join(', ')}`);
-      throw new ExitCode(1);
-    }
-    src = hit;
+    src = resolveLanguage(index, source)?.code ?? reject('source', source, ' (use "auto" to detect)');
   }
   return { targets: fixed, source: src };
 }
@@ -180,16 +179,74 @@ function splitConfirmMessage(d, tag, action = 'dub') {
   ].join('\n');
 }
 
+// Free-plan pause ([free-limit]), thrown from the input-prep stage. Carries the ready-made text so the
+// caller handles it exactly like SplitConfirmNeeded: print, drop the (unbilled) state file, exit 0.
+class FreeLimitNeeded extends Error {
+  constructor(text) { super('free plan limit'); this.name = 'FreeLimitNeeded'; this.text = text; }
+}
+
+// True when this input's single chunk is a free-plan preview cut (used for the delivery note).
+const isPreviewCut = (chunks) => chunks?.length === 1 && chunks[0].startMs === 0 && chunks[0].endMs === FREE_PREVIEW_MS;
+// The free preview gate fires only ABOVE the window — media of exactly FREE_PREVIEW_MS runs whole.
+// An unknown length never gates (nothing can be trimmed from a measurement that doesn't exist).
+const overFreePreview = (ms) => Number.isFinite(ms) && ms > FREE_PREVIEW_MS;
+
+// Input prep on a free plan. Only the first FREE_PREVIEW_MS is ever submitted, and a longer input needs the
+// user's OK first (--allow-preview) because the rest is dropped. Nothing here is billed — uploads are free,
+// the gate runs before any translate request. Free runs never auto-split: an over-limit input stops with
+// [free-limit] instead of offering [split-confirm] (handled by the caller's SplitConfirmNeeded branch).
+async function freeChunks(inp, spaceSeq, { tag, allowPreview, lipsync, log, notify }) {
+  const gate = (trimmable) => new FreeLimitNeeded(messages.freePreviewGate({
+    tag, previewMs: FREE_PREVIEW_MS, action: lipsync ? 'dubbed and lip-synced' : 'dubbed', trimmable,
+  }));
+  const whole = async (prepared) => (await resolveChunks(prepared, spaceSeq, { log, notify, allowSplit: false })).chunks;
+  const msOf = (sec) => (Number.isFinite(sec) && sec > 0 ? sec * 1000 : null);
+
+  if (inp.source === 'external') {
+    // A platform link is imported server-side (not billed) — its length is only known after the import,
+    // and it cannot be cut locally, so an over-length link has no preview path.
+    const m = await upload(inp, spaceSeq);
+    if (overFreePreview(msOf(m.durationSec))) throw gate(false);
+    return [{ index: 0, source: 'external', sourceUrl: inp.sourceUrl, mediaSeq: m.seq, kind: m.kind, durationSec: m.durationSec ?? null }];
+  }
+
+  const localPath = inp.localPath ?? inp.path;
+  let durationMs = (await probe(localPath).catch(() => ({}))).durationMs ?? null; // no ffprobe → measured by the upload below
+  if (durationMs == null) {
+    const chunks = await whole(inp);
+    durationMs = msOf(chunks[0]?.durationSec);
+    if (!overFreePreview(durationMs)) return chunks; // within the preview, or unmeasurable → run it as-is
+  } else if (!overFreePreview(durationMs)) {
+    return whole(inp);
+  }
+  if (!allowPreview) throw gate(true);
+
+  // Confirmed preview: cut the first FREE_PREVIEW_MS locally and upload only that piece (the server dubs
+  // — and bills — whatever it is given, so the trim has to happen here).
+  notify(`Free plan — dubbing only the first ${Math.round(FREE_PREVIEW_MS / 1000)} seconds of ${labelOf(inp)}.`);
+  const cut = await recutChunk(localPath, 0, FREE_PREVIEW_MS);
+  const chunks = await whole({ source: 'local', localPath: cut, originalName: inp.originalName ?? basename(localPath) });
+  return chunks.map((c) => ({ ...c, startMs: 0, endMs: FREE_PREVIEW_MS })); // absolute boundaries → resume re-cuts the same piece
+}
+
 // Save directory (non-volatile): next to the local original; current folder for URL/external/unknown.
 function inputSaveDir(inp) {
   if (inp?.source === 'local' && inp.localPath) return dirname(inp.localPath);
   return process.cwd();
 }
 
+// Is --out a folder rather than a file path? An existing directory, or a path written with a trailing
+// separator (which need not exist yet). Anything else is a file path, even for a single input.
+function outIsFolder(out) {
+  if (!out) return false;
+  if (/[\\/]$/.test(out)) return true;
+  try { return statSync(out).isDirectory(); } catch { return false; } // missing path → a file to create
+}
+
 // Resume state-file location — stores no video data (lightweight) and lives in a non-volatile location (survives temp cleanup).
 //   if --out is set, next to/inside it; otherwise next to the single local original; else current folder.
 function resumePath({ out, inputs, multiInput }) {
-  if (out) return multiInput ? join(out, '.dubresume.json') : out + '.dubresume.json';
+  if (out) return (multiInput || outIsFolder(out)) ? join(out, '.dubresume.json') : out + '.dubresume.json';
   const only = inputs.length === 1 ? inputs[0] : null;
   if (only?.source === 'local' && only.localPath) return only.localPath + '.dubresume.json';
   return join(process.cwd(), 'dubbing-resume.json');
@@ -212,6 +269,13 @@ function explicitOutPath(argOut, target, multiLang) {
   return multiLang ? argOut.replace(/(\.[^.\\/]+)?$/, `.${target}$1`) : argOut;
 }
 
+// Real extension of the delivered result (Perso's output name), .mp4 when the server named nothing.
+const outputExt = (outputs) => extname(outputs[0]?.name || outputs[0]?.path || '') || '.mp4';
+// An extensionless --out file path gets the real extension, so nothing is ever written without one.
+// Applied to the RAW argument, before the language/_N suffixes: `langs` → `langs.mp4` → `langs.ar.mp4`
+// (suffixing afterwards would read `.ar` as the extension). Same separator-safe class as above.
+const withExt = (p, ext) => (/\.[^.\\/]+$/.test(p) ? p : p + ext);
+
 // If the output filename is already taken, append a _2,_3… suffix before the extension to avoid collisions (also registering it into used).
 function uniqueName(fname, used) {
   if (!used.has(fname)) { used.add(fname); return fname; }
@@ -231,18 +295,19 @@ function reserve(dir, name, usedByDir) {
 }
 
 // Determine the final save path for one (input × language) bundle + create the directory (if needed).
-//  1) single input + --out → that file (_language if multilingual, _2,_3… if multiple outputs).  [user-specified takes precedence]
+//  1) --out naming a FILE (single input) → that file (_language if multilingual, _2,_3… if multiple outputs,
+//     + the real extension if the path has none).  [user-specified takes precedence]
 //  2) single result without split + Perso filename → keep the Perso name as-is (includes language/timestamp → no rename needed).
 //  3) otherwise (split merge, etc.) → <originalName>.<suffix>.<language>.<ext> (_2,_3… if multiple; suffix: dubbed|lipsync).
-//  Save folder: --out (folder if multi-input) > next to the input original > current folder.
+//  Save folder: --out (whenever it names a folder, or the run is multi-input) > next to the input original > current folder.
 function targetPaths(outputs, ctx) {
   const { inp, target, isSplit, multiInput, multiLang, out, usedByDir, suffix = 'dubbed' } = ctx;
-  if (out && !multiInput) {
-    const file = explicitOutPath(out, target, multiLang);
+  if (out && !multiInput && !outIsFolder(out)) {
+    const file = explicitOutPath(withExt(out, outputExt(outputs)), target, multiLang);
     mkdirSync(dirname(file), { recursive: true });
     return outputs.length === 1 ? [file] : outputs.map((_, i) => file.replace(/(\.[^.\\/]+)?$/, `_${i + 1}$1`));
   }
-  const dir = (out && multiInput) ? out : inputSaveDir(inp);
+  const dir = out ? out : inputSaveDir(inp);
   mkdirSync(dir, { recursive: true });
   const names = [];
   if (!isSplit && outputs.length === 1 && outputs[0].name) {
@@ -383,10 +448,26 @@ async function finishPool(allResults, perInput, ctx) {
         continue;
       }
       if (mergeable.length && mergeable.every((r) => r.serverOnly)) {
-        // --no-save: the dubbed result was left on the server and never downloaded → report + reference, don't merge/save.
-        lines.push(`Kept on server, not saved: ${tlab} → ${projectUrl(mergeable[0].projectId, 'dub')}`);
-        fullCount++; // --no-save is single/unsplit only → a kept result is a complete one
-        emitProjectRef(pin, tRes, target, ctx, { lipsync: false });
+        // Server-only (--no-save, or any free-plan run): the result was left on the server and never
+        // downloaded → report + reference, don't merge/save. Both are single/unsplit → a kept result is complete.
+        const ls = mergeable.some((r) => r.lipsync);
+        const lsGone = mergeable.some((r) => r.lipsyncFailed);
+        const lsOwed = mergeable.some((r) => r.lipsyncPending);
+        const url = projectUrl(mergeable[0].projectId, ls ? 'lipsync' : 'dub');
+        if (ctx.freePlan) {
+          const notes = [];
+          if (isPreviewCut(pin.chunks)) notes.push(`first ${Math.round(FREE_PREVIEW_MS / 1000)} seconds`);
+          if (lsGone) notes.push('lip-sync failed — the dubbed video is on Perso');
+          if (lsOwed) notes.push('lip-sync still owed — continuing finishes it');
+          lines.push(messages.freeDelivery({
+            label: tlab, url, what: ls ? 'lip-synced video' : 'dubbed video',
+            note: notes.length ? notes.join('; ') : null,
+          }));
+        } else {
+          lines.push(`Kept on server, not saved: ${tlab} → ${url}`);
+        }
+        fullCount++;
+        emitProjectRef(pin, tRes, target, ctx, { lipsync: ls && !lsGone && !lsOwed });
         continue;
       }
       const hasLs = mergeable.some((r) => r.lipsync);
@@ -436,7 +517,7 @@ async function finishPool(allResults, perInput, ctx) {
   const stopped = !!ctx.sched?.stopped;
   if (stopped || dlPending) {
     ctx.stopReason = stopped ? 'quota' : 'download'; // recorded in the manifest → resume reports why it stopped
-    if (ctx.multiInput && ctx.out) mkdirSync(ctx.out, { recursive: true });
+    mkdirSync(dirname(ctx.file), { recursive: true }); // an --out folder may not exist yet (nothing was saved into it)
     writeFileSync(ctx.file, JSON.stringify(buildManifest(ctx, perInput, allResults, ctx.prevDone ?? {})), 'utf8');
     if (stopped) {
       const plan = await getPlanStatus(ctx.spaceSeq);
@@ -542,7 +623,9 @@ async function runPool(args) {
   guardExistingState(file); // before validate/space/upload — never silently restart (and re-bill) an interrupted run
   const { targets, source } = await validateLanguages(wantedTargets, args.source); // typo-fail before asking anything
   const spaceSeq = await ensureSpace(args); // ask before any download/upload work (cheap to re-run with --space)
-  const ctx = { spaceSeq, source, targets, out: args.out, multiInput, file, prevDone: {}, lipsync: !!args.lipsync };
+  const freePlan = await isFreePlan(spaceSeq); // fetched once per run; threaded through ctx/pool
+  const ctx = { spaceSeq, source, targets, out: args.out, multiInput, file, prevDone: {}, lipsync: !!args.lipsync, freePlan };
+  if (freePlan) notify('Free plan — results stay in the Perso workspace (downloading them needs a paid plan).');
 
   // Per-input split/upload → tag every part with inputId into a single pool.
   const pool = [];
@@ -553,22 +636,31 @@ async function runPool(args) {
     const tag = multiInput ? `[${id + 1}/${inputs.length}] ${labelOf(inp)}` : labelOf(inp);
     let chunks;
     try {
-      ({ chunks } = await resolveChunks(inp, spaceSeq, { log, notify, allowSplit: args.allowSplit }));
+      chunks = freePlan
+        ? await freeChunks(inp, spaceSeq, { tag, allowPreview: args.allowPreview, lipsync: !!args.lipsync, log, notify })
+        : (await resolveChunks(inp, spaceSeq, { log, notify, allowSplit: args.allowSplit })).chunks;
     } catch (e) {
-      if (e?.name === 'SplitConfirmNeeded') {
-        track('split_confirm_needed', splitConfirmProps(e.details));
-        console.log(splitConfirmMessage(e.details, tag));
-        // Nothing is billed yet at the split stage, so discard any partial state so the --allow-split re-run isn't blocked by the resume guard.
+      // Both pauses stop before anything is billed → discard partial state so the confirmed re-run isn't blocked by the resume guard.
+      const pause = (text) => {
+        console.log(text);
         try { if (existsSync(file)) unlinkSync(file); } catch { /* ignore */ }
         throw new ExitCode(0); // stop and ask the user — a normal pause, not a failure
+      };
+      if (e?.name === 'FreeLimitNeeded') pause(e.text);
+      if (e?.name === 'SplitConfirmNeeded') {
+        // Free plans get no split offer: over-limit media can only be shortened or unlocked by upgrading.
+        if (freePlan) pause(messages.freeOverLimit({ tag, reason: e.details?.reason, limitMs: e.details?.limitMs }));
+        track('split_confirm_needed', splitConfirmProps(e.details));
+        pause(splitConfirmMessage(e.details, tag));
       }
       if (isAuthError(e)) { track('error', { error_class: 'auth', code: errorCode(e), mode: dubMode(args) }); console.log(`\n${friendlyError(e)}`); return; } // key issues abort everything
       if (e?.name === 'UnsupportedMediaError') { notify(skipMsg(labelOf(inp), e)); continue; } // unsupported → skip
       console.log(`${tag} — split/upload failed: ${friendlyError(e)}`); continue;
     }
     if (chunks.length > 1) notify(`Split complete — ${labelOf(inp)} (${chunks.length} parts)`);
-    const noDownload = !!args.noSave && chunks.length === 1; // --no-save is single-input only; a split video's merged file needs a local download
-    if (args.noSave && chunks.length > 1) notify(`--no-save is not available for split videos (merging needs a local download) — ${labelOf(inp)} will be saved normally.`);
+    // Free plans can never download a result (the server refuses it), so every free part is server-only.
+    const noDownload = freePlan || (!!args.noSave && chunks.length === 1); // --no-save is single-input only; a split video's merged file needs a local download
+    if (args.noSave && !freePlan && chunks.length > 1) notify(`--no-save is not available for split videos (merging needs a local download) — ${labelOf(inp)} will be saved normally.`);
     for (const c of chunks) pool.push({ ...c, inputId: id, noDownload });
     perInput.push({ inputId: id, inp, ref: refOf(inp), chunks });
     saver.writeNow(); // the chunk plan (boundaries) survives a crash from this point on
@@ -639,10 +731,12 @@ async function runResume(file) {
   const targets = m.targets ?? [m.opts?.target ?? 'en'];
   const multiInput = (m.inputs?.length ?? 0) > 1;
   const lipsync = !!m.lipsync;
-  const ctx = { spaceSeq: m.spaceSeq, source: m.opts?.source ?? 'auto', targets, out: m.out, multiInput, file, prevDone: m.done ?? {}, lipsync, isResume: true, resumedFrom: m.stop_reason ?? 'manual' };
+  const freePlan = await isFreePlan(m.spaceSeq); // re-checked here: the plan may have changed since the interrupted run
+  const ctx = { spaceSeq: m.spaceSeq, source: m.opts?.source ?? 'auto', targets, out: m.out, multiInput, file, prevDone: m.done ?? {}, lipsync, isResume: true, resumedFrom: m.stop_reason ?? 'manual', freePlan };
   track('resume_started', { mode: 'resume', resumed_from: m.stop_reason ?? 'manual' });
   const outDir = await makeTempDir('dubbing-resume-');
   const matCache = new Map(); // `${inputId}|${index}` → re-cut path (once per part, shared across languages)
+  const serverState = async (seq) => { try { return (await getStatus(seq, m.spaceSeq)).state; } catch { return null; } }; // unknown → treat as still running
 
   const downloaded = [];
   const skip = new Set();
@@ -682,6 +776,23 @@ async function runResume(file) {
         const base = { inputId: pin.inputId, index: c.index, target };
         const tag = `[input ${pin.inputId + 1}] part ${c.index + 1}(${target})`;
         if (d?.status === 'OK' || d?.status === 'RUN') {
+          if (freePlan) {
+            // Nothing is downloadable on a free space — confirm the project state and deliver it as a link.
+            const state = await serverState(d.projectSeq);
+            const ls = d.lipsync ? { lipsync: true, dubProjectId: d.dubSeq ?? null } : {};
+            if (state === 'complete') {
+              downloaded.push({ ...base, status: 'OK', projectId: d.projectSeq, serverOnly: true, ...ls, ...(d.lipsyncFailed ? { lipsyncFailed: true } : {}) });
+              log(`${tag} done — kept on server (free plan)`);
+              skip.add(k);
+            } else if (state === 'failed') {
+              log(`${tag} failed on the server — will re-dub`);
+            } else {
+              downloaded.push({ ...base, status: 'DLFAIL', projectId: d.projectSeq, reason: 'dub_processing', ...ls });
+              log(`${tag} still processing on the server — resume again later (no re-dub)`);
+              skip.add(k);
+            }
+            continue;
+          }
           const out = join(outDir, `dub_${pin.inputId}_${String(c.index).padStart(3, '0')}_${target}.mp4`);
           try {
             const dl = await download(d.projectSeq, m.spaceSeq, { kind: c.kind, outPath: out, lipsync: !!d.lipsync });
@@ -710,7 +821,7 @@ async function runResume(file) {
           let s = null;
           try { s = await getStatus(d.projectSeq, m.spaceSeq); } catch { /* unknown → treat as still processing */ }
           if (s?.state === 'complete') {
-            pool.push({ inputId: pin.inputId, index: c.index, stage: 'lipsync', parentSeq: d.projectSeq, target, kind: c.kind, startMs: c.startMs, endMs: c.endMs });
+            pool.push({ inputId: pin.inputId, index: c.index, stage: 'lipsync', parentSeq: d.projectSeq, target, kind: c.kind, startMs: c.startMs, endMs: c.endMs, noDownload: freePlan });
             log(`${tag} dubbed — lip-sync will be requested`);
             skip.add(k);
           } else if (s?.state === 'failed') {
@@ -722,6 +833,21 @@ async function runResume(file) {
           }
         } else if (d?.status === 'LSRUN') {
           // Lip-sync already submitted — never submit again (it would generate and bill again): download, wait, or fall back.
+          if (freePlan) {
+            const state = await serverState(d.projectSeq);
+            if (state === 'complete') {
+              downloaded.push({ ...base, status: 'OK', projectId: d.projectSeq, lipsync: true, dubProjectId: d.dubSeq ?? null, serverOnly: true });
+              log(`${tag} lip-sync done — kept on server (free plan)`);
+            } else if (state === 'failed' && d.dubSeq != null) {
+              downloaded.push({ ...base, status: 'OK', projectId: d.dubSeq, lipsyncFailed: true, reason: 'lipsync_failed', serverOnly: true });
+              log(`${tag} lip-sync failed — the dubbed project stays the deliverable`);
+            } else {
+              downloaded.push({ ...base, status: 'DLFAIL', projectId: d.projectSeq, lipsync: true, dubProjectId: d.dubSeq ?? null, reason: 'dub_processing' });
+              log(`${tag} lip-sync still processing — resume again later`);
+            }
+            skip.add(k);
+            continue;
+          }
           const out = join(outDir, `lip_${pin.inputId}_${String(c.index).padStart(3, '0')}_${target}.mp4`);
           try {
             const dl = await download(d.projectSeq, m.spaceSeq, { lipsync: true, outPath: out });
@@ -764,13 +890,13 @@ async function runResume(file) {
       if (!missing.length) continue;
       if (c.parentSeq != null) {
         // lipsync-only plan interrupted before submission — the dubbed project is known, only lip-sync is owed
-        for (const t of missing) pool.push({ inputId: pin.inputId, index: c.index, stage: 'lipsync', parentSeq: c.parentSeq, target: t, kind: c.kind ?? 'video', startMs: c.startMs, endMs: c.endMs });
+        for (const t of missing) pool.push({ inputId: pin.inputId, index: c.index, stage: 'lipsync', parentSeq: c.parentSeq, target: t, kind: c.kind ?? 'video', startMs: c.startMs, endMs: c.endMs, noDownload: freePlan });
       } else if (c.source === 'external') {
-        pool.push({ inputId: pin.inputId, index: c.index, source: 'external', sourceUrl: c.sourceUrl, kind: c.kind });
+        pool.push({ inputId: pin.inputId, index: c.index, source: 'external', sourceUrl: c.sourceUrl, kind: c.kind, noDownload: freePlan });
       } else {
         try {
           const path = await materialize(c);
-          pool.push({ inputId: pin.inputId, index: c.index, source: 'local', path, startMs: c.startMs, endMs: c.endMs, originalName: basename(path), title: c.title, kind: c.kind });
+          pool.push({ inputId: pin.inputId, index: c.index, source: 'local', path, startMs: c.startMs, endMs: c.endMs, originalName: basename(path), title: c.title, kind: c.kind, noDownload: freePlan });
         } catch (e) {
           log(`[input ${pin.inputId + 1}] part ${c.index + 1} needs the original video to be re-dubbed — skipped (${e.message})`);
         }
@@ -812,8 +938,10 @@ async function runLipsyncOnly(args) {
   guardExistingState(file); // an interrupted earlier run owns this state file — resume it instead of re-billing
   const spaceSeq = Number(ref.space) || await ensureSpace(args);
   setTelemetrySpace(spaceSeq); // a project-ref carrying `space` skips ensureSpace, which is what normally sets this
-  const ctx = { spaceSeq, source: 'auto', targets: [target], out: args.out, multiInput: false, file, prevDone: {}, lipsync: true, lipsyncOnly: true };
+  const freePlan = await isFreePlan(spaceSeq); // free: the lip-synced video can only be watched on Perso
+  const ctx = { spaceSeq, source: 'auto', targets: [target], out: args.out, multiInput: false, file, prevDone: {}, lipsync: true, lipsyncOnly: true, freePlan };
   track('lipsync_only_started', { ...await spacePlanProps(spaceSeq), input_count: 1, parts: parts.length, duration_sec: lsMs > 0 ? Math.round(lsMs / 1000) : null });
+  if (freePlan) notify('Free plan — the lip-synced result stays in the Perso workspace (downloading it needs a paid plan).');
 
   const chunks = parts.map((p, i) => ({
     index: i, source: 'local',
@@ -833,7 +961,7 @@ async function runLipsyncOnly(args) {
       downloaded.push(r);
       saver.onResult(r);
     } else {
-      pool.push({ inputId: 0, index: c.index, stage: 'lipsync', parentSeq: c.parentSeq, target, kind: 'video', startMs: c.startMs, endMs: c.endMs });
+      pool.push({ inputId: 0, index: c.index, stage: 'lipsync', parentSeq: c.parentSeq, target, kind: 'video', startMs: c.startMs, endMs: c.endMs, noDownload: freePlan });
     }
   }
   saver.writeNow();
@@ -890,7 +1018,9 @@ async function runSeparation(args) {
   const file = resumePath({ out: args.out, inputs, multiInput });
   guardExistingState(file); // block re-running the original; --resume continues without re-billing submitted parts
   const spaceSeq = await ensureSpace(args);
-  const ctx = { spaceSeq, out: args.out ?? null, file };
+  const freePlan = await isFreePlan(spaceSeq); // free: separated tracks can only be played on Perso
+  const ctx = { spaceSeq, out: args.out ?? null, file, freePlan };
+  if (freePlan) notify('Free plan — separated tracks stay in the Perso workspace (downloading them needs a paid plan).');
   const perInput = [];
   const saver = sepSaver(ctx, perInput);
   // Phase 1 — resolve chunk plans (split-confirm happens here) and persist them before any submission.
@@ -898,11 +1028,16 @@ async function runSeparation(args) {
     const inp = inputs[id];
     let chunks;
     try {
-      ({ chunks } = await resolveChunks(inp, spaceSeq, { log, notify, allowSplit: args.allowSplit }));
+      ({ chunks } = await resolveChunks(inp, spaceSeq, { log, notify, allowSplit: !freePlan && args.allowSplit }));
     } catch (e) {
       if (e?.name === 'SplitConfirmNeeded') {
-        track('split_confirm_needed', splitConfirmProps(e.details));
-        console.log(splitConfirmMessage(e.details, multiInput ? labelOf(inp) : null, 'separate'));
+        const tag = multiInput ? labelOf(inp) : null;
+        // Free plans get no split offer: over-limit media can only be shortened or unlocked by upgrading.
+        if (freePlan) console.log(messages.freeOverLimit({ tag, reason: e.details?.reason, limitMs: e.details?.limitMs }));
+        else {
+          track('split_confirm_needed', splitConfirmProps(e.details));
+          console.log(splitConfirmMessage(e.details, tag, 'separate'));
+        }
         try { if (existsSync(file)) unlinkSync(file); } catch { /* nothing billed yet → safe to discard */ }
         throw new ExitCode(0); // stop and ask the user — a normal pause, not a failure
       }
@@ -930,7 +1065,7 @@ function finishSepState(file, pending) {
 async function runResumeSeparation(m, file) {
   if (m.version !== 1) throw new Error('Unsupported separation state-file format — run again from the original.');
   const spaceSeq = m.spaceSeq;
-  const ctx = { spaceSeq, out: m.out ?? null, file };
+  const ctx = { spaceSeq, out: m.out ?? null, file, freePlan: await isFreePlan(spaceSeq) };
   const perInput = [];
   const recutCache = new Map(); // `${inputId}|${index}` → re-cut path (once per part)
   for (const pin of m.inputs) {
@@ -965,10 +1100,13 @@ async function separationProcess(perInput, spaceSeq, ctx, saver, materializeFor,
   for (let i = 0; i < perInput.length; i++) {
     const pin = perInput[i];
     try {
-      const byTrack = await separateChunks(pin, spaceSeq, tmp, saver, materializeFor, flags, { ticker, index: i, total });
-      const { line, excluded } = await saveSeparationTracks(pin, byTrack, { out: ctx.out, usedByDir });
+      const { byTrack, seqs } = await separateChunks(pin, spaceSeq, tmp, saver, materializeFor, flags, { ticker, index: i, total, freePlan: ctx.freePlan });
+      // Free plan: nothing was downloaded (the server refuses it) — deliver the separation project link instead.
+      const { line, excluded } = ctx.freePlan
+        ? { line: freeSeparationLine(pin, seqs, byTrack), excluded: false }
+        : await saveSeparationTracks(pin, byTrack, { out: ctx.out, usedByDir });
       notify(total > 1 ? `${line} (${i + 1}/${total})` : line); // stream each finished input, don't buffer to the end
-      if (!line.startsWith('Done')) failCount++; else if (excluded) partialCount++; else fullCount++;
+      if (line.startsWith('Could not separate')) failCount++; else if (excluded) partialCount++; else fullCount++;
     } catch (e) {
       if (e?.httpStatus === 402) { // out of credits — finished inputs already streamed above → just the top-up/resume path
         const plan = await getPlanStatus(spaceSeq);
@@ -1023,10 +1161,19 @@ async function separationProcess(perInput, spaceSeq, ctx, saver, materializeFor,
   return flags.pending;
 }
 
+// Free-plan delivery line for one separated input: the completed projects, as Perso links.
+function freeSeparationLine(pin, seqs, byTrack) {
+  const label = labelOf(pin.inp ?? pin.ref);
+  if (!seqs.length) return `Could not separate: ${label} — ${byTrack.get('voice').find((r) => r.reason)?.reason ?? 'no result'}`;
+  return messages.freeDelivery({ label, url: seqs.map((s) => projectUrl(s, 'separation')).join(' · '), what: 'separated audio' });
+}
+
 // Separate one input's chunks. A chunk with a recorded projectId is polled/re-downloaded (no re-submit); the rest are
 // (re-cut/uploaded and) submitted, checkpointing the projectId the instant it exists.
+// Returns the per-track pieces to merge plus the completed projectSeqs (the free plan's only deliverable).
 async function separateChunks(pin, spaceSeq, tmp, saver, materializeFor, flags, status = {}) {
   const byTrack = new Map(SEPARATION_TRACKS.map((t) => [t, []]));
+  const seqs = [];
   const heartbeat = (c) => status.ticker?.tick(() =>
     `separating — file ${(status.index ?? 0) + 1}/${status.total ?? 1}${pin.chunks.length > 1 ? `, part ${c.index + 1}/${pin.chunks.length}` : ''}`);
   const gap = (index, reason) => { for (const t of SEPARATION_TRACKS) byTrack.get(t).push({ index, status: 'HARD_FAIL', reason }); };
@@ -1060,6 +1207,8 @@ async function separateChunks(pin, spaceSeq, tmp, saver, materializeFor, flags, 
         }
         saver.onComplete(pin.inputId, c.index, projectId);
       }
+      seqs.push(projectId);
+      if (status.freePlan) continue; // free: the tracks are not downloadable — the project link is the deliverable
       const tracks = await downloadSeparation(projectId, spaceSeq, (label, ext) => join(tmp, `sep_${pin.inputId}_${c.index}_${label}${ext}`));
       for (const t of tracks) byTrack.get(t.label)?.push({ index: c.index, status: 'OK', path: t.path, name: t.fileName });
     } catch (e) {
@@ -1078,7 +1227,7 @@ async function separateChunks(pin, spaceSeq, tmp, saver, materializeFor, flags, 
       gap(c.index, friendlyError(e));
     }
   }
-  return byTrack;
+  return { byTrack, seqs };
 }
 
 async function saveSeparationTracks(pin, byTrack, { out, usedByDir }) {
@@ -1126,7 +1275,7 @@ async function waitForProject(projectSeq, spaceSeq, onPoll) {
 }
 
 // Pure helper exports for testing (when run directly, only main below executes).
-export { parseArgs, targetPaths, buildManifest, doneEntry, manifestSaver, finishPool, refOf, resumePath, explicitOutPath, remainingMinutes, guardExistingState, splitConfirmMessage, buildSepManifest, sepSaver };
+export { parseArgs, targetPaths, buildManifest, doneEntry, manifestSaver, finishPool, refOf, resumePath, explicitOutPath, outIsFolder, withExt, outputExt, remainingMinutes, guardExistingState, splitConfirmMessage, buildSepManifest, sepSaver, isPreviewCut, overFreePreview, freeSeparationLine };
 
 // The workspace as far as argv alone reveals it, for the events that fire before the space gate.
 // --resume and --lipsync-only both carry it in their own payload, so no network call is needed.

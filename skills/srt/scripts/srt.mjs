@@ -13,10 +13,10 @@ import { fileURLToPath } from 'node:url';
 import { preloadKeyEnv } from '../../dubbing/scripts/resolve_key.mjs';
 import { ExitCode, UsageError, friendlyError, errorClass, errorCode, ensureKey, ensureSpace } from '../../dubbing/lib/gates.mjs';
 import { expandInputs, prepareInput } from '../../dubbing/lib/input.mjs';
-import { getPlanStatus, spacePlanProps } from '../../dubbing/lib/space.mjs';
+import { getPlanStatus, spacePlanProps, isFreePlan } from '../../dubbing/lib/space.mjs';
 import { upload, requestStt, downloadAudioScript, getStatus, classifyUploadError } from '../../dubbing/lib/api_adapter.mjs';
 import { probe } from '../../dubbing/lib/ffmpeg.mjs';
-import { messages } from '../../dubbing/lib/messages.mjs';
+import { messages, projectUrl } from '../../dubbing/lib/messages.mjs';
 import { checkForUpdate } from '../../dubbing/lib/update_check.mjs';
 import { track, initTelemetry, setTelemetrySpace, primeTelemetrySpace, setAgentHost, setKeyUsed } from '../../dubbing/lib/telemetry.mjs';
 import { makeStatusTicker, statusIntervalMs } from '../../dubbing/lib/status.mjs';
@@ -268,6 +268,7 @@ async function sttProcess(perInput, ctx, saver, isResume) {
   const langs = transcribeOnly ? null : targets; // translation list carried on every mapping line
   const usedByDir = new Map();
   let ok = 0, fail = 0, noVoice = 0; // per input (one STT project each)
+  let savedLocal = 0; // subset of ok with a downloaded .srt on disk — a free run delivers links only, so there is nothing to translate
   let uploadFailCount = 0; // subset of fail whose media never uploaded → no project created → excluded from stt_completed
   let dlFailCount = 0; // subset of fail that extracted fine but couldn't be downloaded → download_failed, excluded from stt_completed
   const flags = { pending: false };
@@ -305,7 +306,7 @@ async function sttProcess(perInput, ctx, saver, isResume) {
       if (prev?.status === 'HARD_FAIL') { if (prev.failKind === 'upload') uploadFailCount++; streamDone(`Could not extract: ${name} — ${prev.reason ?? 'failed'}`); fail++; continue; } // a persisted upload failure stays excluded from stt_completed
       if (prev?.status === 'OK' && prev.savedPath && existsSync(prev.savedPath)) {
         emitMapping(pin.inp ?? pin.ref, langs, prev.savedPath, prev.projectId); // re-print so the agent gets the full mapping on resume
-        streamDone(`Subtitle ready: ${name} → ${basename(prev.savedPath)}`); ok++;
+        streamDone(`Subtitle ready: ${name} → ${basename(prev.savedPath)}`); ok++; savedLocal++;
         continue;
       }
       let projectId = prev?.projectId ?? null;
@@ -333,6 +334,14 @@ async function sttProcess(perInput, ctx, saver, isResume) {
         streamDone(`Could not extract: ${name} — ${reason}`); fail++;
         continue;
       }
+      if (ctx.freePlan) {
+        // Free space: the server refuses every download (VT5003), so the extraction is delivered as a
+        // project link. No local file → no [srt-original] line and nothing for the agent to translate.
+        saver.onComplete(pin.inputId, projectId, null);
+        streamDone(messages.freeDelivery({ label: name, url: projectUrl(projectId, 'stt'), what: 'subtitles' }));
+        ok++;
+        continue;
+      }
       const dir = out ?? inputSaveDir(pin.inp?.localPath ? pin.inp : pin.ref);
       mkdirSync(dir, { recursive: true });
       let saved;
@@ -349,7 +358,7 @@ async function sttProcess(perInput, ctx, saver, isResume) {
       }
       saver.onComplete(pin.inputId, projectId, saved.path);
       emitMapping(pin.inp ?? pin.ref, langs, saved.path, projectId);
-      streamDone(`Subtitle ready: ${name} → ${basename(saved.path)}`); ok++;
+      streamDone(`Subtitle ready: ${name} → ${basename(saved.path)}`); ok++; savedLocal++;
     } catch (e) {
       if (e?.httpStatus === 402) { // out of credits — finished inputs already streamed above → just the top-up/resume path
         ctx.stopReason = 'quota'; // recorded in the state file → resume telemetry reports why
@@ -379,6 +388,12 @@ async function sttProcess(perInput, ctx, saver, isResume) {
           limit_min: Number(e.data?.maxLengthMs) > 0 ? Math.round(Number(e.data.maxLengthMs) / 60000) : null,
           duration_sec: durSec,
         });
+        // Free plans get no "split it yourself" path either — over-limit media needs a shorter file or an upgrade.
+        if (ctx.freePlan) {
+          console.log(messages.freeOverLimit({ tag: name, reason: e.code === 'F4008' ? 'length' : 'size', limitMs: Number(e.data?.maxLengthMs) || null }));
+          fail++;
+          continue;
+        }
         streamDone(`Could not extract: ${name} — ${overLimitMsg(e)}`); fail++;
         continue;
       }
@@ -399,7 +414,7 @@ async function sttProcess(perInput, ctx, saver, isResume) {
     }
   }
   if (perInput.length > 1) console.log(`\nSummary: ${ok} done · ${fail} failed`);
-  if (ok) {
+  if (savedLocal) { // no local file (free plan) → no translation step to instruct
     console.log(transcribeOnly
       ? '\nNext: this was a transcription-only run — hand the [srt-original] files to the user as they are (no translation step).'
       : '\nNext: translate each [srt-original] file into every language in its "langs" list and save one <stem>_<lang>_Subtitle.srt per language next to the original, where <stem> is the input file name without its extension (keep cue numbers, timestamps, and cue count unchanged — see SKILL.md).');
@@ -422,11 +437,13 @@ async function runStt(args) {
   const file = statePath({ out: args.out, inputs });
   guardExistingState(file); // block re-running the original; --resume continues without re-billing submitted parts
   const spaceSeq = await ensureSpace(args);
-  const ctx = { spaceSeq, out: args.out ?? null, targets, file };
+  const freePlan = await isFreePlan(spaceSeq); // free: the SRT can only be viewed on Perso, never downloaded
+  const ctx = { spaceSeq, out: args.out ?? null, targets, file, freePlan };
   const perInput = inputs.map((inp, id) => ({ inputId: id, inp, ref: refOf(inp), mediaSeq: null, kind: null }));
   const saver = sttSaver(ctx, perInput);
   saver.writeNow(); // persist the plan before any submission
   notify(args.transcribeOnly ? 'Extracting the original-language subtitles' : `Extracting subtitles for ${targets.join(', ')}`);
+  if (freePlan) notify('Free plan — subtitles stay in the Perso workspace (downloading the .srt needs a paid plan).');
   // Upload everything up-front (the upload itself doesn't bill — project creation does): the register
   // response carries each input's server-measured duration for stt_submitted. A failed upload is
   // remembered on the input and surfaced by sttProcess with its normal handling.
@@ -457,7 +474,7 @@ async function runResume(fileArg) {
   await ensureKey(); // resume hits the API immediately — self-heal a missing key here instead of failing on the first request
   setTelemetrySpace(m.spaceSeq); // resume bypasses ensureSpace — attach the workspace from the state file
   track('resume_started', { resumed_from: m.stopReason ?? 'manual' });
-  const ctx = { spaceSeq: m.spaceSeq, out: m.out ?? null, targets: m.targets ?? [], file: fileArg, resumedFrom: m.stopReason ?? 'manual' };
+  const ctx = { spaceSeq: m.spaceSeq, out: m.out ?? null, targets: m.targets ?? [], file: fileArg, resumedFrom: m.stopReason ?? 'manual', freePlan: await isFreePlan(m.spaceSeq) };
   if (!ctx.targets.length) throw new Error('Corrupt state file (no target languages) — run again from the original command.');
   // pin.inp starts as the recorded ref; materialize() re-prepares it only if an upload is actually needed.
   const perInput = m.inputs.map((pin) => ({ inputId: pin.inputId, ref: pin.ref, inp: pin.ref, mediaSeq: pin.mediaSeq ?? null, kind: pin.kind ?? null, durationSec: pin.durationSec ?? null }));

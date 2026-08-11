@@ -8,6 +8,7 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { get, post, put, PersoApiError } from './http_client.mjs';
 import { AUDIO_EXT, persoBaseUrl } from './config.mjs';
+import { targetLanguageFields } from './languages.mjs';
 
 const VT = '/video-translator/api/v1';
 
@@ -147,7 +148,7 @@ export async function requestTranslation(spaceSeq, mediaSeq, opts = {}) {
     mediaSeq,
     isVideoProject: kind !== 'audio',
     sourceLanguageCode: source,
-    targetLanguages: [{ languageCode: target, ttsModel }],
+    targetLanguages: [{ ...await targetLanguageFields(target), ttsModel }], // target may carry a regional tag (en-GB)
     numberOfSpeakers,
     preferredSpeedType: speed,
     ...(title ? { title } : {}),

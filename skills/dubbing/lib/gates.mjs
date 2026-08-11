@@ -3,7 +3,8 @@
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createInterface } from 'node:readline/promises';
-import { resolveKey, onboardingHelp, preloadKeyEnv } from '../scripts/resolve_key.mjs';
+import { resolveKey, onboardingHelp, headlessKeyHelp, preloadKeyEnv } from '../scripts/resolve_key.mjs';
+import { isHeadlessEnv } from './client_info.mjs';
 import { dubbingSpaces, getPlanStatus, spacePlanProps } from './space.mjs';
 import { track, setTelemetrySpace } from './telemetry.mjs';
 
@@ -61,6 +62,8 @@ export function errorClass(e) {
 // listener — no copy/paste), then fall back to `resolve_key.mjs --watch` (key file opened in the
 // editor, encrypted on save). Runs in a child because Windows DPAPI work (powershell) must not run in
 // this main process. PERSO_NO_OPEN skips the browser flow; PERSO_NO_WATCH=1 restores fail-fast (headless/CI).
+// A headless machine skips it too: nothing there can open the URL, and the browser's callback target is
+// 127.0.0.1 — waiting out the 5-minute listener would only cost the user five minutes.
 export async function ensureKey() {
   if (resolveKey()) { track('key_check', { has_key: true }); return; }
   track('key_check', { has_key: false });
@@ -74,15 +77,19 @@ export async function ensureKey() {
     child.on('close', res);
     child.on('error', () => res(1));
   });
-  if (!process.env.PERSO_NO_OPEN) {
+  const headless = isHeadlessEnv();
+  if (!process.env.PERSO_NO_OPEN && !headless) {
     notify('No API key registered — a browser page will open: sign in and click once to connect this device.');
     track('key_onboarding_started', { method: 'connect' });
     const code = await runChild('../scripts/connect.mjs');
     preloadKeyEnv();
     if (code === 0 && resolveKey()) { notify('API key registered — continuing.'); return; } // key_registered tracked by connect.mjs
   }
-  notify('Falling back to file-based registration — a key file will open; paste just your Perso API key and save it. (Get one: https://developers.perso.ai/api-keys)');
-  track('key_onboarding_started', { method: 'watch' });
+  if (headless) console.log(headlessKeyHelp()); // both routes (watched file · --import from another machine)
+  notify(headless
+    ? 'Starting file-based key registration — a key file will open; paste just your Perso API key and save it. (Get one: https://developers.perso.ai/api-keys)'
+    : 'Falling back to file-based registration — a key file will open; paste just your Perso API key and save it. (Get one: https://developers.perso.ai/api-keys)');
+  track('key_onboarding_started', headless ? { method: 'watch', headless: true } : { method: 'watch' });
   const code = await runChild('../scripts/resolve_key.mjs', ['--watch']);
   preloadKeyEnv();
   if (code !== 0 || !resolveKey()) {
