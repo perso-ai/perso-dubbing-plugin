@@ -220,6 +220,11 @@ export async function runSchedule(chunks, spaceSeq, opts = {}, hooks = {}) {
         if (chunk.stage === 'lipsync') {
           // Lip-sync outcome. Never re-submit (a repeat request generates & bills again) — on failure fall back to the dubbed video.
           if (st.state === 'complete') {
+            if (chunk.noDownload) { // server-only (--no-save / free plan): keep the projectSeq, skip the download
+              setResult(chunk, { status: 'OK', projectId: pid, dubProjectId: chunk.parentSeq, lipsync: true, serverOnly: true });
+              log(`${tag} lip-sync done — kept on server (not downloaded)`);
+              continue;
+            }
             const out = join(outDir, `lip_${chunk.inputId}_${String(chunk.index).padStart(3, '0')}_${chunk.target}.mp4`);
             try {
               const dl = await download(pid, spaceSeq, { lipsync: true, outPath: out });
@@ -231,6 +236,10 @@ export async function runSchedule(chunks, spaceSeq, opts = {}, hooks = {}) {
             }
           } else {
             log(`${tag} lip-sync failed${st.message ? ` (${st.message})` : ''} — falling back to the dubbed video`);
+            if (chunk.noDownload) { // server-only: the dubbed project stays the deliverable, still not downloaded
+              setResult(chunk, { status: 'OK', projectId: chunk.parentSeq, lipsyncFailed: true, reason: st.message ?? 'lipsync_failed', serverOnly: true });
+              continue;
+            }
             const out = join(outDir, `dub_${chunk.inputId}_${String(chunk.index).padStart(3, '0')}_${chunk.target}.mp4`);
             try {
               const dl = await download(chunk.parentSeq, spaceSeq, { kind: chunk.kind, outPath: out });
@@ -315,6 +324,10 @@ export async function runSchedule(chunks, spaceSeq, opts = {}, hooks = {}) {
       const c = pending[i];
       if (c.stage !== 'lipsync') continue;
       pending.splice(i, 1);
+      if (c.noDownload) { // server-only: nothing to save locally, the dub is already delivered as a project link
+        setResult(c, { status: 'OK', projectId: c.parentSeq, lipsyncPending: true, serverOnly: true });
+        continue;
+      }
       const out = join(outDir, `dub_${c.inputId}_${String(c.index).padStart(3, '0')}_${c.target}.mp4`);
       try {
         const dl = await download(c.parentSeq, spaceSeq, { kind: c.kind, outPath: out });

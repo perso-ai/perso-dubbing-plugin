@@ -24,7 +24,7 @@ A skill that extracts the source-language subtitles of a video/audio via the Per
 
 ## Setup (lazy — no upfront step)
 
-Same as `/dubbing` — **key registration is not a step you run first.** The worker gates itself the moment a command that needs the Perso API runs (extraction, or `style.mjs --project`), opening the browser flow (file fallback) then; relay its printed instructions. Never run a key check/registration proactively. Never paste the key into chat.
+Same as `/dubbing` — **key registration is not a step you run first.** The worker gates itself the moment a command that needs the Perso API runs (extraction, or `style.mjs --project`), opening the browser flow (file fallback) then; relay its printed instructions. On a headless/SSH machine it skips the browser flow and starts with file/`--import` registration automatically. Never run a key check/registration proactively. Never paste the key into chat.
 
 ## Run
 
@@ -41,7 +41,9 @@ Extracted original SRT files are saved next to each source (or into `--out`), ke
 
 **Space selection** — with several workspaces the worker stops before uploading, prints `[space-select]` lines (**name | (plan) | remaining credits**) and stops. Show the user ONLY those options (no internal numbers), ask which one, and re-run with `--space "<space name>"`. One dubbing-capable space → no question; `PERSO_SPACE_SEQ` pins it.
 
-**Media over the plan limit** — this skill does **not** auto-split. If the worker reports the media exceeds the plan's length/size limit, relay its message: the user can split/trim the file themselves or upgrade the plan, then retry.
+**Media over the plan limit** — this skill does **not** auto-split. If the worker reports the media exceeds the plan's length/size limit, relay its message: the user can split/trim the file themselves or upgrade the plan, then retry. On a Free workspace that message comes as `[free-limit]` lines (a shorter file or an upgrade — there is no proceed flag); relay them and stop.
+
+**Free plan (no local .srt)** — a Free workspace transcribes normally, but the server refuses **every** download, so nothing is saved locally. The worker prints `Free plan — <name>: subtitles ready on Perso → <link> (downloads need a paid plan)` and **no `[srt-original]` line**. With no file there is nothing to translate: **skip the Translate section entirely**, relay the link as the delivered result (the run is **complete** — nothing failed, nothing to resume), and mention that downloadable `.srt` files need a paid plan.
 
 **Credits** — each subtitle project consumes credits in proportion to the media length (one project per input). The server's billing is authoritative; don't quote exact prices.
 

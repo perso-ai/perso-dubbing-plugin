@@ -9,6 +9,18 @@ const ROOT = dirname(HERE);
 // Every agent host reports as one unified channel — API logs and UTM segment by version only.
 export const CLIENT_HOST = 'agents';
 
+// No browser can open on this machine (headless box / SSH session). The connect flow delivers the key to
+// a 127.0.0.1 listener, so its page is only usable in a browser on the SAME machine — where this is true
+// the workers skip it and register from a file instead. Pure (env, platform) → unit-testable.
+// Windows always has a desktop session; DISPLAY (X/XWayland) anywhere means a browser can open.
+export function isHeadlessEnv(env = process.env, platform = process.platform) {
+  if (platform === 'win32') return false;
+  const has = (k) => !!String(env?.[k] ?? '').trim();
+  if (has('DISPLAY')) return false;
+  if (platform === 'linux') return !has('WAYLAND_DISPLAY');
+  return has('SSH_CONNECTION') || has('SSH_TTY'); // macOS/BSD: only a remote session counts as headless
+}
+
 // The skill sits either at the package root (installed copy) or under <repo>/skills/dubbing — check both for package.json.
 function readVersion() {
   for (const dir of [ROOT, join(ROOT, '..', '..')]) {

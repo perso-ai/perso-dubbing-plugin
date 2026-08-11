@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { realpathSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { persoBaseUrl } from '../lib/config.mjs';
+import { isHeadlessEnv } from '../lib/client_info.mjs';
 import { storeKey } from './resolve_key.mjs';
 import { track, primeTelemetrySpace, telemetryDeviceId } from '../lib/telemetry.mjs';
 
@@ -38,6 +39,9 @@ const CORS_HEADERS = {
 };
 
 function openBrowser(url) {
+  // The listener keeps waiting either way — the printed URL is a working manual path. On THIS machine:
+  // the callback target is 127.0.0.1.
+  const hint = () => console.error("Couldn't open a browser automatically — open the URL above in a browser on THIS machine.");
   try {
     // Windows: rundll32 hands the URL to the default browser without cmd's `&`-quoting pitfalls.
     const [bin, args] =
@@ -46,9 +50,9 @@ function openBrowser(url) {
       ['xdg-open', [url]];
     const child = spawn(bin, args, { detached: true, stdio: 'ignore' });
     // Fire-and-forget: the process stays alive up to 5 min waiting for the callback, so the event drains.
-    child.on('error', () => { track('connect_browser_open_failed', { stage: 'spawn_error' }); }); // URL is already printed — the user can open it manually
+    child.on('error', () => { track('connect_browser_open_failed', { stage: 'spawn_error' }); hint(); });
     child.unref();
-  } catch { track('connect_browser_open_failed', { stage: 'throw' }); } // same — manual open via the printed URL
+  } catch { track('connect_browser_open_failed', { stage: 'throw' }); hint(); }
 }
 
 /** Listen for one valid callback; invalid/mismatched requests are answered and ignored (listener stays
@@ -95,6 +99,9 @@ function awaitCallback(state) {
       const url = `${PORTAL_BASE}/connect?port=${port}&state=${state}&name=${encodeURIComponent(name)}${did ? `&did=${encodeURIComponent(did)}` : ''}`;
       console.log('Opening the Perso developer portal — sign in and click [Issue key for this device]:');
       console.log(`  ${url}`);
+      // Direct invocation on a headless box (the workers skip this flow there, but SSH port-forward users
+      // may still run it): the page posts to 127.0.0.1, so it has to be opened here, not on a laptop.
+      if (isHeadlessEnv()) console.log('(This machine looks headless/SSH — the page must be opened in a browser on THIS machine, or its key will not reach here.)');
       if (process.env.PERSO_NO_OPEN) {
         console.log('(PERSO_NO_OPEN set — open the URL yourself, in a browser on THIS machine.)');
         track('connect_browser_opened', { auto_open: false }); // headless: URL printed for the user to open manually

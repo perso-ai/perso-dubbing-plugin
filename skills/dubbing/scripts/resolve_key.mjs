@@ -91,6 +91,21 @@ export function onboardingHelp() {
   ].join('\n');
 }
 
+/** Registration guidance for a machine with no browser of its own (headless box / SSH session). The
+ *  browser flow is unusable there — its page hands the key to a 127.0.0.1 listener, so it must run on the
+ *  same machine — leaving the watched key file and the cross-machine --import route. */
+export function headlessKeyHelp() {
+  const self = fileURLToPath(import.meta.url).replace(/\\/g, '/');
+  const example = join(dirname(CRED_DIR), 'perso_key.txt').replace(/\\/g, '/');
+  return [
+    'No API key registered, and this machine has no browser to sign in with (headless/SSH).',
+    'The browser sign-in page delivers the key to a local 127.0.0.1 listener, so it only works on a machine with its own browser — register one of these two ways instead:',
+    `  A) Paste the key into the key file that opens next (${example}) and save it — it registers automatically.`,
+    '  B) From any machine with a browser: create a key at https://developers.perso.ai/api-keys, copy it into a text file on THIS machine, then run:',
+    `       ! node "${self}" --import "<that file>"`,
+  ].join('\n');
+}
+
 /** Takes a known key string: ensure directory → encrypt (Windows DPAPI) → save as ascii → read back to verify. The key is passed only via stdin (avoids command-line exposure). */
 export function storeKey(key) {
   const k = (key ?? '').trim();
