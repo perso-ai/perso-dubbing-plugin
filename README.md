@@ -63,8 +63,6 @@ Requires **Node.js 18+**, nothing else. [Visual walkthrough](https://dubbing-plu
 
 <br>
 
-<sub>FREE · RUNS LOCALLY</sub>
-
 ## Styled subtitles
 
 Pick one of twelve presets, or just describe the look in plain words: *"yellow text, black outline, bottom."* The burn runs locally on ffmpeg: no upload, no queue, no account. Several languages? Each SRT gets its own finished video.
@@ -74,8 +72,6 @@ Pick one of twelve presets, or just describe the look in plain words: *"yellow t
 </p>
 
 <br>
-
-<sub>FREE · RUNS LOCALLY</sub>
 
 ## Translate subtitles
 
@@ -87,8 +83,6 @@ Hand over any SRT and name the languages you want. Several at once is fine, one 
 
 <br>
 
-<sub>FREE · RUNS LOCALLY</sub>
-
 ## Short clips
 
 Timecodes in, vertical shorts out: reframed 16:9 → 9:16, named, and ready for subtitles. Or hand over the transcript and AI picks the moments that work as shorts: opens on a hook, rides the reaction to its peak, cuts before the energy drops. 30–90 seconds each.
@@ -99,23 +93,17 @@ Timecodes in, vertical shorts out: reframed 16:9 → 9:16, named, and ready for 
 
 <br>
 
-<sub>PERSO API</sub>
-
 ## Dubbing and lip-sync
 
 One run takes a file, a whole folder, or a YouTube/TikTok URL and dubs it into several languages from a single upload. Videos over the plan limit split, process, and merge back on their own; an interrupted run resumes exactly where it stopped, never re-billing finished parts. Dubbing clones the original voice into the new language, and lip-sync moves the mouth to match that cloned audio.
 
 <br>
 
-<sub>PERSO API</sub>
-
 ## Subtitles from speech (STT)
 
 No subtitles yet? Speech-to-text runs on Perso's servers and uses credits to turn the video's audio into an SRT in the original language, for one file or a whole folder. Every step after the SRT exists is free: translating, styling, burning.
 
 <br>
-
-<sub>PERSO API</sub>
 
 ## Voice separation
 
