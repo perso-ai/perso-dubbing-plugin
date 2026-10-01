@@ -131,8 +131,8 @@ export async function requestTranslation(spaceSeq, mediaSeq, opts = {}) {
   const {
     source = 'auto',
     target = 'en',
-    ttsModel = 'AUDIO_ENGINE_V3',
-    numberOfSpeakers = 1,
+    ttsModel = 'ORIOLE', // current name of AUDIO_ENGINE_V3 (see tts_models.mjs)
+    numberOfSpeakers = 0, // 0 = server auto-detects the speakers (same as the web app)
     speed = 'GREEN',
     title,
     kind = 'video', // 'audio' means isVideoProject=false

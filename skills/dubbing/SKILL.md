@@ -16,10 +16,11 @@ A skill that auto-dubs videos via the Perso AI Dubbing API.
 - Languages unspecified → source `auto`, target `en`.
 - **Multiple languages go in one command** (`--target en,zh,ja`) — upload/split happens once and is reused per language. Never run once per language (re-uploads the source each time).
 - **Relay progress faithfully.** Surface the worker's stdout `[progress]` lines to chat, verbatim or summarized — and don't announce steps that didn't appear (splitting/merging exist only for over-limit videos). The indented stderr detail logs don't need relaying.
-- **Keep the user informed while it runs.** Dubbing, lip-sync, and audio separation all print a `[status]` heartbeat (stage + item counts, e.g. `ja 4/6 · en 1/6` or `separating — file 2/5`, with a `next check ~Nm` hint), and each finished item streams as a `[progress]` line. Check the background output ~3 minutes after launch, then on the hinted interval (10 min for media ≤10 min, 30 min for longer): relay any new `[progress]` line right away, otherwise post the latest `[status]` line as a one-line update. Never invent percentages, elapsed time, or ETAs — relay only what the lines say. Stops that need the user (`[space-select]`, `[split-confirm]`, `[free-limit]`, `[resume-check]`, `[credit-check]`, credit-out, completion) end the process, so they surface without polling.
+- **Keep the user informed while it runs.** Dubbing, lip-sync, and audio separation all print a `[status]` heartbeat (stage + item counts, e.g. `ja 4/6 · en 1/6` or `separating — file 2/5`, with a `next check ~Nm` hint), and each finished item streams as a `[progress]` line. Check the background output ~3 minutes after launch, then on the hinted interval (10 min for media ≤10 min, 30 min for longer): relay any new `[progress]` line right away, otherwise post the latest `[status]` line as a one-line update. Never invent percentages, elapsed time, or ETAs — relay only what the lines say. Stops that need the user (`[space-select]`, `[split-confirm]`, `[free-limit]`, `[model-plan]`, `[model-select]`, `[resume-check]`, `[credit-check]`, credit-out, completion) end the process, so they surface without polling.
 - **Name your runtime for telemetry (silent).** Add `--host <claude-code|codex|cursor|antigravity|gemini>` to the worker command, naming the agent you are running as, if you can tell. It only tags usage telemetry — never surface it to the user and never ask them about it. Omit it if unsure.
+- **Voice model — mention only when asked.** Never bring up TTS voice models or `--tts-model` on your own: run with the default and say nothing about models in kickoff lines, progress, or the final report. Explain the models and let the user choose **only** when the user asks about voice models / voice engines, or the worker prints a `[model-plan]` or `[model-select]` line. When the user names a model ("use Nightingale"), don't explain or ask — state its price in one line and run it right away — see **Voice model**.
 - **Unsupported formats are skipped automatically** and the rest keep processing — relay the skip notice.
-- **A pause is not a failure.** A `[space-select]`, `[split-confirm]`, `[free-limit]`, `[credit-check]`, or `[resume-check]` line means the run **stopped to ask you something** — it exits 0 (so it never looks like an error), but the job is **not** complete. Whenever one of these lines is present, never report the run as done: relay it and act on it. The lines are the signal, not the exit code.
+- **A pause is not a failure.** A `[space-select]`, `[split-confirm]`, `[free-limit]`, `[model-plan]`, `[model-select]`, `[credit-check]`, or `[resume-check]` line means the run **stopped to ask you something** — it exits 0 (so it never looks like an error), but the job is **not** complete. Whenever one of these lines is present, never report the run as done: relay it and act on it. The lines are the signal, not the exit code.
 
 ## Setup (lazy — no upfront step)
 
@@ -61,9 +62,32 @@ While it runs (for explaining the wait):
 - **Queue**: all inputs × parts × languages share one pool; a full queue is re-checked every 5 minutes. An engine error on a part cancels that part's other languages; a silent part passes the original through; an idle guard prevents hanging forever.
 - **Save**: parts are merged back into one file per (input × language). An unsplit output keeps the Perso filename; a merged one is `<original-name>.dubbed.<lang>.<ext>`; collisions get `_2`,`_3`….
 
+## Voice model (only when the user asks)
+
+`--tts-model <oriole|nightingale|wren|dodo>` picks the TTS voice model for the whole run (every `--target`). Omitted → `oriole`, the default. Follow the Core rule: never offer this unless the user asks about voice models or the worker prints a model line.
+
+When the user asks, explain with these facts only (don't describe voice character or quality — there is no source for it):
+
+| Model | Plan | Credits (dubbing) | Lip-sync | Languages |
+|---|---|---|---|---|
+| `oriole` (default) | any | ≈ ×1/s (4K ×3 on pro/business/enterprise) | yes | most languages |
+| `nightingale` | **Pro or higher** | **3/s during the launch event** (regular 6/s; no 4K surcharge) | **not yet** (in preparation) | some languages are Nightingale-only |
+| `wren` | server decides | ≈ ×1/s (4K ×3 on pro+) | server decides | fewer languages |
+| `dodo` | server decides | ≈ ×1/s (4K ×3 on pro+) | server decides | fewer languages |
+
+Server billing is authoritative.
+
+**The user names a model** ("use Nightingale", "나이팅게일로 해줘") → no table, no question: tell them the price in one line (Nightingale: 3 credits per second during the launch event, regular 6) and start the run with `--tts-model <name>` right away. The worker checks the plan and the languages before uploading — if one doesn't fit it stops with `[model-plan]` / `[model-select]` / an unsupported-language error, and you relay that instead.
+ For which models a given language supports, run `node scripts/languages.mjs` (each line lists its `models`). Once the user picks, add `--tts-model <name>` and keep it on every re-run of that job (`--allow-split`, `--allow-preview`, `--force`).
+
+- **`[model-plan]`** — the chosen model isn't available on this space's plan. Nothing was uploaded or billed. Relay it; the user either upgrades (see **Plan upgrade & credits**) and you re-run the same command, or you re-run with `--tts-model oriole`.
+- **`[model-select]`** — the default model can't dub a requested language; the lines list the models that can (and whether this plan allows them). Nothing was uploaded or billed. Ask the user which to use and re-run the same command with `--tts-model <model>`; never pick a pricier model for them.
+- `--tts-model` applies to new dubbing only: it can't be combined with `--separate` or `--lipsync-only`, and `--resume` keeps the model the run started with.
+- If the server still refuses a submission, the worker stops without retrying and prints the server's code and message (`Could not dub: … rejected by the server (<code>): …`) plus a hint — relay them.
+
 ## Lip-sync
 
-Lip-sync (mouth matched to the dubbed audio) runs **after** dubbing, on the finished dubbing project. Video only — audio inputs are rejected. It is a long job: **run in the background and tell the user up-front it takes considerably longer than dubbing.** Credits (server billing is authoritative): dubbing ≈ seconds ×1 · lip-sync ≈ ×2 · both ≈ ×3 — dubbing now + lip-sync later costs the same as both at once. **4K+ sources: every rate ×3 on pro/business/enterprise plans** (e.g. a 1-min 4K dub+lip-sync ≈ 60×3×3 = 540) — mention this when the video is 4K.
+Lip-sync (mouth matched to the dubbed audio) runs **after** dubbing, on the finished dubbing project. Video only — audio inputs are rejected. It is a long job: **run in the background and tell the user up-front it takes considerably longer than dubbing.** Credits (server billing is authoritative): dubbing ≈ seconds ×1 · lip-sync ≈ ×2 · both ≈ ×3 — dubbing now + lip-sync later costs the same as both at once. **Exception: lip-sync for `nightingale` is still in preparation** (the worker refuses `--lipsync` with it, and `--lipsync-only` on a Nightingale dub) — until it ships, lip-sync needs a dub made with another model, which bills the dubbing again. **4K+ sources: every rate ×3 on pro/business/enterprise plans** (e.g. a 1-min 4K dub+lip-sync ≈ 60×3×3 = 540) — mention this when the video is 4K.
 
 Pick the flow by what exists:
 
@@ -77,6 +101,7 @@ Pick the flow by what exists:
 Rules:
 
 - **Repeating lip-sync on the same project bills again** (no server-side dedup). If this session already lip-synced it, point at the existing file and re-run only on explicit confirmation.
+- **Lip-sync for Nightingale dubs is not available yet (in preparation).** `--lipsync-only` checks which voice model made the dub (from the `[project-ref]`, or by asking the server for a bare project number) and stops with `[lipsync-unavailable]` lines before any request — nothing is billed. Relay it as "not available yet", never as a permanent limitation: lip-sync for Nightingale dubs is still being prepared. If the user wants a lip-synced video now, the way is to dub the original again with another voice model plus lip-sync (`--tts-model oriole --lipsync`), which bills the dubbing again — offer it, and run it only on the user's explicit OK. If the user wants lip-sync, don't suggest Nightingale for the new dub.
 - **If lip-sync fails, the worker saves the dubbed video instead** and says so in the final report — relay that clearly; the dubbing credits are not wasted.
 - Credits running out between dubbing and lip-sync: the dubbed videos are saved and continuing finishes only the lip-sync — relay the top-up URL, and continue via the `[resume-state]` path once paid (see **Interruption & resume**).
 
@@ -136,7 +161,9 @@ It routes by the current plan tier — ask only the question for that branch, th
   `node scripts/billing.mjs link --credits --quantity <n>`
 - **enterprise → no self-serve.** Tell the user to contact their workspace administrator.
 
-**Recommending on a credit-out stop**: estimate the remaining work's credits (dubbing ≈ ×1/s · lip-sync ≈ ×2 · separation ≈ ×0.5, and ×3 for 4K on pro+), pass it as `--shortfall`, and relay the tool's recommendation. If even the top self-serve plan or a reasonable credit quantity can't cover it, point the user to their administrator (Enterprise) instead.
+**Recommending on a credit-out stop**: estimate the remaining work's credits (dubbing ≈ ×1/s — ×3/s with `nightingale` during the launch event (regular ×6), no 4K surcharge · lip-sync ≈ ×2 · separation ≈ ×0.5, and ×3 for 4K on pro+), pass it as `--shortfall`, and relay the tool's recommendation. If even the top self-serve plan or a reasonable credit quantity can't cover it, point the user to their administrator (Enterprise) instead.
+
+Add `--reason` to every `billing.mjs link` command — what led to this purchase offer (telemetry only, never shown to the user): `model_plan` after a `[model-plan]` stop (a voice model the plan doesn't include), `quota_exceeded` after an out-of-credits stop, `credit_check` after a `[credit-check]` stop, `user_request` when the user asked to upgrade or buy credits on their own.
 
 Hand the returned link to the user to complete payment in their browser; after they top up, continue the interrupted job via its `[resume-state]` path (no re-billing).
 
@@ -179,5 +206,5 @@ The notice lists both commands; pick the one matching how it was installed. It n
 
 - `node scripts/prepare_input.mjs "<input>"` — input normalization check (prints JSON).
 - `node scripts/probe_split.mjs '<JSON|path>'` — upload-first split decision. ⚠ Performs a **real upload**; never use it as a pre-step to `dubbing.mjs`.
-- `node scripts/languages.mjs` — list supported language codes.
+- `node scripts/languages.mjs` — list supported language codes and the voice models each supports.
 - `node scripts/check_deps.mjs` — check/auto-install ffmpeg/ffprobe.

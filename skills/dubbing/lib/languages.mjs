@@ -25,14 +25,19 @@ const regionName = (n) => (String(n ?? '').match(/\(([^)]*)\)\s*$/)?.[1] ?? '').
 
 // One list row → the token the CLI accepts: the bare code on a default row, the BCP-47 tag on a variant row.
 // tag stays null for default rows (omitted at submit time = server default).
+// models: the TTS models the row supports (supportedTtsModels); null when the server didn't say.
 function toEntry(row) {
-  if (typeof row === 'string') return { token: row, code: row, tag: null, name: row };
+  if (typeof row === 'string') return { token: row, code: row, tag: null, name: row, models: null };
   const code = row?.code ?? row?.languageCode;
   if (!code) return null;
   const raw = row.languageTag;
   const tag = !raw || raw === 'default' ? null : String(raw);
-  return { token: tag ?? String(code), code: String(code), tag, name: row.name ?? String(code) };
+  const models = Array.isArray(row.supportedTtsModels) ? row.supportedTtsModels.map((m) => String(m).toUpperCase()) : null;
+  return { token: tag ?? String(code), code: String(code), tag, name: row.name ?? String(code), models };
 }
+
+/** Can this language entry be dubbed with the model? Unknown support (no models field) → true: the server decides. */
+export const entrySupportsModel = (entry, model) => !entry?.models || entry.models.includes(model);
 
 /** Index the language list: case-insensitive token lookup + the entries of each code (default row first). */
 export function languageIndex(rows) {

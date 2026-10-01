@@ -18,7 +18,8 @@ export class UsageError extends Error {
 // process.exit() directly: a hard exit while fetch sockets are tearing down hits a Windows libuv assert
 // (async.c) and corrupts the exit code — main() sets process.exitCode and lets the loop drain instead.
 // Exit-code convention: 0 = clean stop — either finished, or a normal "stop and ask the user" pause
-// ([space-select]/[split-confirm]/[credit-check]/[resume-check]) that must NOT read as a failure;
+// ([space-select]/[split-confirm]/[credit-check]/[resume-check]/[free-limit]/[model-plan]/[model-select])
+// that must NOT read as a failure;
 // 1 = genuine error / bad usage; 2 = no API key (headless fail-fast). The agent acts on the printed
 // marker lines, not the exit code, so these pauses stay exit 0 to avoid a spurious "failed" chip.
 export class ExitCode extends Error {

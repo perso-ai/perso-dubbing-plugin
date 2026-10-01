@@ -10,11 +10,12 @@ import { fileURLToPath } from 'node:url';
 import { preloadKeyEnv } from './resolve_key.mjs';
 import { ExitCode, UsageError, isAuthError, friendlyError, errorClass, errorCode, ensureKey, ensureSpace } from '../lib/gates.mjs';
 import { expandInputs, prepareInput } from '../lib/input.mjs';
-import { getPlanStatus, spacePlanProps, isFreePlan } from '../lib/space.mjs';
-import { getLanguageIndex, resolveLanguage, languageOptions, supportedSummary } from '../lib/languages.mjs';
+import { getPlanStatus, spacePlanProps, isFreePlan, spaceTier } from '../lib/space.mjs';
+import { getLanguageIndex, resolveLanguage, languageOptions, supportedSummary, entrySupportsModel } from '../lib/languages.mjs';
+import { DEFAULT_TTS_MODEL, normalizeTtsModel, modelAllowedOnTier, supportsLipsync, MODEL_NOTE, targetModels } from '../lib/tts_models.mjs';
 import { resolveChunks, recutChunk, SplitConfirmNeeded } from '../lib/split.mjs';
 import { runSchedule } from '../lib/scheduler.mjs';
-import { download, getStatus, upload, requestAudioSeparation, downloadSeparation, classifyUploadError } from '../lib/api_adapter.mjs';
+import { download, getStatus, getProjectDetail, upload, requestAudioSeparation, downloadSeparation, classifyUploadError } from '../lib/api_adapter.mjs';
 import { mergeGroups, friendlyReason } from '../lib/merge.mjs';
 import { messages, withUtm, SUBSCRIPTION_URL, projectUrl } from '../lib/messages.mjs';
 import { checkForUpdate } from '../lib/update_check.mjs';
@@ -89,6 +90,7 @@ const USAGE = [
   '  --out           <file|folder> — an existing folder (or a path ending in / or \\) collects the results inside it;',
   '                  any other path is the output file itself (the real extension is added when it has none)',
   '  --target        language code(s), comma-separated — a code (en, ja) or a regional tag (en-GB, pt-PT, es-ES)',
+  '  --tts-model     TTS voice model: oriole (default) · nightingale (Pro plan or higher, 3 credits/s during the launch event — regular 6, lip-sync not available yet) · wren · dodo',
   '  --lipsync       dub, then generate the lip-synced video (extra credits; takes much longer than dubbing)',
   '  --lipsync-only  lip-sync an already-dubbed project (uses the [project-ref] line printed by a finished run; no re-dub charge)',
   '  --separate      split the source into voice / background / sub-background audio tracks (no dubbing; ~0.5 credit per second)',
@@ -100,7 +102,7 @@ const USAGE = [
 
 function parseArgs(argv) {
   const a = { source: 'auto', target: 'en', inputs: [] };
-  const VALUE_FLAGS = { '--resume': 'resume', '--source': 'source', '--target': 'target', '--space': 'space', '--out': 'out', '--lipsync-only': 'lipsyncOnly', '--host': 'host' };
+  const VALUE_FLAGS = { '--resume': 'resume', '--source': 'source', '--target': 'target', '--space': 'space', '--out': 'out', '--lipsync-only': 'lipsyncOnly', '--host': 'host', '--tts-model': 'ttsModel' };
   for (let i = 0; i < argv.length; i++) {
     const t = argv[i];
     if (t === '--help' || t === '-h') a.help = true;
@@ -119,15 +121,25 @@ function parseArgs(argv) {
       throw new UsageError(`Unknown option: ${t}`); // typos must not be swallowed as input paths
     } else a.inputs.push(t); // positional args (multiple): URL/path/folder may be mixed
   }
+  // One model per run, always carried by its current name. ttsModelExplicit: the user chose it (vs. the default).
+  a.ttsModelExplicit = a.ttsModel != null;
+  if (a.ttsModelExplicit) {
+    const m = normalizeTtsModel(a.ttsModel);
+    if (!m) throw new UsageError(`Unknown --tts-model "${a.ttsModel}" — use oriole (default), nightingale, wren or dodo.`);
+    a.ttsModel = m;
+  } else a.ttsModel = DEFAULT_TTS_MODEL;
   return a;
 }
 
 // Language codes are validated up-front: a typo is a permanent error, so fail with the supported list
 // instead of a mid-run "try again". Best-effort — if the list can't be fetched, let the server decide.
 // Targets keep their regional tag (en-GB); a source tag is dropped — detection has no regional variants.
-async function validateLanguages(targets, source) {
+// The voice model is checked per target too: a model the user chose that a target can't use is a permanent
+// error (exit 1); when the DEFAULT model can't be used, the targets come back in `modelless` so the caller
+// can ask ([model-select]) — never switch silently to a model that may cost more.
+async function validateLanguages(targets, source, { ttsModel = DEFAULT_TTS_MODEL, explicit = false } = {}) {
   const index = await getLanguageIndex();
-  if (!index.size) return { targets, source };
+  if (!index.size) return { targets, source, modelless: [] };
   const reject = (field, token, hint) => {
     track('lang_invalid', { field });
     const options = languageOptions(index, token); // known code, unknown tag → that language's options
@@ -136,12 +148,41 @@ async function validateLanguages(targets, source) {
       : `Unsupported ${field} language code: "${token}"${hint}\nSupported: ${supportedSummary(index)}`);
     throw new ExitCode(1);
   };
-  const fixed = targets.map((t) => resolveLanguage(index, t)?.token ?? reject('target', t, ''));
+  const entries = targets.map((t) => resolveLanguage(index, t) ?? reject('target', t, ''));
   let src = source;
   if (source && source !== 'auto') {
     src = resolveLanguage(index, source)?.code ?? reject('source', source, ' (use "auto" to detect)');
   }
-  return { targets: fixed, source: src };
+  const modelless = entries.filter((e) => !entrySupportsModel(e, ttsModel));
+  if (explicit && modelless.length) {
+    for (const e of modelless) console.error(`"${e.token}" (${e.name}) does not support ${ttsModel}. Supported for it: ${e.models.join(', ') || 'none'}`);
+    throw new ExitCode(1);
+  }
+  return { targets: entries.map((e) => e.token), source: src, modelless };
+}
+
+// [model-plan]: the chosen model is not sold on this space's plan. Printed before any upload or billing.
+function modelPlanMessage(model, tier) {
+  return [
+    `[model-plan] ${model} needs a Pro plan or higher — this space is on ${tier}.`,
+    `[model-plan] Ask the user to upgrade, or re-run the same command with --tts-model oriole (${MODEL_NOTE.ORIOLE}).`,
+    `  → ${withUtm(SUBSCRIPTION_URL)}`,
+  ].join('\n');
+}
+
+// [model-select]: the default model can't dub these targets — list what each one can use on this space.
+function modelSelectMessage(entries, tier, lipsync) {
+  const lines = [];
+  for (const e of entries) {
+    const opts = (e.models ?? []).filter((m) => normalizeTtsModel(m));
+    lines.push(`[model-select] The default voice model (${DEFAULT_TTS_MODEL}) is not available for "${e.token}" (${e.name}).`);
+    if (!opts.length) { lines.push(`[model-select] No voice model can dub "${e.token}" — choose another target language.`); continue; }
+    const desc = opts.map((m) => `${m} (${MODEL_NOTE[m]}${modelAllowedOnTier(m, tier) ? '' : ` — not on this ${tier} plan`})`).join(', ');
+    lines.push(`[model-select] Models available for it: ${desc}.`);
+    if (lipsync && opts.every((m) => !supportsLipsync(m))) lines.push(`[model-select] Lip-sync for ${opts.join('/')} is still in preparation — drop --lipsync, or choose another target language.`);
+  }
+  lines.push('[model-select] Ask the user which model to use, then re-run the same command with --tts-model <model>.');
+  return lines.join('\n');
 }
 
 const labelOf = (inp) => inp?.originalName ?? inp?.sourceUrl ?? 'input';
@@ -347,7 +388,7 @@ function buildManifest(ctx, perInput, results, prevDone = {}) {
     if (e) done[`${r.inputId}|${r.index}|${r.target}`] = e;
   }
   return {
-    version: 5, spaceSeq: ctx.spaceSeq, opts: { source: ctx.source }, targets: ctx.targets, out: ctx.out ?? null,
+    version: 5, spaceSeq: ctx.spaceSeq, opts: { source: ctx.source, ...(ctx.ttsModel ? { ttsModel: ctx.ttsModel } : {}) }, targets: ctx.targets, out: ctx.out ?? null,
     lipsync: !!ctx.lipsync, stop_reason: ctx.stopReason ?? null,
     inputs: perInput.map((p) => ({
       inputId: p.inputId, ref: p.ref,
@@ -419,7 +460,8 @@ function emitProjectRef(pin, tRes, target, ctx, { lipsync }) {
   }
   if (!parts.some((p) => p.seq != null)) return;
   const input = pin.ref?.localPath ?? pin.ref?.sourceUrl ?? null;
-  console.log(`[project-ref] ${JSON.stringify({ v: 1, space: ctx.spaceSeq, input, lang: target, parts, lipsync: !!lipsync })}`);
+  // model: the voice model of the dub (absent on lip-sync-only runs) — lets --lipsync-only refuse a NIGHTINGALE dub up-front.
+  console.log(`[project-ref] ${JSON.stringify({ v: 1, space: ctx.spaceSeq, input, lang: target, parts, lipsync: !!lipsync, model: ctx.ttsModel })}`);
 }
 
 // Group the global pool results by input and language to merge and save them, and if incomplete (credit/download failure), preserve resume state as a manifest.
@@ -512,14 +554,29 @@ async function finishPool(allResults, perInput, ctx) {
   const delivered = fullCount + partialCount;
   if (perInput.length > 1 || multiLang) console.log(`\nSummary: ${delivered} done${partialCount ? ` (${partialCount} partial)` : ''} · ${failCount} failed`);
 
-  // If it stopped again (out of credit) or only downloads failed, save the manifest → resume.
+  // A submit rejection (plan-gated model, language×model, …) stops the run: say why, and what to do.
+  const rejected = ctx.sched?.stopReason === 'submit_rejected';
+  if (rejected) {
+    const { code } = ctx.sched.rejection ?? {};
+    const unsent = ctx.sched.pendingLeft?.length ?? 0;
+    if (unsent) console.log(`Not submitted: ${unsent} more item(s) — stopped after the rejection above; nothing was billed for them.`);
+    if (code === 'VT40314') console.log(`${ctx.ttsModel ?? 'This voice model'} needs a Pro plan or higher — upgrade, or re-run with --tts-model oriole.`);
+    else if (code === 'VT4009') console.log(`This language does not support ${ctx.ttsModel ?? 'this voice model'} — re-run with another --tts-model (node scripts/languages.mjs lists the models per language).`);
+  }
+
+  // If it stopped again (out of credit / rejected) or only downloads failed, save the manifest → resume.
+  // A rejection keeps state only when something was already submitted (paid) — otherwise there is nothing to protect.
   const dlPending = allResults.some((r) => r.status === 'DLFAIL');
   const stopped = !!ctx.sched?.stopped;
-  if (stopped || dlPending) {
-    ctx.stopReason = stopped ? 'quota' : 'download'; // recorded in the manifest → resume reports why it stopped
+  const paidSomething = allResults.some((r) => r.projectId != null) || Object.keys(ctx.prevDone ?? {}).length > 0;
+  if ((stopped && (!rejected || paidSomething)) || dlPending) {
+    ctx.stopReason = stopped ? (rejected ? 'rejected' : 'quota') : 'download'; // recorded in the manifest → resume reports why it stopped
     mkdirSync(dirname(ctx.file), { recursive: true }); // an --out folder may not exist yet (nothing was saved into it)
     writeFileSync(ctx.file, JSON.stringify(buildManifest(ctx, perInput, allResults, ctx.prevDone ?? {})), 'utf8');
-    if (stopped) {
+    if (rejected) {
+      console.log('\nThe finished items are kept. Continuing later re-submits only the rest with the same voice model (to change the model, the run must start over).');
+      console.log(`[resume-state] ${ctx.file}`);
+    } else if (stopped) {
       const plan = await getPlanStatus(ctx.spaceSeq);
       const min = remainingMinutes(ctx.sched.pendingLeft);
       const lsOwed = allResults.some((r) => r.lipsyncPending);
@@ -528,7 +585,10 @@ async function finishPool(allResults, perInput, ctx) {
         planTier: plan?.planTier,
         remainingQuota: plan?.remainingQuota,
         remainingNote: min != null ? `~${min} min` : null,
-        note: lsOwed ? '   Dubbing for some items is already done — only the remaining lip-sync is left (no re-dub charge).' : null,
+        note: [
+          lsOwed ? '   Dubbing for some items is already done — only the remaining lip-sync is left (no re-dub charge).' : null,
+          ctx.sched.modelCreditCode ? `   Server code ${ctx.sched.modelCreditCode} — for NIGHTINGALE this is how the server reports insufficient credits; if credits are sufficient, the server does not support this model/option combination.` : null,
+        ].filter(Boolean).join('\n') || null,
       }));
       console.log(`[resume-state] ${ctx.file}`);
     } else {
@@ -546,7 +606,7 @@ async function finishPool(allResults, perInput, ctx) {
   if (dlByInput.size) {
     const planProps = await spacePlanProps(ctx.spaceSeq);
     const dlMode = ctx.lipsyncOnly ? 'lipsync-only' : ctx.lipsync ? 'lipsync' : 'dub';
-    for (const parts of dlByInput.values()) track('download_failed', { ...planProps, mode: dlMode, parts, is_resume: !!ctx.isResume });
+    for (const parts of dlByInput.values()) track('download_failed', { ...planProps, mode: dlMode, parts, is_resume: !!ctx.isResume, target_models: targetModels(ctx.targets, ctx.ttsModel) });
   }
 
   if (!ctx.lipsyncOnly) { // lipsync-only runs report via lipsync_only_completed below, not dubbing_completed
@@ -559,7 +619,7 @@ async function finishPool(allResults, perInput, ctx) {
       for (const r of uploadFails) {
         if (seen.has(r.inputId)) continue;
         seen.add(r.inputId);
-        track('upload_failed', { ...planProps, source: r.failSource ?? 'local', reason: r.failToken ?? 'upload_failed', code: r.failCode ?? null, is_resume: !!ctx.isResume });
+        track('upload_failed', { ...planProps, source: r.failSource ?? 'local', reason: r.failToken ?? 'upload_failed', code: r.failCode ?? null, is_resume: !!ctx.isResume, target_models: targetModels(ctx.targets, ctx.ttsModel) });
       }
     }
     // dubbing_completed covers only work that reached the server (a project was created). Upload-phase
@@ -585,6 +645,7 @@ async function finishPool(allResults, perInput, ctx) {
         had_lipsync: allResults.some((r) => r.lipsync),
         duration_sec: totalDurationSec(perInput),
         source_lang: ctx.source, target_lang: (ctx.targets || []).length ? ctx.targets : null,
+        target_models: targetModels(ctx.targets, ctx.ttsModel),
         is_resume: !!ctx.isResume, recovered: !!ctx.isResume && ctx.resumedFrom === 'quota' && delivered > 0,
       });
     }
@@ -605,6 +666,7 @@ async function finishPool(allResults, perInput, ctx) {
 // New run: schedule all inputs as a single pool. Per-input split/upload happens once (secures mediaSeq) → reused per language.
 async function runPool(args) {
   if (args.noSave && args.lipsync) throw new UsageError('--no-save cannot be combined with --lipsync (the lip-synced video must be downloaded).');
+  if (args.lipsync && !supportsLipsync(args.ttsModel)) throw new UsageError(`Lip-sync for ${args.ttsModel} is still in preparation, so it cannot be combined with --lipsync yet. Use --tts-model oriole for lip-sync, or drop --lipsync.`);
   await ensureKey();
   const wantedTargets = String(args.target).split(',').map((t) => t.trim()).filter(Boolean); // --target en,ja,ko
   if (!wantedTargets.length) throw new UsageError('No target language specified (--target en,ja,...)');
@@ -621,10 +683,18 @@ async function runPool(args) {
   const multiInput = inputs.length > 1;
   const file = resumePath({ out: args.out, inputs, multiInput });
   guardExistingState(file); // before validate/space/upload — never silently restart (and re-bill) an interrupted run
-  const { targets, source } = await validateLanguages(wantedTargets, args.source); // typo-fail before asking anything
+  const ttsModel = args.ttsModel;
+  const { targets, source, modelless } = await validateLanguages(wantedTargets, args.source, { ttsModel, explicit: args.ttsModelExplicit }); // typo-fail before asking anything
   const spaceSeq = await ensureSpace(args); // ask before any download/upload work (cheap to re-run with --space)
-  const freePlan = await isFreePlan(spaceSeq); // fetched once per run; threaded through ctx/pool
-  const ctx = { spaceSeq, source, targets, out: args.out, multiInput, file, prevDone: {}, lipsync: !!args.lipsync, freePlan };
+  // Voice-model gates — before any upload, so a stop here costs nothing. Both are "stop and ask" pauses (exit 0).
+  const tier = await spaceTier(spaceSeq);
+  if (!modelAllowedOnTier(ttsModel, tier)) {
+    track('model_plan_blocked', { ...await spacePlanProps(spaceSeq), target_models: targetModels(targets, ttsModel), is_resume: false });
+    console.log(modelPlanMessage(ttsModel, tier)); throw new ExitCode(0);
+  }
+  if (modelless.length) { console.log(modelSelectMessage(modelless, tier, !!args.lipsync)); throw new ExitCode(0); }
+  const freePlan = tier === 'free'; // fetched once per run; threaded through ctx/pool
+  const ctx = { spaceSeq, source, targets, out: args.out, multiInput, file, prevDone: {}, lipsync: !!args.lipsync, freePlan, ttsModel };
   if (freePlan) notify('Free plan — results stay in the Perso workspace (downloading them needs a paid plan).');
 
   // Per-input split/upload → tag every part with inputId into a single pool.
@@ -653,7 +723,7 @@ async function runPool(args) {
         track('split_confirm_needed', splitConfirmProps(e.details));
         pause(splitConfirmMessage(e.details, tag));
       }
-      if (isAuthError(e)) { track('error', { error_class: 'auth', code: errorCode(e), mode: dubMode(args) }); console.log(`\n${friendlyError(e)}`); return; } // key issues abort everything
+      if (isAuthError(e)) { track('error', { error_class: 'auth', code: errorCode(e), mode: dubMode(args), target_models: targetModels(targets, ttsModel) }); console.log(`\n${friendlyError(e)}`); return; } // key issues abort everything
       if (e?.name === 'UnsupportedMediaError') { notify(skipMsg(labelOf(inp), e)); continue; } // unsupported → skip
       console.log(`${tag} — split/upload failed: ${friendlyError(e)}`); continue;
     }
@@ -667,17 +737,18 @@ async function runPool(args) {
   }
   if (!pool.length) { notify('No inputs to process.'); return; }
 
-  if (args.lipsync && !args.force) await creditPreflight(perInput, spaceSeq, targets.length);
+  if (args.lipsync && !args.force) await creditPreflight(perInput, spaceSeq, targets, ttsModel);
 
   const inputDurs = inputDurationsSec(perInput).filter((d) => d != null);
   track('dub_submitted', {
     ...await spacePlanProps(spaceSeq), input_count: perInput.length, parts: pool.length, target_count: targets.length, has_lipsync: !!args.lipsync,
+    target_models: targetModels(targets, ttsModel), // language:model pairs, e.g. ["en:NIGHTINGALE", "ja:NIGHTINGALE"]
     duration_sec: inputDurs.length ? inputDurs.reduce((a, b) => a + b, 0) : null,
     input_durations_sec: inputDurs.length ? inputDurs : null,
   });
   notify(`Translating${targets.length > 1 ? ` (${targets.join(', ')})` : ''}`);
   // Fill all inputs×parts×languages into one queue for concurrent processing. Submit as many as there are empty slots and add more every 5 minutes.
-  const sched = await runSchedule(pool, spaceSeq, { source, targets, lipsync: !!args.lipsync, statusEvery: statusIntervalMs(totalDurationSec(perInput)) }, { log, notify, onResult: saver.onResult, onSubmit: saver.onSubmit });
+  const sched = await runSchedule(pool, spaceSeq, { source, targets, ttsModel, lipsync: !!args.lipsync, statusEvery: statusIntervalMs(totalDurationSec(perInput)) }, { log, notify, onResult: saver.onResult, onSubmit: saver.onSubmit });
 
   await finishPool([...sched.results.values()], perInput, { ...ctx, sched });
 }
@@ -686,7 +757,8 @@ async function runPool(args) {
 // half-way strands the user mid-chain — warn before submitting anything when the estimate clearly exceeds
 // the remaining credits. Durations aren't always known locally (no probe available, external URL) — then
 // the gate is skipped and the server's own billing check decides.
-async function creditPreflight(perInput, spaceSeq, targetCount) {
+async function creditPreflight(perInput, spaceSeq, targets, ttsModel) {
+  const targetCount = targets.length;
   const plan = await getPlanStatus(spaceSeq);
   const remaining = plan?.remainingQuota;
   if (remaining == null || typeof remaining !== 'number') return;
@@ -713,7 +785,7 @@ async function creditPreflight(perInput, spaceSeq, targetCount) {
     needed += Math.ceil(inputMs / 1000) * (CREDIT_RATE_DUB + CREDIT_RATE_LIPSYNC) * targetCount * mult;
   }
   if (!needed || remaining >= needed) return;
-  track('credit_check_blocked', { credits_needed: needed, credits_remaining: remaining, ...await spacePlanProps(spaceSeq) });
+  track('credit_check_blocked', { credits_needed: needed, credits_remaining: remaining, target_models: targetModels(targets, ttsModel), ...await spacePlanProps(spaceSeq) });
   console.log(`[credit-check] Estimated credits for dubbing + lip-sync: ~${needed}${anyUhd ? ` (includes the ×${UHD_CREDIT_MULT} 4K surcharge)` : ''}. Credits left: ${remaining}.`);
   console.log('[credit-check] The run would stop part-way. Ask the user to top up first, or approve continuing anyway — then re-run the same command with --force (whatever completes is kept; the rest resumes later):');
   console.log(`  → ${withUtm(SUBSCRIPTION_URL)}`);
@@ -731,9 +803,15 @@ async function runResume(file) {
   const targets = m.targets ?? [m.opts?.target ?? 'en'];
   const multiInput = (m.inputs?.length ?? 0) > 1;
   const lipsync = !!m.lipsync;
-  const freePlan = await isFreePlan(m.spaceSeq); // re-checked here: the plan may have changed since the interrupted run
-  const ctx = { spaceSeq: m.spaceSeq, source: m.opts?.source ?? 'auto', targets, out: m.out, multiInput, file, prevDone: m.done ?? {}, lipsync, isResume: true, resumedFrom: m.stop_reason ?? 'manual', freePlan };
-  track('resume_started', { mode: 'resume', resumed_from: m.stop_reason ?? 'manual' });
+  const ttsModel = normalizeTtsModel(m.opts?.ttsModel) ?? DEFAULT_TTS_MODEL; // state files from before --tts-model ran on the default
+  const tier = await spaceTier(m.spaceSeq); // re-checked here: the plan may have changed since the interrupted run
+  if (!modelAllowedOnTier(ttsModel, tier)) { // state kept: parts may already be paid
+    track('model_plan_blocked', { ...await spacePlanProps(m.spaceSeq), target_models: targetModels(targets, ttsModel), is_resume: true });
+    console.log(modelPlanMessage(ttsModel, tier)); console.log(`[resume-state] ${file}`); throw new ExitCode(0);
+  }
+  const freePlan = tier === 'free';
+  const ctx = { spaceSeq: m.spaceSeq, source: m.opts?.source ?? 'auto', targets, out: m.out, multiInput, file, prevDone: m.done ?? {}, lipsync, isResume: true, resumedFrom: m.stop_reason ?? 'manual', freePlan, ttsModel };
+  track('resume_started', { mode: 'resume', resumed_from: m.stop_reason ?? 'manual', target_models: targetModels(targets, ttsModel) });
   const outDir = await makeTempDir('dubbing-resume-');
   const matCache = new Map(); // `${inputId}|${index}` → re-cut path (once per part, shared across languages)
   const serverState = async (seq) => { try { return (await getStatus(seq, m.spaceSeq)).state; } catch { return null; } }; // unknown → treat as still running
@@ -907,10 +985,19 @@ async function runResume(file) {
 
   if (pool.length) notify('Translating (resume)');
   const sched = pool.length
-    ? await runSchedule(pool, m.spaceSeq, { source: m.opts?.source ?? 'auto', targets, done: skip, lipsync, statusEvery: statusIntervalMs(totalDurationSec(perInput)) }, { log, notify, onResult: saver.onResult, onSubmit: saver.onSubmit })
+    ? await runSchedule(pool, m.spaceSeq, { source: m.opts?.source ?? 'auto', targets, ttsModel, done: skip, lipsync, statusEvery: statusIntervalMs(totalDurationSec(perInput)) }, { log, notify, onResult: saver.onResult, onSubmit: saver.onSubmit })
     : { results: new Map(), stopped: false, pendingLeft: [] };
 
   await finishPool([...downloaded, ...sched.results.values()], perInput, { ...ctx, sched });
+}
+
+// [lipsync-unavailable]: the dub was made with a voice model whose lip-sync is still in preparation. Stops before any
+// lip-sync request, so nothing is billed; the only way to a lip-synced video is a new dub with another model.
+function lipsyncUnavailable(model, seqs) {
+  const which = seqs.length ? ` (project ${seqs.join(', ')})` : '';
+  console.log(`[lipsync-unavailable] This dub${which} was made with the ${model} voice model. Lip-sync for ${model} is still in preparation, so it is not available yet. Nothing was requested or billed.`);
+  console.log('[lipsync-unavailable] For a lip-synced video now, dub the original again with another voice model together with lip-sync: --tts-model oriole --lipsync (the dubbing is billed again).');
+  throw new ExitCode(1);
 }
 
 // Lip-sync an already-dubbed project set: --lipsync-only "<project-ref JSON | seq[,seq...]>".
@@ -929,6 +1016,8 @@ async function runLipsyncOnly(args) {
   }
   const parts = Array.isArray(ref.parts) ? ref.parts : [];
   if (!parts.some((p) => p?.seq != null)) throw new UsageError('No dubbed project found in the --lipsync-only reference.');
+  const refModel = normalizeTtsModel(ref.model);
+  if (refModel && !supportsLipsync(refModel)) lipsyncUnavailable(refModel, parts.map((p) => p?.seq).filter((s) => s != null));
   const lsMs = parts.reduce((s, p) => { const r = p?.ms ?? p?.pt; return s + (Array.isArray(r) && r.length === 2 ? Math.max(0, r[1] - r[0]) : 0); }, 0);
 
   const target = ref.lang ?? 'out';
@@ -938,6 +1027,15 @@ async function runLipsyncOnly(args) {
   guardExistingState(file); // an interrupted earlier run owns this state file — resume it instead of re-billing
   const spaceSeq = Number(ref.space) || await ensureSpace(args);
   setTelemetrySpace(spaceSeq); // a project-ref carrying `space` skips ensureSpace, which is what normally sets this
+  // A bare projectSeq (or an older [project-ref]) doesn't say which voice model made the dub — ask the server,
+  // so a NIGHTINGALE dub is refused here instead of reaching a lip-sync request. Unreadable detail → the server decides.
+  if (!refModel) {
+    for (const p of parts) {
+      if (p?.seq == null) continue;
+      const model = normalizeTtsModel(await getProjectDetail(p.seq, spaceSeq).then((d) => (d?.result ?? d)?.ttsModel).catch(() => null));
+      if (model && !supportsLipsync(model)) lipsyncUnavailable(model, [p.seq]);
+    }
+  }
   const freePlan = await isFreePlan(spaceSeq); // free: the lip-synced video can only be watched on Perso
   const ctx = { spaceSeq, source: 'auto', targets: [target], out: args.out, multiInput: false, file, prevDone: {}, lipsync: true, lipsyncOnly: true, freePlan };
   track('lipsync_only_started', { ...await spacePlanProps(spaceSeq), input_count: 1, parts: parts.length, duration_sec: lsMs > 0 ? Math.round(lsMs / 1000) : null });
@@ -1295,6 +1393,10 @@ function earlySpaceHint(args) {
 function dubMode(a) {
   return a?.resume ? 'resume' : a?.separate ? 'separate' : a?.lipsyncOnly ? 'lipsync-only' : a?.lipsync ? 'lipsync' : 'dub';
 }
+// Does this invocation submit new dubbing (where --tts-model applies)? Not resume/separate/lipsync-only.
+const dubsNow = (a) => ['dub', 'lipsync'].includes(dubMode(a));
+// --target as typed (before validation) — for the events that fire before the languages are resolved.
+const argTargets = (a) => String(a?.target ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 
 async function main() {
   let exitCode = 0;
@@ -1313,10 +1415,16 @@ async function main() {
       track('run_started', {
         mode: args.resume ? 'resume' : args.separate ? 'separate' : args.lipsyncOnly ? 'lipsync-only' : args.lipsync ? 'lipsync' : 'dub',
         input_count: args.inputs.length || null,
-        target_count: String(args.target).split(',').map((s) => s.trim()).filter(Boolean).length || null,
+        target_count: argTargets(args).length || null,
         has_lipsync: !!(args.lipsync || args.lipsyncOnly),
         source_lang: args.source,
+        target_models: dubsNow(args) ? targetModels(argTargets(args), args.ttsModel) : null,
       });
+    }
+    if (args.ttsModelExplicit && !dubsNow(args)) {
+      throw new UsageError(args.resume ? '--tts-model cannot be changed on --resume — the model is taken from the state file.'
+        : args.separate ? '--tts-model cannot be combined with --separate (no dubbing involved).'
+          : '--tts-model has no effect with --lipsync-only (the dub already exists).');
     }
     if (args.help) console.log(USAGE);
     else if (args.resume) await runResume(args.resume);
@@ -1335,7 +1443,7 @@ async function main() {
   } catch (e) {
     if (e?.name === 'ExitCode') exitCode = e.code; // message already printed at the throw site
     else if (e?.name === 'UsageError') { console.error(`${e.message}\n${USAGE}`); exitCode = 1; }
-    else { track('error', { error_class: errorClass(e), code: errorCode(e), mode: dubMode(args) }); console.error(friendlyError(e)); exitCode = 1; }
+    else { track('error', { error_class: errorClass(e), code: errorCode(e), mode: dubMode(args), target_models: dubsNow(args) ? targetModels(argTargets(args), args.ttsModel) : null }); console.error(friendlyError(e)); exitCode = 1; }
   } finally {
     await cleanupTempDirs(); // bulk-clean the cut/schedule/merge/download temp folders
   }

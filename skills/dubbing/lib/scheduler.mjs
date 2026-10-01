@@ -22,6 +22,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const isCreditError = (e) => e instanceof PersoApiError && e.httpStatus === 402;
 // Translation queue full (backpressure): observed as 429 VT4292 (FULL_VT_TRANSLATE_QUEUE). VT5034 (503) also preserved.
 const QUEUE_FULL_CODES = new Set(['VT4292', 'VT5034']);
+// Any other 4xx at submit is the server refusing this exact request (plan-gated model VT40314, language×model
+// VT4009, model×option VT40918, …) — resending it only repeats the refusal, so it is never retried.
+const isRejection = (e) => e instanceof PersoApiError && e.httpStatus >= 400 && e.httpStatus < 500 && e.httpStatus !== 402 && e.httpStatus !== 429;
+const rejectionReason = (e) => `rejected by the server (${e.code ?? e.httpStatus})${e.message ? `: ${e.message}` : ''}`;
 
 // chunks: pieces from multiple inputs in one array (each piece identifies its input by inputId, index is 0-based within the input).
 //   An unsplit input has a single piece. The same (inputId,index) shares mediaSeq across languages (uploaded once).
@@ -76,6 +80,8 @@ export async function runSchedule(chunks, spaceSeq, opts = {}, hooks = {}) {
 
   let stopAll = false;
   let stopReason = null;
+  let rejection = null; // { code, message } of the submit rejection that stopped the run (stopReason 'submit_rejected')
+  let modelCreditCode = null; // NIGHTINGALE credit stop reported as VT40918 instead of 402 (explained to the user)
   let engineError = null; // unrecoverable engine error message (for reporting upward)
   let backoff = BACKOFF_BASE_MS;
   let lastProgressAt = Date.now(); // time of last progress. Guards on 'no progress' rather than absolute elapsed time.
@@ -178,6 +184,23 @@ export async function runSchedule(chunks, spaceSeq, opts = {}, hooks = {}) {
             const up = classifyUploadError(e);
             failUpload(chunk, { reason: up.message || up.token, failToken: up.token, failCode: up.code });
             log(`[Input ${chunk.inputId + 1}] segment ${chunk.index + 1} upload rejected (${up.code ?? up.token})`);
+          } else if (!inUploadPhase(chunk) && chunk.stage === 'lipsync' && isRejection(e)) {
+            // A refused lip-sync is final (re-requesting bills again anyway) → deliver the dubbed video instead.
+            log(`[Input ${chunk.inputId + 1}] segment ${chunk.index + 1}(${chunk.target}) lip-sync ${rejectionReason(e)} — falling back to the dubbed video`);
+            await lipsyncFallback(chunk, rejectionReason(e));
+            progressed = true;
+          } else if (!inUploadPhase(chunk) && code === 'VT40918' && opts.ttsModel === 'NIGHTINGALE') {
+            // The server turns a NIGHTINGALE credit shortage into VT40918 (its RED-speed fallback is not allowed for
+            // the model) instead of 402. Every other VT40918 cause (lip-sync, RED, SRT) is blocked before submit,
+            // so handle it as the credit stop: finished work is kept and the rest resumes after a top-up.
+            stopAll = true; stopReason = 'credit'; modelCreditCode = code; keep.push(chunk);
+            log('NIGHTINGALE refused (VT40918, likely out of credits) — halting new submissions, finishing only in-flight work');
+          } else if (!inUploadPhase(chunk) && isRejection(e)) {
+            // Deterministic refusal → no retry, and no further submissions (siblings would be refused the same way).
+            rejection = { code: code ?? String(e.httpStatus), message: e.message || null };
+            setResult(chunk, { status: 'HARD_FAIL', reason: rejectionReason(e), failKind: 'submit', failToken: 'submit_rejected', failCode: code ?? null });
+            stopAll = true; stopReason = 'submit_rejected';
+            log(`[Input ${chunk.inputId + 1}] segment ${chunk.index + 1}(${chunk.target}) ${rejectionReason(e)} — not submitting the rest`);
           } else if (chunk.retries < MAX_RETRY) {
             chunk.retries++; keep.push(chunk);
             log(`[Input ${chunk.inputId + 1}] segment ${chunk.index + 1} retrying`);
@@ -236,17 +259,7 @@ export async function runSchedule(chunks, spaceSeq, opts = {}, hooks = {}) {
             }
           } else {
             log(`${tag} lip-sync failed${st.message ? ` (${st.message})` : ''} — falling back to the dubbed video`);
-            if (chunk.noDownload) { // server-only: the dubbed project stays the deliverable, still not downloaded
-              setResult(chunk, { status: 'OK', projectId: chunk.parentSeq, lipsyncFailed: true, reason: st.message ?? 'lipsync_failed', serverOnly: true });
-              continue;
-            }
-            const out = join(outDir, `dub_${chunk.inputId}_${String(chunk.index).padStart(3, '0')}_${chunk.target}.mp4`);
-            try {
-              const dl = await download(chunk.parentSeq, spaceSeq, { kind: chunk.kind, outPath: out });
-              setResult(chunk, { status: 'OK', projectId: chunk.parentSeq, lipsyncFailed: true, reason: st.message ?? 'lipsync_failed', path: out, name: dl.fileName });
-            } catch {
-              setResult(chunk, { status: 'DLFAIL', projectId: chunk.parentSeq, lipsyncFailed: true, reason: 'download_failed' });
-            }
+            await lipsyncFallback(chunk, st.message ?? 'lipsync_failed');
           }
           continue;
         }
@@ -346,9 +359,26 @@ export async function runSchedule(chunks, spaceSeq, opts = {}, hooks = {}) {
     outDir,
     stopped: stopAll,
     stopReason,
+    rejection,
+    modelCreditCode,
     engineError,
     pendingLeft: pending.map(({ retries, mediaSeq, _progress, _nextPollAt, ...c }) => c), // preserved on stop_all (for resume). mediaSeq removed → re-upload.
   };
+
+  // Lip-sync failed or was refused → the dubbed project (parentSeq) becomes the deliverable. Never re-submitted.
+  async function lipsyncFallback(chunk, reason) {
+    if (chunk.noDownload) { // server-only: the dubbed project stays the deliverable, still not downloaded
+      setResult(chunk, { status: 'OK', projectId: chunk.parentSeq, lipsyncFailed: true, reason, serverOnly: true });
+      return;
+    }
+    const out = join(outDir, `dub_${chunk.inputId}_${String(chunk.index).padStart(3, '0')}_${chunk.target}.mp4`);
+    try {
+      const dl = await download(chunk.parentSeq, spaceSeq, { kind: chunk.kind, outPath: out });
+      setResult(chunk, { status: 'OK', projectId: chunk.parentSeq, lipsyncFailed: true, reason, path: out, name: dl.fileName });
+    } catch {
+      setResult(chunk, { status: 'DLFAIL', projectId: chunk.parentSeq, lipsyncFailed: true, reason: 'download_failed' });
+    }
+  }
 
   function failRemaining(reason) {
     for (const c of pending) if (!results.has(taskKey(c))) {

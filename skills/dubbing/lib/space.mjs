@@ -89,11 +89,17 @@ export async function findSpaceForProject(projectSeq) {
  *  download (VT5003), so the workers deliver a Perso link instead of a file and cap submissions at a preview.
  *  plan/status first, the (cached) spaces list as fallback. Unknown tier → false: never restrict a paid run. */
 export async function isFreePlan(spaceSeq) {
-  const free = (t) => String(t ?? '').trim().toLowerCase() === 'free';
-  if (free((await getPlanStatus(spaceSeq))?.planTier)) return true;
+  return (await spaceTier(spaceSeq)) === 'free';
+}
+
+/** The space's plan tier, lowercased (plan/status first, the cached spaces list as fallback); null when unknown. */
+export async function spaceTier(spaceSeq) {
+  const norm = (t) => String(t ?? '').trim().toLowerCase() || null;
+  const fromStatus = norm((await getPlanStatus(spaceSeq))?.planTier);
+  if (fromStatus) return fromStatus;
   try {
-    return free((await listSpaces()).find((x) => x.spaceSeq === Number(spaceSeq))?.tier);
-  } catch { return false; }
+    return norm((await listSpaces()).find((x) => x.spaceSeq === Number(spaceSeq))?.tier);
+  } catch { return null; }
 }
 
 /** Query plan/quota → { planTier, remainingQuota, resetDateTime }. Returns null on failure. */
