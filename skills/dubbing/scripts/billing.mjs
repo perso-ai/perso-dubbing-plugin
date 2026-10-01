@@ -23,6 +23,7 @@ const USAGE = [
   '  node scripts/billing.mjs link --checkout --plan <tier> --period <monthly|yearly> [--currency usd|krw] [--space "<space name>"]',
   '  node scripts/billing.mjs link --billing  --plan <tier> [--space "<space name>"]',
   '  node scripts/billing.mjs link --credits  --quantity <n> [--space "<space name>"]',
+  '  link also takes --reason <model_plan|quota_exceeded|credit_check|user_request> — why the purchase is being offered (telemetry only)',
   '',
   'options  detect the current plan, show the fitting purchase flow + choices, and (with --shortfall) a recommendation',
   'link     generate the Stripe payment link for the user\'s confirmed choice (hand it to the user; never pay for them)',
@@ -31,9 +32,13 @@ const USAGE = [
 const HANDOFF = 'Give this link to the user to open in their browser and complete payment. Do NOT open it or pay on their behalf.';
 const CONTACT = 'Enterprise plans have no self-serve checkout — ask the user to contact their workspace administrator.';
 
+// Why the agent is offering a purchase (telemetry only): the worker stop that led here, or the user's own ask.
+const LINK_REASONS = ['model_plan', 'quota_exceeded', 'credit_check', 'user_request'];
+let _reason = null; // set from --reason in main; rides on billing_link_created
+
 function parseArgs(argv) {
   const a = { inputs: [] };
-  const VALUE = { '--plan': 'plan', '--period': 'period', '--currency': 'currency', '--quantity': 'quantity', '--space': 'space', '--shortfall': 'shortfall' };
+  const VALUE = { '--plan': 'plan', '--period': 'period', '--currency': 'currency', '--quantity': 'quantity', '--space': 'space', '--shortfall': 'shortfall', '--reason': 'reason' };
   for (let i = 0; i < argv.length; i++) {
     const t = argv[i];
     if (t === '--help' || t === '-h') a.help = true;
@@ -47,6 +52,7 @@ function parseArgs(argv) {
     } else if (t.startsWith('--')) throw new UsageError(`Unknown option: ${t}`);
     else a.inputs.push(t);
   }
+  if (a.reason != null && !LINK_REASONS.includes(a.reason)) throw new UsageError(`--reason must be one of: ${LINK_REASONS.join(', ')}`);
   return a;
 }
 
@@ -191,7 +197,7 @@ async function runLink(args) {
 
 function printLink(link, what, meta = {}) {
   if (!link) throw new Error('The payment service did not return a link. Please try again.');
-  track('billing_link_created', meta);
+  track('billing_link_created', { ...meta, reason: _reason });
   console.log(`Payment link (${what}):`);
   console.log(`  ${link}`);
   console.log(HANDOFF);
@@ -202,6 +208,7 @@ async function main() {
   try {
     preloadKeyEnv();
     const args = parseArgs(process.argv.slice(2));
+    _reason = args.reason ?? null;
     const cmd = args.inputs[0];
     if (args.help || !cmd) console.log(USAGE);
     else if (!resolveKey()) { console.error(onboardingHelp()); exitCode = 2; }
