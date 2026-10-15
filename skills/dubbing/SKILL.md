@@ -64,24 +64,26 @@ While it runs (for explaining the wait):
 
 ## Voice model (only when the user asks)
 
-`--tts-model <oriole|nightingale|wren|dodo>` picks the TTS voice model for the whole run (every `--target`). Omitted → `oriole`, the default. Follow the Core rule: never offer this unless the user asks about voice models or the worker prints a model line.
+`--tts-model <linnet_4|linnet_3|oriole|wren|finch|nightingale>` picks the TTS voice model for the whole run (every `--target`). Omitted → no model is sent and the server applies its default (currently `linnet_4`, or `oriole` for a language without it). Legacy names still work (`dodo`/`eleven_v3` → `linnet_3`, `eleven_v2` → `wren`, `audio_engine_v3` → `oriole`). Follow the Core rule: never offer this unless the user asks about voice models or the worker prints a model line.
 
 When the user asks, explain with these facts only (don't describe voice character or quality — there is no source for it):
 
 | Model | Plan | Credits (dubbing) | Lip-sync | Languages |
 |---|---|---|---|---|
-| `oriole` (default) | any | ≈ ×1/s (4K ×3 on pro/business/enterprise) | yes | most languages |
+| `linnet_4` (server default) | any | ≈ ×1/s (4K ×3 on pro/business/enterprise) | yes | most languages |
+| `oriole` | any | ≈ ×1/s (4K ×3 on pro+) | yes | most languages (the default where `linnet_4` is missing) |
+| `linnet_3` | any | ≈ ×1/s (4K ×3 on pro+) | yes | fewer languages |
+| `wren` | any | ≈ ×1/s (4K ×3 on pro+) | yes | fewer languages |
+| `finch` | **Pro or higher** | **0.2/s** (4K ×3 on pro+) | yes | most languages |
 | `nightingale` | **Pro or higher** | **3/s during the launch event** (regular 6/s; no 4K surcharge) | **not yet** (in preparation) | some languages are Nightingale-only |
-| `wren` | server decides | ≈ ×1/s (4K ×3 on pro+) | server decides | fewer languages |
-| `dodo` | server decides | ≈ ×1/s (4K ×3 on pro+) | server decides | fewer languages |
 
 Server billing is authoritative.
 
-**The user names a model** ("use Nightingale", "나이팅게일로 해줘") → no table, no question: tell them the price in one line (Nightingale: 3 credits per second during the launch event, regular 6) and start the run with `--tts-model <name>` right away. The worker checks the plan and the languages before uploading — if one doesn't fit it stops with `[model-plan]` / `[model-select]` / an unsupported-language error, and you relay that instead.
+**The user names a model** ("use Nightingale", "나이팅게일로 해줘") → no table, no question: tell them the price in one line (Nightingale: 3 credits per second during the launch event, regular 6; Finch: 0.2 credits per second) and start the run with `--tts-model <name>` right away. The worker checks the plan and the languages before uploading — if one doesn't fit it stops with `[model-plan]` / `[model-select]` / an unsupported-language error, and you relay that instead.
  For which models a given language supports, run `node scripts/languages.mjs` (each line lists its `models`). Once the user picks, add `--tts-model <name>` and keep it on every re-run of that job (`--allow-split`, `--allow-preview`, `--force`).
 
-- **`[model-plan]`** — the chosen model isn't available on this space's plan. Nothing was uploaded or billed. Relay it; the user either upgrades (see **Plan upgrade & credits**) and you re-run the same command, or you re-run with `--tts-model oriole`.
-- **`[model-select]`** — the default model can't dub a requested language; the lines list the models that can (and whether this plan allows them). Nothing was uploaded or billed. Ask the user which to use and re-run the same command with `--tts-model <model>`; never pick a pricier model for them.
+- **`[model-plan]`** — the chosen model isn't available on this space's plan (Nightingale and Finch need Pro or higher). Nothing was uploaded or billed. Ask the user one question: **switch to another voice model** (the lines list the ones this plan allows) **or dub without choosing a model** (the server default). Re-run the same command with `--tts-model <model>`, or without `--tts-model`. If the user asks to upgrade instead, see **Plan upgrade & credits** and re-run the same command after payment.
+- **`[model-select]`** — the server's default model can't dub a requested language; the lines list the models that can (and whether this plan allows them). Nothing was uploaded or billed. Ask the user which to use and re-run the same command with `--tts-model <model>`; never pick a pricier model for them.
 - `--tts-model` applies to new dubbing only: it can't be combined with `--separate` or `--lipsync-only`, and `--resume` keeps the model the run started with.
 - If the server still refuses a submission, the worker stops without retrying and prints the server's code and message (`Could not dub: … rejected by the server (<code>): …`) plus a hint — relay them.
 
@@ -101,7 +103,7 @@ Pick the flow by what exists:
 Rules:
 
 - **Repeating lip-sync on the same project bills again** (no server-side dedup). If this session already lip-synced it, point at the existing file and re-run only on explicit confirmation.
-- **Lip-sync for Nightingale dubs is not available yet (in preparation).** `--lipsync-only` checks which voice model made the dub (from the `[project-ref]`, or by asking the server for a bare project number) and stops with `[lipsync-unavailable]` lines before any request — nothing is billed. Relay it as "not available yet", never as a permanent limitation: lip-sync for Nightingale dubs is still being prepared. If the user wants a lip-synced video now, the way is to dub the original again with another voice model plus lip-sync (`--tts-model oriole --lipsync`), which bills the dubbing again — offer it, and run it only on the user's explicit OK. If the user wants lip-sync, don't suggest Nightingale for the new dub.
+- **Lip-sync for Nightingale dubs is not available yet (in preparation).** `--lipsync-only` checks which voice model made the dub (from the `[project-ref]`, or by asking the server for a bare project number) and stops with `[lipsync-unavailable]` lines before any request — nothing is billed. Relay it as "not available yet", never as a permanent limitation: lip-sync for Nightingale dubs is still being prepared. If the user wants a lip-synced video now, the way is to dub the original again with the default voice model plus lip-sync (`--lipsync`, no `--tts-model`), which bills the dubbing again — offer it, and run it only on the user's explicit OK. If the user wants lip-sync, don't suggest Nightingale for the new dub.
 - **If lip-sync fails, the worker saves the dubbed video instead** and says so in the final report — relay that clearly; the dubbing credits are not wasted.
 - Credits running out between dubbing and lip-sync: the dubbed videos are saved and continuing finishes only the lip-sync — relay the top-up URL, and continue via the `[resume-state]` path once paid (see **Interruption & resume**).
 
@@ -161,7 +163,7 @@ It routes by the current plan tier — ask only the question for that branch, th
   `node scripts/billing.mjs link --credits --quantity <n>`
 - **enterprise → no self-serve.** Tell the user to contact their workspace administrator.
 
-**Recommending on a credit-out stop**: estimate the remaining work's credits (dubbing ≈ ×1/s — ×3/s with `nightingale` during the launch event (regular ×6), no 4K surcharge · lip-sync ≈ ×2 · separation ≈ ×0.5, and ×3 for 4K on pro+), pass it as `--shortfall`, and relay the tool's recommendation. If even the top self-serve plan or a reasonable credit quantity can't cover it, point the user to their administrator (Enterprise) instead.
+**Recommending on a credit-out stop**: estimate the remaining work's credits (dubbing ≈ ×1/s — ×0.2/s with `finch` · ×3/s with `nightingale` during the launch event (regular ×6), no 4K surcharge · lip-sync ≈ ×2 · separation ≈ ×0.5, and ×3 for 4K on pro+), pass it as `--shortfall`, and relay the tool's recommendation. If even the top self-serve plan or a reasonable credit quantity can't cover it, point the user to their administrator (Enterprise) instead.
 
 Add `--reason` to every `billing.mjs link` command — what led to this purchase offer (telemetry only, never shown to the user): `model_plan` after a `[model-plan]` stop (a voice model the plan doesn't include), `quota_exceeded` after an out-of-credits stop, `credit_check` after a `[credit-check]` stop, `user_request` when the user asked to upgrade or buy credits on their own.
 
