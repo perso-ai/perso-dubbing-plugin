@@ -12,7 +12,7 @@ import { ExitCode, UsageError, isAuthError, friendlyError, errorClass, errorCode
 import { expandInputs, prepareInput } from '../lib/input.mjs';
 import { getPlanStatus, spacePlanProps, isFreePlan, spaceTier } from '../lib/space.mjs';
 import { getLanguageIndex, resolveLanguage, languageOptions, supportedSummary, entrySupportsModel } from '../lib/languages.mjs';
-import { DEFAULT_TTS_MODEL, normalizeTtsModel, modelAllowedOnTier, supportsLipsync, MODEL_NOTE, targetModels } from '../lib/tts_models.mjs';
+import { SERVER_DEFAULT_CANDIDATES, normalizeTtsModel, modelAllowedOnTier, supportsLipsync, MODEL_NOTE, targetModels, dubRate } from '../lib/tts_models.mjs';
 import { resolveChunks, recutChunk, SplitConfirmNeeded } from '../lib/split.mjs';
 import { runSchedule } from '../lib/scheduler.mjs';
 import { download, getStatus, getProjectDetail, upload, requestAudioSeparation, downloadSeparation, classifyUploadError } from '../lib/api_adapter.mjs';
@@ -23,7 +23,7 @@ import { track, initTelemetry, setTelemetrySpace, primeTelemetrySpace, setAgentH
 import { makeStatusTicker, statusIntervalMs } from '../lib/status.mjs';
 import { cleanupTempDirs, makeTempDir } from '../lib/tmp.mjs';
 import { probe } from '../lib/ffmpeg.mjs';
-import { AUDIO_EXT, CREDIT_RATE_DUB, CREDIT_RATE_LIPSYNC, UHD_CREDIT_MULT, UHD_BILLED_TIERS, POLL_INTERVAL_MS, MAX_IDLE_MS, FREE_PREVIEW_MS } from '../lib/config.mjs';
+import { AUDIO_EXT, CREDIT_RATE_LIPSYNC, UHD_CREDIT_MULT, UHD_BILLED_TIERS, POLL_INTERVAL_MS, MAX_IDLE_MS, FREE_PREVIEW_MS } from '../lib/config.mjs';
 
 const log = (m) => console.error('  ' + m); // background verbose log (stderr)
 // Milestones exposed to the user (stdout). The agent relays these [progress] lines to chat per the SKILL rules.
@@ -90,7 +90,8 @@ const USAGE = [
   '  --out           <file|folder> — an existing folder (or a path ending in / or \\) collects the results inside it;',
   '                  any other path is the output file itself (the real extension is added when it has none)',
   '  --target        language code(s), comma-separated — a code (en, ja) or a regional tag (en-GB, pt-PT, es-ES)',
-  '  --tts-model     TTS voice model: oriole (default) · nightingale (Pro plan or higher, 3 credits/s during the launch event — regular 6, lip-sync not available yet) · wren · dodo',
+  '  --tts-model     TTS voice model: linnet_4 · linnet_3 · oriole · wren · finch (Pro plan or higher, 0.2 credit/s) · nightingale (Pro plan or higher,',
+  '                  3 credits/s during the launch event — regular 6, lip-sync not available yet). Omitted → the server picks its default',
   '  --lipsync       dub, then generate the lip-synced video (extra credits; takes much longer than dubbing)',
   '  --lipsync-only  lip-sync an already-dubbed project (uses the [project-ref] line printed by a finished run; no re-dub charge)',
   '  --separate      split the source into voice / background / sub-background audio tracks (no dubbing; ~0.5 credit per second)',
@@ -121,13 +122,14 @@ function parseArgs(argv) {
       throw new UsageError(`Unknown option: ${t}`); // typos must not be swallowed as input paths
     } else a.inputs.push(t); // positional args (multiple): URL/path/folder may be mixed
   }
-  // One model per run, always carried by its current name. ttsModelExplicit: the user chose it (vs. the default).
+  // One model per run, always carried by its current name. No --tts-model → null: the request carries no
+  // model and the server applies its default. ttsModelExplicit: the user chose a model.
   a.ttsModelExplicit = a.ttsModel != null;
   if (a.ttsModelExplicit) {
     const m = normalizeTtsModel(a.ttsModel);
-    if (!m) throw new UsageError(`Unknown --tts-model "${a.ttsModel}" — use oriole (default), nightingale, wren or dodo.`);
+    if (!m) throw new UsageError(`Unknown --tts-model "${a.ttsModel}" — use linnet_4, linnet_3, oriole, wren, finch or nightingale (or omit it for the server default).`);
     a.ttsModel = m;
-  } else a.ttsModel = DEFAULT_TTS_MODEL;
+  } else a.ttsModel = null;
   return a;
 }
 
@@ -135,9 +137,10 @@ function parseArgs(argv) {
 // instead of a mid-run "try again". Best-effort — if the list can't be fetched, let the server decide.
 // Targets keep their regional tag (en-GB); a source tag is dropped — detection has no regional variants.
 // The voice model is checked per target too: a model the user chose that a target can't use is a permanent
-// error (exit 1); when the DEFAULT model can't be used, the targets come back in `modelless` so the caller
-// can ask ([model-select]) — never switch silently to a model that may cost more.
-async function validateLanguages(targets, source, { ttsModel = DEFAULT_TTS_MODEL, explicit = false } = {}) {
+// error (exit 1); when no model was chosen and the server default can't dub a target (it supports none of
+// SERVER_DEFAULT_CANDIDATES), the targets come back in `modelless` so the caller can ask ([model-select]) —
+// never switch silently to a model that may cost more.
+async function validateLanguages(targets, source, { ttsModel = null, explicit = false } = {}) {
   const index = await getLanguageIndex();
   if (!index.size) return { targets, source, modelless: [] };
   const reject = (field, token, hint) => {
@@ -153,7 +156,9 @@ async function validateLanguages(targets, source, { ttsModel = DEFAULT_TTS_MODEL
   if (source && source !== 'auto') {
     src = resolveLanguage(index, source)?.code ?? reject('source', source, ' (use "auto" to detect)');
   }
-  const modelless = entries.filter((e) => !entrySupportsModel(e, ttsModel));
+  const modelless = ttsModel
+    ? entries.filter((e) => !entrySupportsModel(e, ttsModel))
+    : entries.filter((e) => !SERVER_DEFAULT_CANDIDATES.some((m) => entrySupportsModel(e, m)));
   if (explicit && modelless.length) {
     for (const e of modelless) console.error(`"${e.token}" (${e.name}) does not support ${ttsModel}. Supported for it: ${e.models.join(', ') || 'none'}`);
     throw new ExitCode(1);
@@ -162,11 +167,14 @@ async function validateLanguages(targets, source, { ttsModel = DEFAULT_TTS_MODEL
 }
 
 // [model-plan]: the chosen model is not sold on this space's plan. Printed before any upload or billing.
+// The user picks: another model this plan allows, or no model at all (the server default).
 function modelPlanMessage(model, tier) {
+  const others = Object.keys(MODEL_NOTE).filter((m) => m !== model && modelAllowedOnTier(m, tier));
   return [
     `[model-plan] ${model} needs a Pro plan or higher — this space is on ${tier}.`,
-    `[model-plan] Ask the user to upgrade, or re-run the same command with --tts-model oriole (${MODEL_NOTE.ORIOLE}).`,
-    `  → ${withUtm(SUBSCRIPTION_URL)}`,
+    '[model-plan] Ask the user: switch to another voice model, or dub without choosing one (the server default model)?',
+    `[model-plan] Models available on this plan: ${others.map((m) => `${m.toLowerCase()} (${MODEL_NOTE[m]})`).join(', ')}.`,
+    '[model-plan] Re-run the same command with --tts-model <model>, or without --tts-model for the default.',
   ].join('\n');
 }
 
@@ -175,7 +183,7 @@ function modelSelectMessage(entries, tier, lipsync) {
   const lines = [];
   for (const e of entries) {
     const opts = (e.models ?? []).filter((m) => normalizeTtsModel(m));
-    lines.push(`[model-select] The default voice model (${DEFAULT_TTS_MODEL}) is not available for "${e.token}" (${e.name}).`);
+    lines.push(`[model-select] The default voice model is not available for "${e.token}" (${e.name}).`);
     if (!opts.length) { lines.push(`[model-select] No voice model can dub "${e.token}" — choose another target language.`); continue; }
     const desc = opts.map((m) => `${m} (${MODEL_NOTE[m]}${modelAllowedOnTier(m, tier) ? '' : ` — not on this ${tier} plan`})`).join(', ');
     lines.push(`[model-select] Models available for it: ${desc}.`);
@@ -388,7 +396,7 @@ function buildManifest(ctx, perInput, results, prevDone = {}) {
     if (e) done[`${r.inputId}|${r.index}|${r.target}`] = e;
   }
   return {
-    version: 5, spaceSeq: ctx.spaceSeq, opts: { source: ctx.source, ...(ctx.ttsModel ? { ttsModel: ctx.ttsModel } : {}) }, targets: ctx.targets, out: ctx.out ?? null,
+    version: 5, spaceSeq: ctx.spaceSeq, opts: { source: ctx.source, ttsModel: ctx.ttsModel ?? null }, targets: ctx.targets, out: ctx.out ?? null,
     lipsync: !!ctx.lipsync, stop_reason: ctx.stopReason ?? null,
     inputs: perInput.map((p) => ({
       inputId: p.inputId, ref: p.ref,
@@ -560,7 +568,7 @@ async function finishPool(allResults, perInput, ctx) {
     const { code } = ctx.sched.rejection ?? {};
     const unsent = ctx.sched.pendingLeft?.length ?? 0;
     if (unsent) console.log(`Not submitted: ${unsent} more item(s) — stopped after the rejection above; nothing was billed for them.`);
-    if (code === 'VT40314') console.log(`${ctx.ttsModel ?? 'This voice model'} needs a Pro plan or higher — upgrade, or re-run with --tts-model oriole.`);
+    if (code === 'VT40314') console.log(`${ctx.ttsModel ?? 'This voice model'} is not available on this plan — re-run with another --tts-model, or without --tts-model for the default.`);
     else if (code === 'VT4009') console.log(`This language does not support ${ctx.ttsModel ?? 'this voice model'} — re-run with another --tts-model (node scripts/languages.mjs lists the models per language).`);
   }
 
@@ -606,7 +614,7 @@ async function finishPool(allResults, perInput, ctx) {
   if (dlByInput.size) {
     const planProps = await spacePlanProps(ctx.spaceSeq);
     const dlMode = ctx.lipsyncOnly ? 'lipsync-only' : ctx.lipsync ? 'lipsync' : 'dub';
-    for (const parts of dlByInput.values()) track('download_failed', { ...planProps, mode: dlMode, parts, is_resume: !!ctx.isResume, target_models: targetModels(ctx.targets, ctx.ttsModel) });
+    for (const parts of dlByInput.values()) track('download_failed', { ...planProps, mode: dlMode, parts, is_resume: !!ctx.isResume, target_models: ctx.lipsyncOnly ? null : targetModels(ctx.targets, ctx.ttsModel) });
   }
 
   if (!ctx.lipsyncOnly) { // lipsync-only runs report via lipsync_only_completed below, not dubbing_completed
@@ -666,7 +674,7 @@ async function finishPool(allResults, perInput, ctx) {
 // New run: schedule all inputs as a single pool. Per-input split/upload happens once (secures mediaSeq) → reused per language.
 async function runPool(args) {
   if (args.noSave && args.lipsync) throw new UsageError('--no-save cannot be combined with --lipsync (the lip-synced video must be downloaded).');
-  if (args.lipsync && !supportsLipsync(args.ttsModel)) throw new UsageError(`Lip-sync for ${args.ttsModel} is still in preparation, so it cannot be combined with --lipsync yet. Use --tts-model oriole for lip-sync, or drop --lipsync.`);
+  if (args.lipsync && !supportsLipsync(args.ttsModel)) throw new UsageError(`Lip-sync for ${args.ttsModel} is still in preparation, so it cannot be combined with --lipsync yet. Drop --tts-model (the default model supports lip-sync) or choose another model, or drop --lipsync.`);
   await ensureKey();
   const wantedTargets = String(args.target).split(',').map((t) => t.trim()).filter(Boolean); // --target en,ja,ko
   if (!wantedTargets.length) throw new UsageError('No target language specified (--target en,ja,...)');
@@ -776,13 +784,15 @@ async function creditPreflight(perInput, spaceSeq, targets, ttsModel) {
       if (ms == null || ms <= 0) return; // unknown duration → no estimate possible
       inputMs += ms;
     }
+    const rate = dubRate(ttsModel);
     let mult = 1;
+    let dubMult = 1;
     if (uhdBilled) {
       const src = pin.inp?.localPath ?? pin.chunks.find((c) => c.path)?.path;
       const { width = 0, height = 0 } = src ? await probe(src).catch(() => ({})) : {};
-      if (Math.max(width, height) >= 3840) { mult = UHD_CREDIT_MULT; anyUhd = true; } // resolution unknown → assume non-4K (estimate only; the server bills authoritatively)
+      if (Math.max(width, height) >= 3840) { mult = UHD_CREDIT_MULT; dubMult = rate.k4 ? UHD_CREDIT_MULT : 1; anyUhd = true; } // resolution unknown → assume non-4K (estimate only; the server bills authoritatively)
     }
-    needed += Math.ceil(inputMs / 1000) * (CREDIT_RATE_DUB + CREDIT_RATE_LIPSYNC) * targetCount * mult;
+    needed += Math.ceil(Math.ceil(inputMs / 1000) * (rate.perSec * dubMult + CREDIT_RATE_LIPSYNC * mult) * targetCount);
   }
   if (!needed || remaining >= needed) return;
   track('credit_check_blocked', { credits_needed: needed, credits_remaining: remaining, target_models: targetModels(targets, ttsModel), ...await spacePlanProps(spaceSeq) });
@@ -803,7 +813,8 @@ async function runResume(file) {
   const targets = m.targets ?? [m.opts?.target ?? 'en'];
   const multiInput = (m.inputs?.length ?? 0) > 1;
   const lipsync = !!m.lipsync;
-  const ttsModel = normalizeTtsModel(m.opts?.ttsModel) ?? DEFAULT_TTS_MODEL; // state files from before --tts-model ran on the default
+  // ttsModel null = the server default; a state file from before --tts-model (no key at all) ran on ORIOLE.
+  const ttsModel = m.opts && 'ttsModel' in m.opts ? normalizeTtsModel(m.opts.ttsModel) : 'ORIOLE';
   const tier = await spaceTier(m.spaceSeq); // re-checked here: the plan may have changed since the interrupted run
   if (!modelAllowedOnTier(ttsModel, tier)) { // state kept: parts may already be paid
     track('model_plan_blocked', { ...await spacePlanProps(m.spaceSeq), target_models: targetModels(targets, ttsModel), is_resume: true });
@@ -996,7 +1007,7 @@ async function runResume(file) {
 function lipsyncUnavailable(model, seqs) {
   const which = seqs.length ? ` (project ${seqs.join(', ')})` : '';
   console.log(`[lipsync-unavailable] This dub${which} was made with the ${model} voice model. Lip-sync for ${model} is still in preparation, so it is not available yet. Nothing was requested or billed.`);
-  console.log('[lipsync-unavailable] For a lip-synced video now, dub the original again with another voice model together with lip-sync: --tts-model oriole --lipsync (the dubbing is billed again).');
+  console.log('[lipsync-unavailable] For a lip-synced video now, dub the original again with the default voice model (no --tts-model) together with lip-sync: --lipsync (the dubbing is billed again).');
   throw new ExitCode(1);
 }
 
