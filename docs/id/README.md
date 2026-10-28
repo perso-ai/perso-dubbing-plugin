@@ -42,7 +42,7 @@ File, folder, dan URL YouTube/TikTok semuanya bisa langsung dipakai.
 > ```bash
 > claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
 > ```
-> Minta pengguna melakukan restart agar `/dubbing`, `/srt`, `/clip` termuat. Host lain: `npx perso-dubbing`. Tanpa terminal (ChatGPT / Gemini): [chatgpt-setup](../chatgpt-setup.md) · [gemini-setup](../gemini-setup.md)
+> Minta pengguna melakukan restart agar <code>/dubbing</code>, <code>/srt</code>, <code>/clip</code> termuat. Host lain: <code>npx perso-dubbing</code>. Tanpa terminal (ChatGPT / Gemini): [chatgpt-setup](../chatgpt-setup.md) · [gemini-setup](../gemini-setup.md)
 
 **Aplikasi desktop Claude** (paket berbayar): buka **tab Code**, pilih folder, pilih **Local**, lalu tempel:
 
@@ -50,9 +50,9 @@ File, folder, dan URL YouTube/TikTok semuanya bisa langsung dipakai.
 claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
 ```
 
-**Claude Code CLI**: `/plugin marketplace add perso-ai/perso-dubbing-plugin`, lalu `/plugin install perso-dubbing@perso-ai`
+**Claude Code CLI**: <code>/plugin marketplace add perso-ai/perso-dubbing-plugin</code>, lalu <code>/plugin install perso-dubbing@perso-ai</code>
 
-**Codex · Antigravity · lainnya**: `npx perso-dubbing` mendeteksi host Anda dan menginstal ke masing-masing.
+**Codex · Antigravity · lainnya**: <code>npx perso-dubbing</code> mendeteksi host Anda dan menginstal ke masing-masing.
 
 Hanya butuh **Node.js 18+**, tidak ada yang lain. [Panduan visual](https://dubbing-plugin.perso.ai/en/) · [FAQ](FAQ.md)
 
@@ -128,6 +128,6 @@ Tanpa ritual persiapan. Saat pekerjaan server pertama kali berjalan, browser ter
 
 ---
 
-<sub>**Privasi**: `/dubbing`, `/srt`, dan `/clip` mengirim event penggunaan anonim untuk menyempurnakan skill, mencakup apa yang dijalankan dan bagaimana hasilnya, durasi media, pilihan gaya, lokal secara garis besar, versi aplikasi/OS, serta apakah kunci Perso API digunakan (dan terdaftar). Setiap event memuat ID acak per instalasi dan nomor workspace Anda; tidak pernah kunci, media, nama file, atau teks subtitle Anda. Nonaktifkan dengan `PERSO_NO_TELEMETRY`.</sub>
+<sub>**Privasi**: <code>/dubbing</code>, <code>/srt</code>, dan <code>/clip</code> mengirim event penggunaan anonim untuk menyempurnakan skill, mencakup apa yang dijalankan dan bagaimana hasilnya, durasi media, pilihan gaya, lokal secara garis besar, versi aplikasi/OS, serta apakah kunci Perso API digunakan (dan terdaftar). Setiap event memuat ID acak per instalasi dan nomor workspace Anda; tidak pernah kunci, media, nama file, atau teks subtitle Anda. Nonaktifkan dengan <code>PERSO_NO_TELEMETRY</code>.</sub>
 
 <sub>**Lisensi**: kode skill berlisensi [MIT](../../LICENSE). Penggunaan API tunduk pada [Ketentuan Layanan Perso AI](https://perso.ai) beserta tarifnya.</sub>

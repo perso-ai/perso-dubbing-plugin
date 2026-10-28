@@ -2,7 +2,7 @@
 
 [English](../../FAQ.md) ｜ [한국어](../ko/FAQ.md) ｜ [Español](../es/FAQ.md) ｜ [Português](../pt/FAQ.md) ｜ [Русский](../ru/FAQ.md) ｜ [Bahasa Indonesia](../id/FAQ.md) ｜ [Deutsch](../de/FAQ.md) ｜ [ไทย](../th/FAQ.md) ｜ [日本語](../ja/FAQ.md) ｜ [繁體中文](../zh-TW/FAQ.md) ｜ [简体中文](../zh-CN/FAQ.md) ｜ **Tiếng Việt** ｜ [Français](../fr/FAQ.md)
 
-Các câu hỏi thường gặp về các skill `/dubbing` và `/srt`. Để biết cách cài đặt và sử dụng, xem [README](README.md).
+Các câu hỏi thường gặp về các skill <code>/dubbing</code> và <code>/srt</code>. Để biết cách cài đặt và sử dụng, xem [README](README.md).
 
 ### Tôi cần gì để sử dụng?
 
@@ -10,7 +10,7 @@ Chỉ cần **Node.js 18+** là đủ. Phụ đề có kiểu, dịch một tệ
 
 ### Làm thế nào để đăng ký API key?
 
-Ở lần chạy đầu tiên, một trang trình duyệt sẽ mở ra — đăng nhập và nhấn một lần, key của bạn sẽ được cấp và lưu trên máy này ở dạng mã hóa. Không cần sao chép gì cả. Nếu không mở được trình duyệt, một tệp key sẽ mở ra thay thế: chỉ dán **API key của bạn** vào đó rồi lưu (tệp được mã hóa và sau đó bị xóa). **Không bao giờ dán key vào khung chat.** Kiểm tra thủ công: `npm run key:check`.
+Ở lần chạy đầu tiên, một trang trình duyệt sẽ mở ra — đăng nhập và nhấn một lần, key của bạn sẽ được cấp và lưu trên máy này ở dạng mã hóa. Không cần sao chép gì cả. Nếu không mở được trình duyệt, một tệp key sẽ mở ra thay thế: chỉ dán **API key của bạn** vào đó rồi lưu (tệp được mã hóa và sau đó bị xóa). **Không bao giờ dán key vào khung chat.** Kiểm tra thủ công: <code>npm run key:check</code>.
 
 ### Có tốn phí không?
 
@@ -22,43 +22,43 @@ Một tệp cục bộ, một thư mục cục bộ, hoặc một URL (YouTube, 
 
 ### Có thể lồng tiếng sang nhiều ngôn ngữ, hoặc xử lý nhiều tệp cùng lúc không?
 
-Có. Đưa nhiều ngôn ngữ vào cùng một lệnh (`--target en,ja,zh`) — nguồn chỉ được tải lên và chia nhỏ một lần, sau đó tái sử dụng cho từng ngôn ngữ. Bạn cũng có thể kết hợp nhiều tệp, thư mục, và URL trong cùng một lần chạy.
+Có. Đưa nhiều ngôn ngữ vào cùng một lệnh (<code>--target en,ja,zh</code>) — nguồn chỉ được tải lên và chia nhỏ một lần, sau đó tái sử dụng cho từng ngôn ngữ. Bạn cũng có thể kết hợp nhiều tệp, thư mục, và URL trong cùng một lần chạy.
 
 ### Kết quả của tôi được lưu ở đâu?
 
-Mặc định là cạnh video gốc, hoặc trong thư mục bạn chỉ định bằng `--out`. Mỗi lần chạy cũng tạo ra một dự án trong Perso portal của bạn (<https://perso.ai/en/workspace/vt>), nơi bạn có thể tải lại hoặc lấy các định dạng khác.
+Mặc định là cạnh video gốc, hoặc trong thư mục bạn chỉ định bằng <code>--out</code>. Mỗi lần chạy cũng tạo ra một dự án trong Perso portal của bạn (<https://perso.ai/en/workspace/vt>), nơi bạn có thể tải lại hoặc lấy các định dạng khác.
 
 ### Lip-sync là gì?
 
-Đây là tính năng khớp chuyển động miệng với âm thanh đã lồng tiếng. Nó chạy sau khi lồng tiếng, chỉ hoạt động trên video, mất nhiều thời gian hơn đáng kể, và tốn thêm credit. Thêm `--lipsync`.
+Đây là tính năng khớp chuyển động miệng với âm thanh đã lồng tiếng. Nó chạy sau khi lồng tiếng, chỉ hoạt động trên video, mất nhiều thời gian hơn đáng kể, và tốn thêm credit. Thêm <code>--lipsync</code>.
 
 ### Tách âm thanh là gì?
 
-Tính năng này tách nguồn thành các track giọng nói / âm thanh nền / âm thanh nền phụ — không liên quan đến lồng tiếng. Thêm `--separate`.
+Tính năng này tách nguồn thành các track giọng nói / âm thanh nền / âm thanh nền phụ — không liên quan đến lồng tiếng. Thêm <code>--separate</code>.
 
 ### Nó có thể tạo phụ đề (SRT) thay vì lồng tiếng không?
 
-Skill **`/srt`** trích xuất phụ đề ở ngôn ngữ gốc từ video/audio/URL thông qua công nghệ speech-to-text của Perso. Nếu bạn cũng muốn dịch chúng, hãy yêu cầu tệp SRT kèm theo các ngôn ngữ bạn muốn. Skill cũng có thể **ghép phụ đề có kiểu lên video** — preset dựng sẵn hoặc font, màu, và vị trí của riêng bạn — việc này chạy cục bộ và miễn phí (dùng SRT của riêng bạn → không cần key hay credit).
+Skill **<code>/srt</code>** trích xuất phụ đề ở ngôn ngữ gốc từ video/audio/URL thông qua công nghệ speech-to-text của Perso. Nếu bạn cũng muốn dịch chúng, hãy yêu cầu tệp SRT kèm theo các ngôn ngữ bạn muốn. Skill cũng có thể **ghép phụ đề có kiểu lên video** — preset dựng sẵn hoặc font, màu, và vị trí của riêng bạn — việc này chạy cục bộ và miễn phí (dùng SRT của riêng bạn → không cần key hay credit).
 
 ### Quá trình dừng giữa chừng (hết credit, gặp lỗi, hoặc shell bị kill). Giờ phải làm sao?
 
-Tiến trình được lưu vào một tệp trạng thái trong suốt quá trình chạy (`*.dubresume.json` cho `/dubbing`, `*.srtresume.json` cho `/srt`). Chạy lại lệnh `--resume "<state-file>"` được in ra để chỉ hoàn tất các phần còn lại — các phần đã hoàn thành sẽ được bỏ qua và không bao giờ bị tính phí lại.
+Tiến trình được lưu vào một tệp trạng thái trong suốt quá trình chạy (<code>*.dubresume.json</code> cho <code>/dubbing</code>, <code>*.srtresume.json</code> cho <code>/srt</code>). Chạy lại lệnh <code>--resume &quot;&lt;state-file&gt;&quot;</code> được in ra để chỉ hoàn tất các phần còn lại — các phần đã hoàn thành sẽ được bỏ qua và không bao giờ bị tính phí lại.
 
 ### Tôi đã hết credit. Làm thế nào để nạp thêm?
 
-Skill có thể tạo một liên kết thanh toán Stripe (đăng ký, đổi gói, hoặc mua credit, tùy vào gói của bạn). Bạn tự mở liên kết và thanh toán — agent không bao giờ thanh toán thay bạn. Sau khi nạp thêm, tiếp tục bằng lệnh `--resume` được in ra.
+Skill có thể tạo một liên kết thanh toán Stripe (đăng ký, đổi gói, hoặc mua credit, tùy vào gói của bạn). Bạn tự mở liên kết và thanh toán — agent không bao giờ thanh toán thay bạn. Sau khi nạp thêm, tiếp tục bằng lệnh <code>--resume</code> được in ra.
 
 ### Tôi có thể lồng tiếng mà không lưu tệp cục bộ không?
 
-Có, với một video đơn lẻ (không bị chia nhỏ): thêm `--no-save`. Kết quả sẽ ở lại trong workspace Perso của bạn và không được tải xuống. Video bị chia nhỏ vẫn được lưu bình thường, vì tệp đã ghép cần được tải về cục bộ.
+Có, với một video đơn lẻ (không bị chia nhỏ): thêm <code>--no-save</code>. Kết quả sẽ ở lại trong workspace Perso của bạn và không được tải xuống. Video bị chia nhỏ vẫn được lưu bình thường, vì tệp đã ghép cần được tải về cục bộ.
 
-### Không tìm thấy `node` — tôi phải làm gì?
+### Không tìm thấy <code>node</code> — tôi phải làm gì?
 
-Skill cần Node.js 18+. Kiểm tra bằng `node -v`; cài bản LTS từ <https://nodejs.org>, hoặc đơn giản là nhờ agent cài đặt giúp bạn, rồi thử lại.
+Skill cần Node.js 18+. Kiểm tra bằng <code>node -v</code>; cài bản LTS từ <https://nodejs.org>, hoặc đơn giản là nhờ agent cài đặt giúp bạn, rồi thử lại.
 
 ### Làm thế nào để cập nhật skill?
 
-`npx perso-dubbing@latest`, hoặc trong plugin Claude Code: `/plugin update perso-dubbing`.
+<code>npx perso-dubbing@latest</code>, hoặc trong plugin Claude Code: <code>/plugin update perso-dubbing</code>.
 
 ### Skill thu thập những dữ liệu nào?
 

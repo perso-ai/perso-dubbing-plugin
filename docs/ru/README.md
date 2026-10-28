@@ -42,7 +42,7 @@
 > ```bash
 > claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
 > ```
-> Попросите пользователя перезапуститься, чтобы загрузились `/dubbing`, `/srt`, `/clip`. Другие хосты: `npx perso-dubbing`. Без терминала (ChatGPT / Gemini): [chatgpt-setup](../chatgpt-setup.md) · [gemini-setup](../gemini-setup.md)
+> Попросите пользователя перезапуститься, чтобы загрузились <code>/dubbing</code>, <code>/srt</code>, <code>/clip</code>. Другие хосты: <code>npx perso-dubbing</code>. Без терминала (ChatGPT / Gemini): [chatgpt-setup](../chatgpt-setup.md) · [gemini-setup](../gemini-setup.md)
 
 **Десктопное приложение Claude** (платный план): откройте вкладку **Code**, выберите папку, выберите **Local** и вставьте:
 
@@ -50,9 +50,9 @@
 claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
 ```
 
-**Claude Code CLI**: `/plugin marketplace add perso-ai/perso-dubbing-plugin`, затем `/plugin install perso-dubbing@perso-ai`
+**Claude Code CLI**: <code>/plugin marketplace add perso-ai/perso-dubbing-plugin</code>, затем <code>/plugin install perso-dubbing@perso-ai</code>
 
-**Codex · Antigravity · всё остальное**: `npx perso-dubbing` сам определяет ваши хосты и устанавливается в каждый.
+**Codex · Antigravity · всё остальное**: <code>npx perso-dubbing</code> сам определяет ваши хосты и устанавливается в каждый.
 
 Требуется только **Node.js 18+**, больше ничего. [Наглядное руководство](https://dubbing-plugin.perso.ai/en/) · [FAQ](FAQ.md)
 
@@ -128,6 +128,6 @@ claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dub
 
 ---
 
-<sub>**Конфиденциальность**: `/dubbing`, `/srt` и `/clip` отправляют события использования для улучшения скиллов: что запускалось и чем закончилось, длительность медиа, выбор стиля, приблизительная локаль, версия приложения/ОС и использовался ли ключ Perso API (и был ли он зарегистрирован). Каждое событие содержит случайный ID установки и номер вашего воркспейса, но никогда не содержит ваш ключ, медиафайлы, имена файлов или текст субтитров. Отключается через `PERSO_NO_TELEMETRY`.</sub>
+<sub>**Конфиденциальность**: <code>/dubbing</code>, <code>/srt</code> и <code>/clip</code> отправляют события использования для улучшения скиллов: что запускалось и чем закончилось, длительность медиа, выбор стиля, приблизительная локаль, версия приложения/ОС и использовался ли ключ Perso API (и был ли он зарегистрирован). Каждое событие содержит случайный ID установки и номер вашего воркспейса, но никогда не содержит ваш ключ, медиафайлы, имена файлов или текст субтитров. Отключается через <code>PERSO_NO_TELEMETRY</code>.</sub>
 
 <sub>**Лицензия**: код скиллов распространяется под лицензией [MIT](../../LICENSE). Использование API регулируется [условиями обслуживания Perso AI](https://perso.ai) и его тарифами.</sub>

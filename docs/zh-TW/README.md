@@ -42,7 +42,7 @@
 > ```bash
 > claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
 > ```
-> 請提醒使用者重新啟動，`/dubbing`、`/srt`、`/clip` 就會載入。其他 host：`npx perso-dubbing`。沒有終端機的環境（ChatGPT / Gemini）：[chatgpt-setup](../chatgpt-setup.md) · [gemini-setup](../gemini-setup.md)
+> 請提醒使用者重新啟動，<code>/dubbing</code>、<code>/srt</code>、<code>/clip</code> 就會載入。其他 host：<code>npx perso-dubbing</code>。沒有終端機的環境（ChatGPT / Gemini）：[chatgpt-setup](../chatgpt-setup.md) · [gemini-setup](../gemini-setup.md)
 
 **Claude 桌面版**（付費方案）：打開 **Code 分頁**，選一個資料夾，選擇 **Local**，貼上：
 
@@ -50,9 +50,9 @@
 claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
 ```
 
-**Claude Code CLI**：先執行 `/plugin marketplace add perso-ai/perso-dubbing-plugin`，再執行 `/plugin install perso-dubbing@perso-ai`
+**Claude Code CLI**：先執行 <code>/plugin marketplace add perso-ai/perso-dubbing-plugin</code>，再執行 <code>/plugin install perso-dubbing@perso-ai</code>
 
-**Codex · Antigravity · 其他任何工具**：`npx perso-dubbing` 會自動偵測你安裝的 host，並逐一裝好。
+**Codex · Antigravity · 其他任何工具**：<code>npx perso-dubbing</code> 會自動偵測你安裝的 host，並逐一裝好。
 
 只需要 **Node.js 18+**，其他什麼都不用。[圖解安裝指南](https://dubbing-plugin.perso.ai/en/) · [FAQ](FAQ.md)
 
@@ -128,7 +128,7 @@ claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dub
 
 ---
 
-<sub>**隱私**：`/dubbing`、`/srt`、`/clip` 會傳送使用事件來改進這些技能，內容包含執行了什麼與結果如何、媒體長度、樣式選擇、粗略的地區設定、應用程式版本/作業系統，以及是否使用（並註冊）了 Perso API 金鑰。每筆事件帶有安裝時產生的隨機 ID 與你的 workspace 編號；絕不包含你的金鑰、媒體、檔案名稱或字幕文字。可透過 `PERSO_NO_TELEMETRY` 選擇退出。</sub>
+<sub>**隱私**：<code>/dubbing</code>、<code>/srt</code>、<code>/clip</code> 會傳送使用事件來改進這些技能，內容包含執行了什麼與結果如何、媒體長度、樣式選擇、粗略的地區設定、應用程式版本/作業系統，以及是否使用（並註冊）了 Perso API 金鑰。每筆事件帶有安裝時產生的隨機 ID 與你的 workspace 編號；絕不包含你的金鑰、媒體、檔案名稱或字幕文字。可透過 <code>PERSO_NO_TELEMETRY</code> 選擇退出。</sub>
 
 <sub>**授權**：技能程式碼採 [MIT](../../LICENSE) 授權。API 的使用受 [Perso AI 服務條款](https://perso.ai)與其定價規範。</sub>
 

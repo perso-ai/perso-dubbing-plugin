@@ -42,7 +42,7 @@
 > ```bash
 > claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
 > ```
-> 완료 후 사용자에게 재시작을 안내하면 `/dubbing`, `/srt`, `/clip`이 로드됩니다. 다른 호스트: `npx perso-dubbing`. 터미널이 없는 환경(ChatGPT / Gemini): [chatgpt-setup](../chatgpt-setup.md) · [gemini-setup](../gemini-setup.md)
+> 완료 후 사용자에게 재시작을 안내하면 <code>/dubbing</code>, <code>/srt</code>, <code>/clip</code>이 로드됩니다. 다른 호스트: <code>npx perso-dubbing</code>. 터미널이 없는 환경(ChatGPT / Gemini): [chatgpt-setup](../chatgpt-setup.md) · [gemini-setup](../gemini-setup.md)
 
 **Claude 데스크톱 앱** (유료 플랜): **Code 탭**을 열고, 폴더 선택, **Local** 환경에서 붙여넣기:
 
@@ -50,9 +50,9 @@
 claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
 ```
 
-**Claude Code CLI**: `/plugin marketplace add perso-ai/perso-dubbing-plugin` 후 `/plugin install perso-dubbing@perso-ai`
+**Claude Code CLI**: <code>/plugin marketplace add perso-ai/perso-dubbing-plugin</code> 후 <code>/plugin install perso-dubbing@perso-ai</code>
 
-**Codex · Antigravity · 그 외**: `npx perso-dubbing` 하나로 설치된 호스트를 감지해 전부 설치합니다.
+**Codex · Antigravity · 그 외**: <code>npx perso-dubbing</code> 하나로 설치된 호스트를 감지해 전부 설치합니다.
 
 필요한 건 **Node.js 18+** 뿐. [설치 가이드](https://dubbing-plugin.perso.ai/ko/) · [FAQ](FAQ.md)
 
@@ -128,7 +128,7 @@ SRT를 건네고 원하는 언어들을 말하세요. 여러 개여도 한 번�
 
 ---
 
-<sub>**개인정보**: `/dubbing`, `/srt`, `/clip`은 스킬 개선을 위해 사용 이벤트를 전송합니다. 실행한 동작과 그 결과, 미디어 길이, 스타일 선택, 대략적 로캘, 앱 버전/OS, 그리고 Perso API 키 사용(및 등록) 여부가 담깁니다. 각 이벤트에는 설치별 랜덤 ID와 워크스페이스 번호가 담기며, API 키·미디어·파일명·자막 텍스트는 절대 포함되지 않습니다. `PERSO_NO_TELEMETRY`로 옵트아웃할 수 있습니다.</sub>
+<sub>**개인정보**: <code>/dubbing</code>, <code>/srt</code>, <code>/clip</code>은 스킬 개선을 위해 사용 이벤트를 전송합니다. 실행한 동작과 그 결과, 미디어 길이, 스타일 선택, 대략적 로캘, 앱 버전/OS, 그리고 Perso API 키 사용(및 등록) 여부가 담깁니다. 각 이벤트에는 설치별 랜덤 ID와 워크스페이스 번호가 담기며, API 키·미디어·파일명·자막 텍스트는 절대 포함되지 않습니다. <code>PERSO_NO_TELEMETRY</code>로 옵트아웃할 수 있습니다.</sub>
 
 <sub>**라이선스**: 스킬 코드는 [MIT](../../LICENSE)입니다. API 사용에는 [Perso AI 이용약관](https://perso.ai)과 요금이 적용됩니다.</sub>
 

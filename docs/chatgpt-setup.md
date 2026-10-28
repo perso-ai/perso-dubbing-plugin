@@ -44,11 +44,11 @@ Have them run:
 node -v
 ```
 
-- If it prints `v18` or higher → continue to Step 2.
+- If it prints <code>v18</code> or higher → continue to Step 2.
 - If it errors or is older:
-  - **Windows:** `winget install OpenJS.NodeJS.LTS` (or download the LTS installer from https://nodejs.org and click through it).
-  - **Mac:** `brew install node` if they have Homebrew, otherwise download the LTS installer from https://nodejs.org.
-  - After installing, have them **close and reopen the terminal**, then check `node -v` again.
+  - **Windows:** <code>winget install OpenJS.NodeJS.LTS</code> (or download the LTS installer from https://nodejs.org and click through it).
+  - **Mac:** <code>brew install node</code> if they have Homebrew, otherwise download the LTS installer from https://nodejs.org.
+  - After installing, have them **close and reopen the terminal**, then check <code>node -v</code> again.
 
 ## Step 2 — Codex CLI
 
@@ -64,7 +64,7 @@ codex
 
 The first run opens a browser window to log in. Wait until they confirm they see the Codex prompt.
 
-> If `npm` isn't recognized, Node didn't install correctly — go back to Step 1 (usually fixed by reopening the terminal).
+> If <code>npm</code> isn't recognized, Node didn't install correctly — go back to Step 1 (usually fixed by reopening the terminal).
 
 ## Step 3 — Hand off to Codex
 
@@ -77,7 +77,7 @@ https://github.com/perso-ai/perso-dubbing-plugin/blob/main/docs/agent-setup.md
 Set up Perso Dubbing following this guide, then dub the videos in my folder into English.
 ```
 
-Codex will install the skill (`npx perso-dubbing --codex`), run the first dub, and walk the user through the API key. Two things worth telling the user before you say goodbye:
+Codex will install the skill (<code>npx perso-dubbing --codex</code>), run the first dub, and walk the user through the API key. Two things worth telling the user before you say goodbye:
 
 - On the first dub, a key file opens automatically — they get a free API key at https://developers.perso.ai/api-keys and paste it **into that file, not into any chat**.
 - The dubbed video is saved next to the original.
@@ -89,15 +89,15 @@ Do not walk through the skill installation or the dub yourself — that is Codex
 - **Billing:** dubbing costs Perso credits from their own account, for the minutes processed, within their plan's monthly limit. The skill adds no extra fee.
 - Long or large videos are split, processed, and merged back automatically.
 - Several languages at once is fine: *"dub this into English, Japanese, and Spanish"*.
-- If a run is interrupted (out of credits, crash), progress is saved — the notice shows a `--resume` command that finishes only the remaining parts.
+- If a run is interrupted (out of credits, crash), progress is saved — the notice shows a <code>--resume</code> command that finishes only the remaining parts.
 - More help: [FAQ](https://github.com/perso-ai/perso-dubbing-plugin/blob/main/FAQ.md) · [README](https://github.com/perso-ai/perso-dubbing-plugin)
 
 ## Troubleshooting quick table
 
 | Symptom | Fix |
 |---|---|
-| `node`/`npm` not recognized after install | Close and reopen the terminal (PATH refresh). |
-| `npm install -g` permission error on Mac | Prefix with `sudo`, or better: install Node via the official installer. |
+| <code>node</code>/<code>npm</code> not recognized after install | Close and reopen the terminal (PATH refresh). |
+| <code>npm install -g</code> permission error on Mac | Prefix with <code>sudo</code>, or better: install Node via the official installer. |
 | Codex login loop | Make sure they finish the browser login with the same ChatGPT account, then return to the terminal. |
-| Skill not found in Codex | Re-run `npx perso-dubbing --codex`, then restart `codex`. |
-| ffmpeg error during a dub | Run `npm run doctor` inside the skill folder, or just tell Codex "fix the ffmpeg problem". |
+| Skill not found in Codex | Re-run <code>npx perso-dubbing --codex</code>, then restart <code>codex</code>. |
+| ffmpeg error during a dub | Run <code>npm run doctor</code> inside the skill folder, or just tell Codex "fix the ffmpeg problem". |

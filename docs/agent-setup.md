@@ -16,10 +16,10 @@ node -v
 
 If missing or older than 18, install it (with the user's approval):
 
-- **Windows:** `winget install OpenJS.NodeJS.LTS`
-- **Mac:** `brew install node` (or guide the user to the LTS installer at https://nodejs.org if Homebrew is missing)
+- **Windows:** <code>winget install OpenJS.NodeJS.LTS</code>
+- **Mac:** <code>brew install node</code> (or guide the user to the LTS installer at https://nodejs.org if Homebrew is missing)
 
-Open a fresh shell (or re-source the environment) and verify `node -v` again.
+Open a fresh shell (or re-source the environment) and verify <code>node -v</code> again.
 
 ## Step 2 — Install the skill
 
@@ -27,14 +27,14 @@ Open a fresh shell (or re-source the environment) and verify `node -v` again.
 npx perso-dubbing
 ```
 
-The installer auto-detects every coding agent installed on this machine and installs the skill into each. If you know your own host, you can target it directly: `--cursor`, `--antigravity`, `--codex`, `--claude`. It prints where it installed (e.g. `~/.cursor/skills/dubbing/`, `~/.agents/skills/dubbing/`).
+The installer auto-detects every coding agent installed on this machine and installs the skill into each. If you know your own host, you can target it directly: <code>--cursor</code>, <code>--antigravity</code>, <code>--codex</code>, <code>--claude</code>. It prints where it installed (e.g. <code>~/.cursor/skills/dubbing/</code>, <code>~/.agents/skills/dubbing/</code>).
 
 If your host loads skills at startup, tell the user to restart the app (or reload the window) once.
 
 ## Step 3 — First dub
 
 1. Ask the user for a test video — a file path, a folder, or a YouTube URL all work.
-2. Run the dub through the skill: type `/dubbing`, or handle it directly per the skill's `SKILL.md` — e.g. dub `clip.mp4` into English.
+2. Run the dub through the skill: type <code>/dubbing</code>, or handle it directly per the skill's <code>SKILL.md</code> — e.g. dub <code>clip.mp4</code> into English.
 3. **API key:** on the first run, a key file opens automatically. The user gets a free-to-issue Perso API key at https://developers.perso.ai/api-keys and pastes it **into that file (not into the chat)**, saves, then you retry.
 4. The result is saved next to the original file. Show the user where it is.
 
@@ -42,5 +42,5 @@ If your host loads skills at startup, tell the user to restart the app (or reloa
 
 - Long/oversized videos are split, processed, and merged back automatically.
 - Multiple languages in one go: dub into English, Japanese, and Spanish at once — upload happens only once.
-- Interrupted runs (credits ran out, crash) save progress; the notice shows a `--resume` command that finishes only what's left.
-- Troubleshooting: `node`/`npm` not found → reopen the shell; ffmpeg errors → run `npm run doctor` in the skill folder; more in the [FAQ](https://github.com/perso-ai/perso-dubbing-plugin/blob/main/FAQ.md).
+- Interrupted runs (credits ran out, crash) save progress; the notice shows a <code>--resume</code> command that finishes only what's left.
+- Troubleshooting: <code>node</code>/<code>npm</code> not found → reopen the shell; ffmpeg errors → run <code>npm run doctor</code> in the skill folder; more in the [FAQ](https://github.com/perso-ai/perso-dubbing-plugin/blob/main/FAQ.md).

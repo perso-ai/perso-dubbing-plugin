@@ -43,7 +43,7 @@ Files, folders, and YouTube/TikTok URLs all work.
 > ```bash
 > claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
 > ```
-> Have the user restart so `/dubbing`, `/srt`, `/clip` load. Other hosts: `npx perso-dubbing`. No terminal (ChatGPT / Gemini): [docs/chatgpt-setup.md](docs/chatgpt-setup.md) · [docs/gemini-setup.md](docs/gemini-setup.md)
+> Have the user restart so <code>/dubbing</code>, <code>/srt</code>, <code>/clip</code> load. Other hosts: <code>npx perso-dubbing</code>. No terminal (ChatGPT / Gemini): [docs/chatgpt-setup.md](docs/chatgpt-setup.md) · [docs/gemini-setup.md](docs/gemini-setup.md)
 
 **Claude desktop app** (paid plan): open the **Code tab**, pick a folder, choose **Local**, paste:
 
@@ -51,9 +51,9 @@ Files, folders, and YouTube/TikTok URLs all work.
 claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
 ```
 
-**Claude Code CLI**: `/plugin marketplace add perso-ai/perso-dubbing-plugin`, then `/plugin install perso-dubbing@perso-ai`
+**Claude Code CLI**: <code>/plugin marketplace add perso-ai/perso-dubbing-plugin</code>, then <code>/plugin install perso-dubbing@perso-ai</code>
 
-**Codex · Antigravity · anything else**: `npx perso-dubbing` detects your hosts and installs into each — or, cross-agent via [skills.sh](https://skills.sh/perso-ai/perso-dubbing-plugin):
+**Codex · Antigravity · anything else**: <code>npx perso-dubbing</code> detects your hosts and installs into each — or, cross-agent via [skills.sh](https://skills.sh/perso-ai/perso-dubbing-plugin):
 
 ```bash
 npx skills add perso-ai/perso-dubbing-plugin
@@ -123,6 +123,6 @@ On Claude versions that support plugin configuration, the optional masked **Pers
 
 ---
 
-**Privacy and data handling:** Server-side dubbing, transcription, lip-sync and separation send selected media or source URLs to Perso services. Usage analytics are enabled by default and sent to Amplitude, including linkable installation/account/workspace identifiers and operational metadata. Installation attribution can include GA client/session IDs and campaign fields. Set `PERSO_NO_TELEMETRY=1` before launching the host to disable plugin analytics and its attribution receiver. Local operations can otherwise still send analytics. See [plugin data handling](PRIVACY.md) for destinations, local credential storage, controls and retention limitations.
+**Privacy and data handling:** Server-side dubbing, transcription, lip-sync and separation send selected media or source URLs to Perso services. Usage analytics are enabled by default and sent to Amplitude, including linkable installation/account/workspace identifiers and operational metadata. Installation attribution can include GA client/session IDs and campaign fields. Set <code>PERSO_NO_TELEMETRY=1</code> before launching the host to disable plugin analytics and its attribution receiver. Local operations can otherwise still send analytics. See [plugin data handling](PRIVACY.md) for destinations, local credential storage, controls and retention limitations.
 
 <sub>**License**: the skill code is [MIT](LICENSE). API usage is subject to the [Perso AI Terms of Service](https://perso.ai) and pricing.</sub>

@@ -42,7 +42,7 @@
 > ```bash
 > claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
 > ```
-> จากนั้นแจ้งให้ผู้ใช้รีสตาร์ต เพื่อให้ `/dubbing`, `/srt`, `/clip` โหลดขึ้นมา โฮสต์อื่น: `npx perso-dubbing` ไม่มีเทอร์มินัล (ChatGPT / Gemini): [chatgpt-setup](../chatgpt-setup.md) · [gemini-setup](../gemini-setup.md)
+> จากนั้นแจ้งให้ผู้ใช้รีสตาร์ต เพื่อให้ <code>/dubbing</code>, <code>/srt</code>, <code>/clip</code> โหลดขึ้นมา โฮสต์อื่น: <code>npx perso-dubbing</code> ไม่มีเทอร์มินัล (ChatGPT / Gemini): [chatgpt-setup](../chatgpt-setup.md) · [gemini-setup](../gemini-setup.md)
 
 **แอป Claude เดสก์ท็อป** (แพลนแบบชำระเงิน): เปิด **แท็บ Code** เลือกโฟลเดอร์ เลือก **Local** แล้ววางคำสั่งนี้:
 
@@ -50,9 +50,9 @@
 claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
 ```
 
-**Claude Code CLI**: `/plugin marketplace add perso-ai/perso-dubbing-plugin` แล้วตามด้วย `/plugin install perso-dubbing@perso-ai`
+**Claude Code CLI**: <code>/plugin marketplace add perso-ai/perso-dubbing-plugin</code> แล้วตามด้วย <code>/plugin install perso-dubbing@perso-ai</code>
 
-**Codex · Antigravity · โฮสต์อื่น ๆ**: `npx perso-dubbing` จะตรวจหาโฮสต์ที่คุณมีและติดตั้งให้ครบทุกตัว
+**Codex · Antigravity · โฮสต์อื่น ๆ**: <code>npx perso-dubbing</code> จะตรวจหาโฮสต์ที่คุณมีและติดตั้งให้ครบทุกตัว
 
 ต้องการแค่ **Node.js 18+** เท่านั้น ไม่ต้องมีอะไรเพิ่ม [คู่มือแบบเห็นภาพ](https://dubbing-plugin.perso.ai/en/) · [FAQ](FAQ.md)
 
@@ -128,7 +128,7 @@ claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dub
 
 ---
 
-<sub>**ความเป็นส่วนตัว**: `/dubbing`, `/srt` และ `/clip` ส่งอีเวนต์การใช้งานเพื่อพัฒนาสกิล ครอบคลุมว่ารันอะไรและผลเป็นอย่างไร ความยาวของมีเดีย สไตล์ที่เลือก โลแคลแบบคร่าว ๆ เวอร์ชันแอป/OS และมีการใช้คีย์ Perso API หรือไม่ (และลงทะเบียนไว้หรือไม่) แต่ละอีเวนต์มี ID สุ่มประจำการติดตั้งและหมายเลขเวิร์กสเปซของคุณ แต่ไม่มีคีย์ มีเดีย ชื่อไฟล์ หรือข้อความซับไตเติลของคุณเด็ดขาด เลือกไม่ส่งได้ด้วย `PERSO_NO_TELEMETRY`</sub>
+<sub>**ความเป็นส่วนตัว**: <code>/dubbing</code>, <code>/srt</code> และ <code>/clip</code> ส่งอีเวนต์การใช้งานเพื่อพัฒนาสกิล ครอบคลุมว่ารันอะไรและผลเป็นอย่างไร ความยาวของมีเดีย สไตล์ที่เลือก โลแคลแบบคร่าว ๆ เวอร์ชันแอป/OS และมีการใช้คีย์ Perso API หรือไม่ (และลงทะเบียนไว้หรือไม่) แต่ละอีเวนต์มี ID สุ่มประจำการติดตั้งและหมายเลขเวิร์กสเปซของคุณ แต่ไม่มีคีย์ มีเดีย ชื่อไฟล์ หรือข้อความซับไตเติลของคุณเด็ดขาด เลือกไม่ส่งได้ด้วย <code>PERSO_NO_TELEMETRY</code></sub>
 
 <sub>**ไลเซนส์**: โค้ดของสกิลเป็น [MIT](../../LICENSE) การใช้ API อยู่ภายใต้[ข้อกำหนดการให้บริการของ Perso AI](https://perso.ai)และอัตราค่าบริการ</sub>
 

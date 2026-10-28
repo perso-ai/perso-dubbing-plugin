@@ -42,7 +42,7 @@ Dateien, Ordner und YouTube-/TikTok-URLs funktionieren alle.
 > ```bash
 > claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
 > ```
-> Bitte den User danach um einen Neustart, damit `/dubbing`, `/srt` und `/clip` geladen werden. Andere Hosts: `npx perso-dubbing`. Ohne Terminal (ChatGPT / Gemini): [chatgpt-setup](../chatgpt-setup.md) · [gemini-setup](../gemini-setup.md)
+> Bitte den User danach um einen Neustart, damit <code>/dubbing</code>, <code>/srt</code> und <code>/clip</code> geladen werden. Andere Hosts: <code>npx perso-dubbing</code>. Ohne Terminal (ChatGPT / Gemini): [chatgpt-setup](../chatgpt-setup.md) · [gemini-setup](../gemini-setup.md)
 
 **Claude-Desktop-App** (Bezahlplan): öffne den **Code-Tab**, wähl einen Ordner, wähl **Local** und füg ein:
 
@@ -50,9 +50,9 @@ Dateien, Ordner und YouTube-/TikTok-URLs funktionieren alle.
 claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
 ```
 
-**Claude Code CLI**: `/plugin marketplace add perso-ai/perso-dubbing-plugin`, dann `/plugin install perso-dubbing@perso-ai`
+**Claude Code CLI**: <code>/plugin marketplace add perso-ai/perso-dubbing-plugin</code>, dann <code>/plugin install perso-dubbing@perso-ai</code>
 
-**Codex · Antigravity · alles andere**: `npx perso-dubbing` erkennt deine Hosts und installiert in jeden davon.
+**Codex · Antigravity · alles andere**: <code>npx perso-dubbing</code> erkennt deine Hosts und installiert in jeden davon.
 
 Du brauchst nur **Node.js 18+**, sonst nichts. [Visuelle Anleitung](https://dubbing-plugin.perso.ai/en/) · [FAQ](FAQ.md)
 
@@ -128,7 +128,7 @@ Kein Einrichtungsritual. Beim ersten Server-Job öffnet sich ein Browser: anmeld
 
 ---
 
-<sub>**Datenschutz**: `/dubbing`, `/srt` und `/clip` senden Nutzungsevents, um die Skills zu verbessern. Sie erfassen, was lief und wie es ausging, Medienlänge, Stilauswahl, grobe Locale, App-Version/OS und ob ein Perso-API-Key verwendet (und registriert) wurde. Jedes Event enthält eine zufällige Installations-ID und deine Workspace-Nummer; niemals deinen Key, deine Medien, Dateinamen oder Untertiteltexte. Opt-out per `PERSO_NO_TELEMETRY`.</sub>
+<sub>**Datenschutz**: <code>/dubbing</code>, <code>/srt</code> und <code>/clip</code> senden Nutzungsevents, um die Skills zu verbessern. Sie erfassen, was lief und wie es ausging, Medienlänge, Stilauswahl, grobe Locale, App-Version/OS und ob ein Perso-API-Key verwendet (und registriert) wurde. Jedes Event enthält eine zufällige Installations-ID und deine Workspace-Nummer; niemals deinen Key, deine Medien, Dateinamen oder Untertiteltexte. Opt-out per <code>PERSO_NO_TELEMETRY</code>.</sub>
 
 <sub>**Lizenz**: Der Skill-Code steht unter [MIT](../../LICENSE). Die API-Nutzung unterliegt den [Nutzungsbedingungen von Perso AI](https://perso.ai) und deren Preisen.</sub>
 
