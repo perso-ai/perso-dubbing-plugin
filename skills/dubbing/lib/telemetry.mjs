@@ -46,8 +46,8 @@ const TOP_GEO = (() => {
   try {
     let loc = new Intl.DateTimeFormat().resolvedOptions().locale || '';
     // ICU falls back to 'en-US' when it cannot resolve the OS locale → prefer the POSIX env in that case.
-    const env = (process.env.LC_ALL || process.env.LC_MESSAGES || process.env.LANG || '').split(/[.@]/)[0].replace('_', '-');
-    if ((!loc || loc === 'en-US') && env && !/^(C|POSIX)$/i.test(env)) loc = env;
+    const localeHint = (process.env.LC_ALL || process.env.LC_MESSAGES || process.env.LANG || '').split(/[.@]/)[0].replace('_', '-');
+    if ((!loc || loc === 'en-US') && localeHint && !/^(C|POSIX)$/i.test(localeHint)) loc = localeHint;
     if (loc) {
       const l = new Intl.Locale(loc);
       top.language = l.language;                                // 'ko'

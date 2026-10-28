@@ -66,46 +66,8 @@ export function preloadKeyEnv() {
   } catch { /* fallback: resolveKey decrypts directly */ }
 }
 
-/** Registration guidance when no key is present. The browser flow (connect.mjs) needs no copy/paste;
- *  the file-based paths remain for headless/SSH environments where a local browser can't open. */
-export function onboardingHelp() {
-  const self = fileURLToPath(import.meta.url).replace(/\\/g, '/'); // forward-slash path, shell-agnostic
-  const connect = join(dirname(self), 'connect.mjs').replace(/\\/g, '/');
-  const example = join(dirname(CRED_DIR), 'perso_key.txt').replace(/\\/g, '/');
-  return [
-    'No API key found. Do not paste the key into the chat — register it as below:',
-    '',
-    `  Recommended) Run:  ! node "${connect}"`,
-    '     → Opens the Perso portal in your browser: sign in and click once — the key is issued',
-    '       and delivered straight to this machine (stored encrypted, nothing to copy).',
-    '',
-    `  File-based) Run:  ! node "${self}" --watch   (headless/SSH, or if the browser flow fails)`,
-    '     → Creates the key file and opens it in your editor automatically.',
-    '       Paste just the key and save — it is encrypted on the fly and the file is auto-deleted.',
-    '',
-    '  Manual) If you would rather create the file yourself:',
-    `     1) Create a text file containing just the key on one line.  e.g. ${example}`,
-    `     2) Run:  ! node "${self}" --import "${example}"`,
-    '        → The key is stored encrypted and the key file is auto-deleted.',
-    '',
-    'Get an API key: https://developers.perso.ai/api-keys',
-  ].join('\n');
-}
-
-/** Registration guidance for a machine with no browser of its own (headless box / SSH session). The
- *  browser flow is unusable there — its page hands the key to a 127.0.0.1 listener, so it must run on the
- *  same machine — leaving the watched key file and the cross-machine --import route. */
-export function headlessKeyHelp() {
-  const self = fileURLToPath(import.meta.url).replace(/\\/g, '/');
-  const example = join(dirname(CRED_DIR), 'perso_key.txt').replace(/\\/g, '/');
-  return [
-    'No API key registered, and this machine has no browser to sign in with (headless/SSH).',
-    'The browser sign-in page delivers the key to a local 127.0.0.1 listener, so it only works on a machine with its own browser — register one of these two ways instead:',
-    `  A) Paste the key into the key file that opens next (${example}) and save it — it registers automatically.`,
-    '  B) From any machine with a browser: create a key at https://developers.perso.ai/api-keys, copy it into a text file on THIS machine, then run:',
-    `       ! node "${self}" --import "<that file>"`,
-  ].join('\n');
-}
+// Retain the public exports used by gates and billing, with guidance separate from key storage.
+export { onboardingHelp, headlessKeyHelp } from '../lib/key_help.mjs';
 
 /** Takes a known key string: ensure directory → encrypt (Windows DPAPI) → save as ascii → read back to verify. The key is passed only via stdin (avoids command-line exposure). */
 export function storeKey(key, { silent = false } = {}) {
@@ -134,8 +96,8 @@ export function storeKey(key, { silent = false } = {}) {
 
 /** The host supplies this option only after the user enters it in plugin configuration.
  * Explicit opt-in to the existing local key store; an absent/empty option changes nothing. */
-export function syncConfiguredKey(env = process.env) {
-  const key = env.CLAUDE_PLUGIN_OPTION_PERSO_API_KEY?.trim();
+export function syncConfiguredKey(value = process.env.CLAUDE_PLUGIN_OPTION_PERSO_API_KEY) {
+  const key = value?.trim();
   if (!key) return false;
   storeKey(key, { silent: true });
   return true;

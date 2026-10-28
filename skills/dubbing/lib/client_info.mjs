@@ -13,7 +13,7 @@ export const CLIENT_HOST = 'agents';
 // a 127.0.0.1 listener, so its page is only usable in a browser on the SAME machine — where this is true
 // the workers skip it and register from a file instead. Pure (env, platform) → unit-testable.
 // Windows always has a desktop session; DISPLAY (X/XWayland) anywhere means a browser can open.
-export function isHeadlessEnv(env = process.env, platform = process.platform) {
+export function isHeadlessEnv(env = {DISPLAY: process.env.DISPLAY, WAYLAND_DISPLAY: process.env.WAYLAND_DISPLAY, SSH_CONNECTION: process.env.SSH_CONNECTION, SSH_TTY: process.env.SSH_TTY}, platform = process.platform) {
   if (platform === 'win32') return false;
   const has = (k) => !!String(env?.[k] ?? '').trim();
   if (has('DISPLAY')) return false;
@@ -38,17 +38,13 @@ export const CLIENT_USER_AGENT = `perso-dubbing/${CLIENT_VERSION} (host=${CLIENT
 // Which coding agent this process runs under — telemetry segmentation only (the API User-Agent /
 // UTM channel above stays the unified 'agents'). Best-effort, returning the detection source too so
 // telemetry can weight it: env markers first (CLAUDECODE verified on Claude Code; the others are
-// prefix scans, unverified), then the skill's own install path. '~/.agents/skills' is shared by
+// identified by their install path), then the skill's own install path. '~/.agents/skills' is shared by
 // Codex · Antigravity · Gemini, so path alone yields 'agents-dir'. A worker can also pass --host to
 // self-report (see telemetry.setAgentHost), which overrides this with source 'self'.
 function detectAgentHost() {
-  const env = process.env;
-  if (env.CLAUDECODE || env.CLAUDE_CODE_ENTRYPOINT) return { host: 'claude-code', source: 'env' };
-  const has = (prefix) => Object.keys(env).some((k) => k.startsWith(prefix));
-  if (has('CURSOR_')) return { host: 'cursor', source: 'env' };
-  if (has('CODEX_')) return { host: 'codex', source: 'env' };
-  if (has('ANTIGRAVITY_')) return { host: 'antigravity', source: 'env' };
-  if (has('GEMINI_')) return { host: 'gemini', source: 'env' };
+  // Only inspect the two documented Claude markers; do not enumerate unrelated environment names.
+  // Other hosts are identified from the install path or the worker's explicit --host option.
+  if (process.env.CLAUDECODE || process.env.CLAUDE_CODE_ENTRYPOINT) return { host: 'claude-code', source: 'env' };
   const here = HERE.replace(/\\/g, '/').toLowerCase();
   if (here.includes('/.claude/')) return { host: 'claude-code', source: 'path' };
   if (here.includes('/.cursor/')) return { host: 'cursor', source: 'path' };

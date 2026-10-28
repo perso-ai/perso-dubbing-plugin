@@ -49,8 +49,8 @@ export function readWebAttribution() {
 // This install's device_id, without importing telemetry.mjs (it imports us): env first (set by the
 // parent run — survives sandboxed homes), then the persisted install-id file.
 function deviceId() {
-  const env = (process.env.PERSO_INSTALL_ID || '').trim();
-  if (env) return env;
+  const inheritedInstallId = (process.env.PERSO_INSTALL_ID || '').trim();
+  if (inheritedInstallId) return inheritedInstallId;
   try { return readFileSync(join(CRED_DIR, 'install-id'), 'utf8').trim() || null; } catch { return null; }
 }
 
