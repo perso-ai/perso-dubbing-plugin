@@ -1,7 +1,6 @@
 ---
 name: dubbing
 description: Auto-dub (voice-translate) videos into other languages, with lip-sync (Perso AI Dubbing).
-allowed-tools: Bash(node scripts/dubbing.mjs *), Bash(node scripts/resolve_key.mjs *), Bash(node scripts/connect.mjs), Bash(node scripts/billing.mjs *), Bash(node scripts/languages.mjs), Bash(node scripts/check_deps.mjs), Bash(node scripts/speaker.mjs *), Bash(node ${CLAUDE_SKILL_DIR}/scripts/*)
 ---
 
 # /dubbing

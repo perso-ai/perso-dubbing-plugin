@@ -1,7 +1,6 @@
 ---
 name: clip
 description: Cut a video into short-form clips (highlights/shorts) — cut given timecodes directly, or pick the best moments from a Perso AI STT project. Reframes 16:9→9:16. Subtitles are added separately by the srt skill.
-allowed-tools: Bash(node scripts/clip.mjs *), Bash(node ../dubbing/scripts/resolve_key.mjs *), Bash(node ${CLAUDE_SKILL_DIR}/scripts/*), Bash(node ${CLAUDE_SKILL_DIR}/../dubbing/scripts/*)
 ---
 
 # /clip

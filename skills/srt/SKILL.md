@@ -1,7 +1,6 @@
 ---
 name: srt
 description: Extract subtitles (SRT) from video/audio/URLs and translate them into other languages (Perso AI STT).
-allowed-tools: Bash(node scripts/srt.mjs *), Bash(node scripts/style.mjs *), Bash(node ../dubbing/scripts/resolve_key.mjs *), Bash(node ../dubbing/scripts/billing.mjs *), Bash(node ${CLAUDE_SKILL_DIR}/scripts/*), Bash(node ${CLAUDE_SKILL_DIR}/../dubbing/scripts/*)
 ---
 
 # /srt
