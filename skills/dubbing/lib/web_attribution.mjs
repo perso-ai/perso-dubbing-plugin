@@ -97,6 +97,9 @@ export function captureWebAttribution(windowMs, opts = {}) {
         'Access-Control-Allow-Private-Network': 'true', // https page → loopback listener needs the PNA preflight
       } : {};
       const respond = (status, body) => { res.writeHead(status, { 'Content-Type': 'application/json', ...cors }); res.end(JSON.stringify(body)); };
+      // CORS controls response visibility, not whether a request reaches this server.
+      // Reject untrusted or missing browser origins before reading or storing a body.
+      if (!ORIGIN_RE.test(origin)) return respond(403, { ok: false });
       if (req.method === 'OPTIONS') { res.writeHead(204, cors); return res.end(); }
       if (req.method !== 'POST') return respond(405, { ok: false });
       let size = 0;

@@ -121,6 +121,6 @@ No setup ceremony. The first time a server job runs, a browser opens: sign in, o
 
 ---
 
-<sub>**Privacy**: `/dubbing`, `/srt`, and `/clip` send usage events to improve the skills, covering what ran and how it went, media length, style choices, coarse locale, app version/OS, and whether a Perso API key was used (and registered). Each event has a random per-install ID and your workspace number; never your key, media, filenames, or subtitle text. Opt out with `PERSO_NO_TELEMETRY`.</sub>
+**Privacy and data handling:** Server-side dubbing, transcription, lip-sync and separation send selected media or source URLs to Perso services. Usage analytics are enabled by default and sent to Amplitude, including linkable installation/account/workspace identifiers and operational metadata. Installation attribution can include GA client/session IDs and campaign fields. Set `PERSO_NO_TELEMETRY=1` before launching the host to disable plugin analytics and its attribution receiver. Local operations can otherwise still send analytics. See [plugin data handling](PRIVACY.md) for destinations, local credential storage, controls and retention limitations.
 
 <sub>**License**: the skill code is [MIT](LICENSE). API usage is subject to the [Perso AI Terms of Service](https://perso.ai) and pricing.</sub>
