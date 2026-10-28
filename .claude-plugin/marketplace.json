@@ -3,16 +3,13 @@
   "owner": {
     "name": "Perso AI"
   },
-  "description": "Perso AI agent plugins — AI dubbing (video voice translation with lip-sync & audio separation) and SRT subtitle extraction & translation.",
+  "description": "Perso AI agent plugins \u2014 AI dubbing (video voice translation with lip-sync & audio separation) and SRT subtitle extraction & translation.",
   "plugins": [
     {
       "name": "perso-dubbing",
-      "source": {
-        "source": "npm",
-        "package": "perso-dubbing"
-      },
+      "source": "./",
       "description": "Auto-dub videos into other languages with lip-sync (Perso AI Dubbing), plus voice/background audio separation and SRT subtitle extraction & translation (/srt). Single files, folders, URLs, auto split & merge for long media, multi-language output, resume.",
-      "version": "0.8.15",
+      "version": "0.8.16-claude.1",
       "author": {
         "name": "Perso AI"
       },

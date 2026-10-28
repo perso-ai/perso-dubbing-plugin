@@ -42,7 +42,7 @@
 > ```bash
 > claude plugin marketplace add perso-ai/perso-dubbing-plugin && claude plugin install perso-dubbing@perso-ai
 > ```
-> 完了後、ユーザーに再起動を案内すると `/dubbing`、`/srt`、`/clip` が読み込まれます。他のホスト: `npx perso-dubbing`。ターミナルがない環境 (ChatGPT / Gemini): [chatgpt-setup](../chatgpt-setup.md) · [gemini-setup](../gemini-setup.md)
+> 完了後、ユーザーに再起動を案内すると <code>/dubbing</code>、<code>/srt</code>、<code>/clip</code> が読み込まれます。他のホスト: <code>npx perso-dubbing</code>。ターミナルがない環境 (ChatGPT / Gemini): [chatgpt-setup](../chatgpt-setup.md) · [gemini-setup](../gemini-setup.md)
 
 **Claude デスクトップアプリ** (有料プラン): **Codeタブ**を開き、フォルダを選択、**Local** を選んで貼り付け:
 
@@ -50,9 +50,9 @@
 claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dubbing@perso-ai
 ```
 
-**Claude Code CLI**: `/plugin marketplace add perso-ai/perso-dubbing-plugin` のあと `/plugin install perso-dubbing@perso-ai`
+**Claude Code CLI**: <code>/plugin marketplace add perso-ai/perso-dubbing-plugin</code> のあと <code>/plugin install perso-dubbing@perso-ai</code>
 
-**Codex · Antigravity · その他**: `npx perso-dubbing` がホストを検出し、それぞれにインストールします。
+**Codex · Antigravity · その他**: <code>npx perso-dubbing</code> がホストを検出し、それぞれにインストールします。
 
 必要なのは **Node.js 18+** だけ。[ビジュアルガイド](https://dubbing-plugin.perso.ai/en/) · [FAQ](FAQ.md)
 
@@ -128,7 +128,7 @@ SRTを渡して、欲しい言語を伝えてください。複数まとめて�
 
 ---
 
-<sub>**プライバシー**: `/dubbing`、`/srt`、`/clip` はスキル改善のため使用イベントを送信します。内容は、実行した処理とその結果、メディアの長さ、スタイルの選択、おおまかなロケール、アプリのバージョン/OS、Perso APIキーの使用 (および登録) の有無です。各イベントにはインストールごとのランダムIDとワークスペース番号が付きますが、APIキー・メディア・ファイル名・字幕テキストが含まれることは決してありません。`PERSO_NO_TELEMETRY` でオプトアウトできます。</sub>
+<sub>**プライバシー**: <code>/dubbing</code>、<code>/srt</code>、<code>/clip</code> はスキル改善のため使用イベントを送信します。内容は、実行した処理とその結果、メディアの長さ、スタイルの選択、おおまかなロケール、アプリのバージョン/OS、Perso APIキーの使用 (および登録) の有無です。各イベントにはインストールごとのランダムIDとワークスペース番号が付きますが、APIキー・メディア・ファイル名・字幕テキストが含まれることは決してありません。<code>PERSO_NO_TELEMETRY</code> でオプトアウトできます。</sub>
 
 <sub>**ライセンス**: スキルのコードは [MIT](../../LICENSE) です。APIの利用には [Perso AI利用規約](https://perso.ai)と料金が適用されます。</sub>
 
