@@ -24,6 +24,7 @@ const MAX_ATTEMPTS = 3;
 const RETRY_DELAY_MS = [1000, 3000]; // before attempt 2 and 3
 const TOTAL_BUDGET_MS = 15_000; // hard cap per track() call — some call sites await it (connect.mjs)
 
+const INSTALL_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ID_FILE = join(CRED_DIR, 'install-id');
 const SENTINEL = join(CRED_DIR, 'installed'); // { version, at, method } — dedupes `install` per (install × version)
 const USER_FILE = join(CRED_DIR, 'telemetry-user'); // { user_id, plan_tier, plan_name } — survives across runs
@@ -118,9 +119,12 @@ export function setTelemetryPlan(tier, name) {
 // Amplitude users, one per process.
 function loadInstallId() {
   const inherited = (process.env.PERSO_INSTALL_ID || '').trim();
-  if (inherited) return { id: inherited, isNew: false };
+  if (INSTALL_ID_PATTERN.test(inherited)) return { id: inherited, isNew: false };
   let id = null;
-  try { id = readFileSync(ID_FILE, 'utf8').trim() || null; } catch { /* create below */ }
+  try {
+    const savedId = readFileSync(ID_FILE, 'utf8').trim();
+    if (INSTALL_ID_PATTERN.test(savedId)) id = savedId;
+  } catch { /* create below */ }
   const isNew = id == null;
   if (isNew) {
     id = randomUUID();
@@ -190,7 +194,9 @@ export function primeTelemetrySpace(hint) {
 export async function track(eventType, props = {}, opts = {}) {
   if (process.env.PERSO_NO_TELEMETRY || !API_KEY || !ENDPOINT) return;
   try {
-    const event_properties = { env: API_ENV, agent_host: _agentHost, agent_host_source: _agentHostSource, ...(NODE_MAJOR ? { node_major: NODE_MAJOR } : {}) };
+    const event_properties = { agent_host: _agentHost, agent_host_source: _agentHostSource, ...(NODE_MAJOR ? { node_major: NODE_MAJOR } : {}) };
+    // Preserve the analytics schema's deployment label. This is a string, not a process environment map.
+    event_properties.env = API_ENV;
     if (_spaceSeq != null) {
       event_properties.space_seq = _spaceSeq;
       if (_spaceSource === 'cache') event_properties.space_seq_guess = true;

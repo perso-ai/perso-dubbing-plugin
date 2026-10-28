@@ -14,6 +14,7 @@ import { CRED_DIR } from './config.mjs';
 
 // Fixed port — the landing page posts to http://127.0.0.1:41599 (keep the two in sync).
 export const ATTR_PORT = Number(process.env.PERSO_ATTR_PORT) || 41599;
+const INSTALL_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ATTR_FILE = join(CRED_DIR, 'web-attribution');
 // Identify API: sets user properties WITHOUT an event. Same project key as telemetry.mjs; the
 // endpoint is derived from the same override so tests capture both.
@@ -50,8 +51,11 @@ export function readWebAttribution() {
 // parent run — survives sandboxed homes), then the persisted install-id file.
 function deviceId() {
   const inheritedInstallId = (process.env.PERSO_INSTALL_ID || '').trim();
-  if (inheritedInstallId) return inheritedInstallId;
-  try { return readFileSync(join(CRED_DIR, 'install-id'), 'utf8').trim() || null; } catch { return null; }
+  if (INSTALL_ID_PATTERN.test(inheritedInstallId)) return inheritedInstallId;
+  try {
+    const savedId = readFileSync(join(CRED_DIR, 'install-id'), 'utf8').trim();
+    return INSTALL_ID_PATTERN.test(savedId) ? savedId : null;
+  } catch { return null; }
 }
 
 // $set the payload as user properties immediately via the Identify API (no event, so install counts
