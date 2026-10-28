@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Resolve API key (env override → local file → onboarding help).
 // The raw key is never written to stdout. The CLI (--check) only shows a masked form.
-import { readFileSync, writeFileSync, unlinkSync, existsSync, realpathSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, unlinkSync, existsSync, realpathSync, mkdirSync, chmodSync } from 'node:fs';
 import { execFileSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -29,17 +29,18 @@ function decryptDpapi(enc) {
  *  The resolved key is cached once per process — so Windows DPAPI decryption (running powershell)
  *  is not repeated on every request/poll (avoids blocking the event loop). A missing key (null) is not cached. */
 let _cachedKey = null;
+function readStoredKey() {
+  if (!existsSync(CRED_FILE)) return null;
+  const raw = readFileSync(CRED_FILE, 'utf8').trim();
+  if (!raw) return null;
+  if (!isWindows) return raw;
+  try { return decryptDpapi(raw); }
+  catch { return null; }
+}
 export function resolveKey() {
   if (_cachedKey) return _cachedKey;
   if (process.env.XP_API_KEY) return (_cachedKey = process.env.XP_API_KEY.trim());
-  if (existsSync(CRED_FILE)) {
-    const raw = readFileSync(CRED_FILE, 'utf8').trim();
-    if (!raw) return null;
-    if (!isWindows) return (_cachedKey = raw);
-    try { return (_cachedKey = decryptDpapi(raw)); }
-    catch { return null; } // corrupted credential (empty/broken) → treated as 'absent' (prompts re-registration), prevents crash
-  }
-  return null;
+  return (_cachedKey = readStoredKey());
 }
 
 /**
@@ -107,9 +108,9 @@ export function headlessKeyHelp() {
 }
 
 /** Takes a known key string: ensure directory → encrypt (Windows DPAPI) → save as ascii → read back to verify. The key is passed only via stdin (avoids command-line exposure). */
-export function storeKey(key) {
+export function storeKey(key, { silent = false } = {}) {
   const k = (key ?? '').trim();
-  if (!k) { console.error('❌ The key is empty.'); process.exit(1); }
+  if (!k) throw new Error('The key is empty.');
   mkdirSync(CRED_DIR, { recursive: true });
   if (isWindows) {
     const lit = `'${CRED_FILE.replace(/'/g, "''")}'`;
@@ -120,12 +121,24 @@ export function storeKey(key) {
       `($k | ConvertTo-SecureString -AsPlainText -Force | ConvertFrom-SecureString) | Set-Content -Encoding ascii ${lit}`;
     execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', ps], { input: k });
   } else {
+    // mode on writeFile only protects newly created files; tighten existing files too.
+    if (existsSync(CRED_FILE)) chmodSync(CRED_FILE, 0o600);
     writeFileSync(CRED_FILE, k, { mode: 0o600 });
   }
   _cachedKey = null;
-  const back = resolveKey();
-  if (!back) { console.error('❌ Could not verify registration. Try again.'); process.exit(1); }
-  console.log(`✅ Key registered: ${maskKey(back)}`);
+  // Verify the file just written, independently of an ambient environment override.
+  const back = readStoredKey();
+  if (back !== k) throw new Error('Could not verify registration. Try again.');
+  if (!silent) console.log(`✅ Key registered: ${maskKey(back)}`);
+}
+
+/** The host supplies this option only after the user enters it in plugin configuration.
+ * Explicit opt-in to the existing local key store; an absent/empty option changes nothing. */
+export function syncConfiguredKey(env = process.env) {
+  const key = env.CLAUDE_PLUGIN_OPTION_PERSO_API_KEY?.trim();
+  if (!key) return false;
+  storeKey(key, { silent: true });
+  return true;
 }
 
 /** Register using a key contained in a file — no interactive input needed, so it works in TTY-less environments/agents. Deletes the original file after registration. */

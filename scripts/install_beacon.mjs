@@ -13,6 +13,7 @@ import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { emitInstallOnce } from '../skills/dubbing/lib/telemetry.mjs';
 import { lingerWebAttribution } from '../skills/dubbing/lib/web_attribution.mjs';
+import { syncConfiguredKey } from '../skills/dubbing/scripts/resolve_key.mjs';
 
 // Cap the beacon's network budget: on the first session after a marketplace install this runs inside
 // the (blocking) SessionStart hook, so it must return promptly regardless of link quality.
@@ -30,6 +31,8 @@ const isMain = (() => {
   try { return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url)); } catch { return false; }
 })();
 if (isMain) {
+  try { syncConfiguredKey(); }
+  catch { console.error('[perso-config] Could not save the configured Perso key. Check local credential-file permissions.'); }
   const i = process.argv.indexOf('--method');
   emitInstall(i >= 0 ? process.argv[i + 1] : 'marketplace').then((fired) => {
     // Marketplace installs run none of our code at install time — the first session is the earliest

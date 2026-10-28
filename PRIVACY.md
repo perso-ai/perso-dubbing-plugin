@@ -10,7 +10,9 @@ Authenticated API requests use the configured Perso HTTPS API origin (default `h
 
 ## Local credentials and state
 
-The worker resolves a Perso API key from `XP_API_KEY` or `~/.perso/credentials`. On Windows, the credential file uses Windows DPAPI. On macOS/Linux, the key is plaintext and the file is created with mode `0600`; file permissions are not encryption. Never paste a key into chat. Local state can also include installation/account identifiers, workspace and plan information, acquisition records and update-check state. Uninstalling the plugin does not guarantee removal of this state or downloaded outputs.
+On Claude versions supporting `userConfig`, the optional masked **Perso API key** setting explicitly copies the user-provided value into `~/.perso/credentials` at session start, without printing it. This uses the same local storage as browser sign-in; it is an additional copy outside Claude's secure configuration store. Leaving the option empty does not overwrite an existing key. To remove it, clear the option and delete the local credential file; to revoke the key, use the Perso service.
+
+An explicit `XP_API_KEY` environment override takes precedence over the saved key. Otherwise the worker reads `~/.perso/credentials`. On Windows, the credential file uses Windows DPAPI. On macOS/Linux, the key is plaintext and the file is created with mode `0600`; file permissions are not encryption. Never paste a key into chat. Local state can also include installation/account identifiers, workspace and plan information, acquisition records and update-check state. Uninstalling the plugin does not guarantee removal of this state or downloaded outputs.
 
 ## Usage analytics and attribution
 

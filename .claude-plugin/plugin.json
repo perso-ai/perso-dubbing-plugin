@@ -16,5 +16,14 @@
     "subtitles",
     "perso-ai",
     "media"
-  ]
+  ],
+  "userConfig": {
+    "perso_api_key": {
+      "type": "string",
+      "title": "Perso API key (optional)",
+      "description": "Optional: copy your Perso API key into the plugin local credential file at session start. Windows uses DPAPI; macOS/Linux use a plaintext file restricted to the current user. Leave blank to keep browser sign-in or existing credentials. An XP_API_KEY environment override still takes precedence. Clearing this option does not delete the local copy. Never paste a key into chat.",
+      "sensitive": true,
+      "required": false
+    }
+  }
 }

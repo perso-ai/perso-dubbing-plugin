@@ -117,6 +117,8 @@ Splits a video or audio into clean tracks: the voice and the background. With se
 
 No setup ceremony. The first time a server job runs, a browser opens: sign in, one click, key stored locally using the platform-specific protection described in [plugin data handling](PRIVACY.md). Free steps never ask.
 
+On Claude versions that support plugin configuration, the optional masked **Perso API key** setting can register your own key at session start. This copies it into the existing local credential file, with the platform-specific protections and removal procedure in [plugin data handling](PRIVACY.md). Browser sign-in and existing environment-based setups remain supported.
+
 <br>
 
 ---
