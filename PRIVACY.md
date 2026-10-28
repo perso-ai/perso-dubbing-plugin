@@ -16,7 +16,7 @@ An explicit `XP_API_KEY` environment override takes precedence over the saved ke
 
 ## Usage analytics and attribution
 
-Analytics are on by default. The code sends events to Amplitude at `https://api2.amplitude.com/2/httpapi`, and acquisition user properties to `/identify`. Supported overrides are the corresponding EU Amplitude endpoint or an explicitly configured loopback test collector. Redirects are not followed for analytics requests. The Amplitude project key is separate from the Perso API credential.
+Analytics are on by default. The code sends events to Amplitude at `https://api2.amplitude.com/2/httpapi`, and acquisition user properties to `/identify`. Supported overrides are the corresponding EU Amplitude endpoint or an explicitly configured loopback test collector. Redirects are not followed for analytics requests. The Amplitude project key is a fixed publisher-owned public ingestion key, separate from the Perso API credential. This submission build does not read a user-supplied Amplitude key from the machine.
 
 Event fields can include a random installation ID, account `userSeq` when resolved, workspace ID, plan, application/agent version, OS, locale-derived language/country, operation type, media duration, selected options, outcome and error category. These identifiers can link activity and must not be described as anonymous. The telemetry implementation is intended to exclude Perso API keys, media content, filenames, subtitle text and email addresses from analytics; this does not mean the requested Perso service operation never processes such data.
 

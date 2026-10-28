@@ -48,11 +48,13 @@ Subtitles are off by default. After cutting, tell the user clips are ready and *
 1. Write the sidecars: `node scripts/clip.mjs --sidecars "<out>/clips.json"` — add `--karaoke` **only** for a karaoke preset (it also writes `<clip>.timestamps.json` for measured word timing; a plain preset needs just the `.srt`).
 2. Style each clip with the **srt** skill: `node ../srt/scripts/style.mjs "<clip>.mp4" "<clip>.srt" --preset <id>` (append `--word-timestamps "<clip>.timestamps.json"` for karaoke). See the srt skill's "Style & burn subtitles" section.
 
-Add `--host <runtime>` for telemetry (silent), same as the other workers.
+Add `--host <runtime>` for usage telemetry described in the plugin data-handling notice, same as the other workers.
 
-## Config (env)
+## Runtime configuration
 
-Same as `/dubbing` / `/srt` (`PERSO_API_BASE`/`PERSO_MEDIA_BASE` — https `perso.ai` hosts only, `PERSO_SPACE_SEQ`, `XP_API_KEY`, `PERSO_NO_TELEMETRY`, …).
+Authentication is handled by the worker and the user-facing setup flow. Never inspect or print secrets. The plugin data-handling notice documents credential sources and storage.
+
+Same as `/dubbing` / `/srt` (`PERSO_API_BASE`/`PERSO_MEDIA_BASE` — https `perso.ai` hosts only, `PERSO_SPACE_SEQ`, `PERSO_NO_TELEMETRY`, …).
 
 ## Subtitle preview
 

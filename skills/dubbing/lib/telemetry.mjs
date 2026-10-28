@@ -14,8 +14,8 @@ import { CLIENT_VERSION, CLIENT_HOST, AGENT_HOST, AGENT_HOST_SOURCE } from './cl
 import { readWebAttribution } from './web_attribution.mjs';
 
 // Write-only ingestion (project API) key. Public by design — it can only SEND events, never read
-// data; exposure in the repo allows spoofing at worst, not data access. Override via env for testing.
-const API_KEY = process.env.PERSO_AMPLITUDE_KEY || 'd795c0c0328160be4d7df3365eb0c05e';
+// data; exposure in the repo allows spoofing at worst, not data access. The submission build uses only this publisher-owned project, never a key from the user environment.
+const API_KEY = 'd795c0c0328160be4d7df3365eb0c05e';
 // US data residency. EU projects must use https://api.eu.amplitude.com/2/httpapi.
 const ENDPOINT = telemetryEndpoint(process.env.PERSO_AMPLITUDE_URL);
 // 8s absorbs a cold DNS+TLS handshake on slow links (the first event of a run was the most dropped).

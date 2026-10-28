@@ -17,7 +17,7 @@ export const ATTR_PORT = Number(process.env.PERSO_ATTR_PORT) || 41599;
 const ATTR_FILE = join(CRED_DIR, 'web-attribution');
 // Identify API: sets user properties WITHOUT an event. Same project key as telemetry.mjs; the
 // endpoint is derived from the same override so tests capture both.
-const AMP_KEY = process.env.PERSO_AMPLITUDE_KEY || 'd795c0c0328160be4d7df3365eb0c05e';
+const AMP_KEY = 'd795c0c0328160be4d7df3365eb0c05e';
 const IDENTIFY_ENDPOINT = telemetryEndpoint(process.env.PERSO_AMPLITUDE_URL, true);
 const MAX_BODY_BYTES = 4096;
 const MAX_WINDOW_MS = 15 * 60_000;

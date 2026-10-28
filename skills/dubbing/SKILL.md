@@ -16,7 +16,7 @@ A skill that auto-dubs videos via the Perso AI Dubbing API.
 - **Multiple languages go in one command** (`--target en,zh,ja`) — upload/split happens once and is reused per language. Never run once per language (re-uploads the source each time).
 - **Relay progress faithfully.** Surface the worker's stdout `[progress]` lines to chat, verbatim or summarized — and don't announce steps that didn't appear (splitting/merging exist only for over-limit videos). The indented stderr detail logs don't need relaying.
 - **Keep the user informed while it runs.** Dubbing, lip-sync, and audio separation all print a `[status]` heartbeat (stage + item counts, e.g. `ja 4/6 · en 1/6` or `separating — file 2/5`, with a `next check ~Nm` hint), and each finished item streams as a `[progress]` line. Check the background output ~3 minutes after launch, then on the hinted interval (10 min for media ≤10 min, 30 min for longer): relay any new `[progress]` line right away, otherwise post the latest `[status]` line as a one-line update. Never invent percentages, elapsed time, or ETAs — relay only what the lines say. Stops that need the user (`[space-select]`, `[split-confirm]`, `[free-limit]`, `[model-plan]`, `[model-select]`, `[resume-check]`, `[credit-check]`, credit-out, completion) end the process, so they surface without polling.
-- **Name your runtime for telemetry (silent).** Add `--host <claude-code|codex|cursor|antigravity|gemini>` to the worker command, naming the agent you are running as, if you can tell. It only tags usage telemetry — never surface it to the user and never ask them about it. Omit it if unsure.
+- **Name your runtime for telemetry.** Add `--host <claude-code|codex|cursor|antigravity|gemini>` to the worker command, naming the agent you are running as, if you can tell. It tags usage telemetry; the plugin data-handling notice describes this collection and its opt-out. Do not ask the user to identify the agent runtime. Omit it if unsure.
 - **Voice model — mention only when asked.** Never bring up TTS voice models or `--tts-model` on your own: run with the default and say nothing about models in kickoff lines, progress, or the final report. Explain the models and let the user choose **only** when the user asks about voice models / voice engines, or the worker prints a `[model-plan]` or `[model-select]` line. When the user names a model ("use Nightingale"), don't explain or ask — state its price in one line and run it right away — see **Voice model**.
 - **Unsupported formats are skipped automatically** and the rest keep processing — relay the skip notice.
 - **A pause is not a failure.** A `[space-select]`, `[split-confirm]`, `[free-limit]`, `[model-plan]`, `[model-select]`, `[credit-check]`, or `[resume-check]` line means the run **stopped to ask you something** — it exits 0 (so it never looks like an error), but the job is **not** complete. Whenever one of these lines is present, never report the run as done: relay it and act on it. The lines are the signal, not the exit code.
@@ -189,12 +189,13 @@ Once a day (first run after 00:00 UTC) the worker checks npm for a newer release
 
 The notice lists both commands; pick the one matching how it was installed. It never blocks a run and can be silenced with `PERSO_NO_UPDATE_CHECK=1`.
 
-## Config (env)
+## Runtime configuration
+
+Authentication is handled by the worker and the user-facing setup flow. Never inspect or print secrets. The plugin data-handling notice documents credential sources and storage.
 
 - `PERSO_API_BASE` — API base URL (default `https://api.perso.ai`). **https `perso.ai` hosts only** — anything else is rejected at startup (the API key travels in a header to this host).
 - `PERSO_MEDIA_BASE` — media host for result files (default `https://portal-media.perso.ai`). Prepended when a response path is relative. Same https `perso.ai`-only rule.
 - `PERSO_SPACE_SEQ` — pin the space to use for every run (skips the space question).
-- `XP_API_KEY` — set the key directly (highest priority). Otherwise resolved from `~/.perso/credentials` (DPAPI-encrypted on Windows).
 - `PERSO_NO_WATCH` — when no key is registered, `dubbing.mjs` normally self-heals by opening a key file and waiting for the user to paste the key. Set this to fail fast instead (headless/CI).
 - `PERSO_NO_OPEN` — don't auto-open the key file in an editor during key registration (headless; the file path is still printed).
 - `PERSO_SIZE_CAP_BYTES` — upload size cap used for the split decision (default ≈1.9 GB, under the API's 2 GB limit).

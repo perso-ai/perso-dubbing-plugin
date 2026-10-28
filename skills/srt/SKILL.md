@@ -16,7 +16,7 @@ A skill that extracts the source-language subtitles of a video/audio via the Per
 - **Transcription only, no translation** (user asks for "the subtitles/transcript as-is", "just the SRT in the original language") → run with `--transcribe-only` instead of `--target`. The downloaded original SRT **is** the final deliverable — skip the Translate section entirely.
 - **Multiple languages go in one command** (`--target en,ja`) — one subtitle project is created per input regardless of how many languages, and you translate its single original SRT into each of them.
 - **Relay progress faithfully.** Surface the worker's stdout `[progress]` lines to chat, verbatim or summarized. The indented stderr detail logs don't need relaying. For a batch the worker streams a `[progress]` line per input and prints a `[status]` heartbeat (`subtitles 3/20`, with a `next check ~Nm` hint) — check the background output ~3 minutes after launch, then on the hinted interval, relaying new lines. Never invent percentages or ETAs.
-- **Name your runtime for telemetry (silent).** Add `--host <claude-code|codex|cursor|antigravity|gemini>` to the worker command, naming the agent you are running as, if you can tell. It only tags usage telemetry — never surface it to the user and never ask them about it. Omit it if unsure.
+- **Name your runtime for telemetry.** Add `--host <claude-code|codex|cursor|antigravity|gemini>` to the worker command, naming the agent you are running as, if you can tell. It tags usage telemetry; the plugin data-handling notice describes this collection and its opt-out. Do not ask the user to identify the agent runtime. Omit it if unsure.
 - **Unsupported formats are skipped automatically** and the rest keep processing — relay the skip notice.
 - **Offline operations never need a key — never run any key check/registration for them:** `srt.mjs --check`/`--retime`, `style.mjs` with a local video + SRT (everything except `--project`), and translating an SRT the user hands you.
 - This skill shares the dubbing skill's libraries: the `dubbing` folder must be installed next to `srt` (every install method ships them together; only a manual copy of the `srt` folder alone breaks this).
@@ -122,7 +122,7 @@ Optionally burn a **styled** subtitle track onto the video (permanent hardsub) w
    - **Custom style:** map the user's description to override flags on top of any base preset — `--position center|lower|bottom|upper`, `--font`, `--fontsize`, `--primary RRGGBB`, `--outline RRGGBB`, `--outline-width`, `--box RRGGBB@opacity|none`, `--karaoke`/`--no-karaoke`, `--highlight RRGGBB`, `--uppercase`, `--bold`/`--no-bold` (see `--help`).
    - **Fonts:** `--font "<name>"` uses an installed font; a name that isn't installed falls back to the closest system font automatically (mention it when relevant). A user-supplied font file (.ttf/.otf/.ttc) goes in as `--font-file "<path>"` — the family name is read from the file itself.
    - **Multiple languages:** run once per language's SRT with the same `--preset`, adding `--lang <code>` so outputs are named per language.
-3. **Relay + deliver.** Surface `[progress]` lines; deliver the file from the `[styled-output]` `path`. Add `--host <runtime>` for telemetry (silent).
+3. **Relay + deliver.** Surface `[progress]` lines; deliver the file from the `[styled-output]` `path`. Add `--host <runtime>` for usage telemetry described in the plugin data-handling notice.
 
 **Karaoke (per-word highlight).** The `karaoke` preset needs per-word timings. With `--project` the worker fetches the project's `scriptTimestamps` automatically (accurate for the **original** language). When no word timings are available (a translated SRT, or a local SRT alone), it **still proceeds** with estimated timing and prints a notice — relay the worker's notice as-is, don't ask. For accurate original-language karaoke, pass `--word-timestamps <scriptTimestamps.json>`.
 
@@ -138,9 +138,11 @@ The worker saves a state file (`*.srtresume.json`, next to the source or in `--o
 
 **On an insufficient-credits stop**: deliver the completed SRTs (and translate them), then tell the user the rest needs a top-up and continuing finishes it without re-billing. The guidance points to the dubbing skill's `billing.mjs` (`node ../dubbing/scripts/billing.mjs options`) for a payment link — described in the dubbing SKILL.md's "Plan upgrade & credits" section. **You only ever hand the link to the user — never open it or complete payment yourself.**
 
-## Config (env)
+## Runtime configuration
 
-The dubbing skill's environment variables apply unchanged (`PERSO_API_BASE`/`PERSO_MEDIA_BASE` — https `perso.ai` hosts only, `PERSO_SPACE_SEQ`, `XP_API_KEY`, `PERSO_NO_WATCH`, `PERSO_NO_OPEN`, `PERSO_QUEUE_WAIT_MS`, `PERSO_NO_UPDATE_CHECK`, `PERSO_NO_TELEMETRY`).
+Authentication is handled by the worker and the user-facing setup flow. Never inspect or print secrets. The plugin data-handling notice documents credential sources and storage.
+
+The dubbing skill's environment variables apply unchanged (`PERSO_API_BASE`/`PERSO_MEDIA_BASE` — https `perso.ai` hosts only, `PERSO_SPACE_SEQ`, `PERSO_NO_WATCH`, `PERSO_NO_OPEN`, `PERSO_QUEUE_WAIT_MS`, `PERSO_NO_UPDATE_CHECK`, `PERSO_NO_TELEMETRY`).
 
 ## Subtitle preview
 
