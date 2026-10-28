@@ -122,7 +122,7 @@ Teilt ein Video oder Audio in saubere Spuren auf: die Stimme und den Hintergrund
 
 **MIT, kostenlos und Open Source.** Alles, was auf deinem Rechner läuft, kostet nichts und braucht keinen Account: Untertitel stylen und einbrennen, eine vorhandene SRT übersetzen, Clips an Timecodes schneiden. Credits kommen nur ins Spiel, wenn ein Job auf Persos Servern läuft: Dubbing, Lip-Sync, Stimmtrennung und Speech-to-Text, abgerechnet pro verarbeiteter Sekunde über die [Perso Dubbing API](https://developers.perso.ai/api-keys).
 
-Kein Einrichtungsritual. Beim ersten Server-Job öffnet sich ein Browser: anmelden, ein Klick, der Key wird verschlüsselt gespeichert. Kostenlose Schritte fragen nie danach.
+Kein Einrichtungsritual. Beim ersten Server-Job öffnet sich ein Browser: anmelden, ein Klick, der Key wird lokal gespeichert. Kostenlose Schritte fragen nie danach.
 
 <br>
 
@@ -131,3 +131,5 @@ Kein Einrichtungsritual. Beim ersten Server-Job öffnet sich ein Browser: anmeld
 <sub>**Datenschutz**: `/dubbing`, `/srt` und `/clip` senden Nutzungsevents, um die Skills zu verbessern. Sie erfassen, was lief und wie es ausging, Medienlänge, Stilauswahl, grobe Locale, App-Version/OS und ob ein Perso-API-Key verwendet (und registriert) wurde. Jedes Event enthält eine zufällige Installations-ID und deine Workspace-Nummer; niemals deinen Key, deine Medien, Dateinamen oder Untertiteltexte. Opt-out per `PERSO_NO_TELEMETRY`.</sub>
 
 <sub>**Lizenz**: Der Skill-Code steht unter [MIT](../../LICENSE). Die API-Nutzung unterliegt den [Nutzungsbedingungen von Perso AI](https://perso.ai) und deren Preisen.</sub>
+
+[Plugin data handling and platform-specific credential protection (English)](../../PRIVACY.md)

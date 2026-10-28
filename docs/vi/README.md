@@ -122,7 +122,7 @@ Tách video hoặc audio thành các track sạch: giọng nói và phần nền
 
 **MIT, miễn phí và mã nguồn mở.** Mọi thứ chạy trên máy của bạn đều không tốn phí và không cần tài khoản: tạo kiểu và gắn phụ đề, dịch file SRT bạn có sẵn, cắt clip theo timecode. Credit chỉ dùng đến khi công việc chạy trên máy chủ của Perso: lồng tiếng, lip-sync, tách giọng nói và nhận dạng giọng nói, tính phí theo từng giây xử lý qua [Perso Dubbing API](https://developers.perso.ai/api-keys).
 
-Không có thủ tục thiết lập rườm rà. Lần đầu một tác vụ máy chủ chạy, trình duyệt sẽ mở ra: đăng nhập, một cú nhấp, key được lưu ở dạng mã hóa. Các bước miễn phí không bao giờ hỏi.
+Không có thủ tục thiết lập rườm rà. Lần đầu một tác vụ máy chủ chạy, trình duyệt sẽ mở ra: đăng nhập, một cú nhấp, key được lưu trên máy. Các bước miễn phí không bao giờ hỏi.
 
 <br>
 
@@ -131,3 +131,5 @@ Không có thủ tục thiết lập rườm rà. Lần đầu một tác vụ m
 <sub>**Quyền riêng tư**: `/dubbing`, `/srt` và `/clip` gửi các sự kiện sử dụng để cải thiện các skill, gồm tác vụ đã chạy và kết quả ra sao, độ dài media, lựa chọn style, locale ở mức khái quát, phiên bản app/hệ điều hành, và việc có dùng (và đã đăng ký) Perso API key hay không. Mỗi sự kiện mang một ID ngẫu nhiên theo từng bản cài và số workspace của bạn; không bao giờ chứa key, media, tên file hay nội dung phụ đề. Tắt bằng `PERSO_NO_TELEMETRY`.</sub>
 
 <sub>**Giấy phép**: mã nguồn skill theo giấy phép [MIT](../../LICENSE). Việc sử dụng API tuân theo [Điều khoản dịch vụ của Perso AI](https://perso.ai) và biểu phí hiện hành.</sub>
+
+[Plugin data handling and platform-specific credential protection (English)](../../PRIVACY.md)

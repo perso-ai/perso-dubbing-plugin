@@ -122,7 +122,7 @@ Sépare une vidéo ou un audio en pistes propres : la voix et le fond sonore. Av
 
 **MIT, gratuit et open source.** Tout ce qui tourne sur votre machine ne coûte rien et ne demande aucun compte : styliser et incruster des sous-titres, traduire un SRT que vous avez déjà, couper des clips aux timecodes. Les crédits n'entrent en jeu que lorsqu'un job tourne sur les serveurs de Perso : doublage, lip-sync, séparation de voix et reconnaissance vocale, facturés à la seconde traitée via la [Perso Dubbing API](https://developers.perso.ai/api-keys).
 
-Aucune cérémonie de configuration. La première fois qu'un job serveur se lance, un navigateur s'ouvre : connexion, un clic, clé stockée chiffrée. Les étapes gratuites ne demandent jamais rien.
+Aucune cérémonie de configuration. La première fois qu'un job serveur se lance, un navigateur s'ouvre : connexion, un clic, clé stockée localement. Les étapes gratuites ne demandent jamais rien.
 
 <br>
 
@@ -131,3 +131,5 @@ Aucune cérémonie de configuration. La première fois qu'un job serveur se lanc
 <sub>**Confidentialité** : `/dubbing`, `/srt` et `/clip` envoient des événements d'usage pour améliorer les skills : ce qui a tourné et comment cela s'est terminé, la durée des médias, les choix de style, la locale approximative, la version de l'app/OS, et si une clé Perso API a été utilisée (et enregistrée). Chaque événement porte un ID aléatoire par installation et votre numéro de workspace ; jamais votre clé, vos médias, vos noms de fichiers ni le texte de vos sous-titres. Désactivez avec `PERSO_NO_TELEMETRY`.</sub>
 
 <sub>**Licence** : le code des skills est sous licence [MIT](../../LICENSE). L'usage de l'API est soumis aux [conditions d'utilisation de Perso AI](https://perso.ai) et à sa tarification.</sub>
+
+[Plugin data handling and platform-specific credential protection (English)](../../PRIVACY.md)

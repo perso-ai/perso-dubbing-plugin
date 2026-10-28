@@ -115,7 +115,7 @@ Splits a video or audio into clean tracks: the voice and the background. With se
 
 **MIT, free and open-source.** Everything that runs on your machine costs nothing and needs no account: styling and burning subtitles, translating an SRT you have, cutting clips at timecodes. Credits come in only when a job runs on Perso's servers: dubbing, lip-sync, voice separation, and speech-to-text, billed per processed second via the [Perso Dubbing API](https://developers.perso.ai/api-keys).
 
-No setup ceremony. The first time a server job runs, a browser opens: sign in, one click, key stored encrypted. Free steps never ask.
+No setup ceremony. The first time a server job runs, a browser opens: sign in, one click, key stored locally using the platform-specific protection described in [plugin data handling](PRIVACY.md). Free steps never ask.
 
 <br>
 

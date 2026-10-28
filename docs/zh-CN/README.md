@@ -122,7 +122,7 @@ claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dub
 
 **MIT 协议，免费开源。** 在你机器上运行的一切都不花钱、不需要账号：给字幕加样式并烧录、翻译你手上的 SRT、按时间码剪切片。只有当任务在 Perso 服务器上运行时才消耗积分：配音、唇形同步、人声分离和语音识别，通过 [Perso Dubbing API](https://developers.perso.ai/api-keys) 按处理秒数计费。
 
-没有繁琐的准备流程。第一次运行服务器任务时会打开浏览器：登录，点一下，密钥即加密保存。免费步骤从不打扰你。
+没有繁琐的准备流程。第一次运行服务器任务时会打开浏览器：登录，点一下，密钥即保存到本地。免费步骤从不打扰你。
 
 <br>
 
@@ -131,3 +131,5 @@ claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dub
 <sub>**隐私**：`/dubbing`、`/srt` 和 `/clip` 会发送使用事件以改进这些技能，内容包括运行了什么及结果如何、媒体时长、样式选择、粗粒度地区设置、应用版本/操作系统，以及是否使用（并注册）了 Perso API 密钥。每个事件带有随机的每次安装 ID 和你的工作区编号；绝不包含你的密钥、媒体、文件名或字幕文本。设置 `PERSO_NO_TELEMETRY` 即可退出。</sub>
 
 <sub>**许可**：技能代码采用 [MIT](../../LICENSE) 协议。API 使用受 [Perso AI 服务条款](https://perso.ai)及其定价约束。</sub>
+
+[Plugin data handling and platform-specific credential protection (English)](../../PRIVACY.md)

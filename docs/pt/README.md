@@ -122,7 +122,7 @@ Divide um vídeo ou áudio em faixas limpas: a voz e o fundo. Com vários falant
 
 **MIT, gratuito e de código aberto.** Tudo o que roda na sua máquina não custa nada e não exige conta: estilizar e gravar legendas, traduzir um SRT que você já tem, cortar clipes por timecode. Créditos só entram quando um trabalho roda nos servidores da Perso: dublagem, lip-sync, separação de voz e reconhecimento de fala, cobrados por segundo processado via [Perso Dubbing API](https://developers.perso.ai/api-keys).
 
-Sem cerimônia de configuração. Na primeira vez que um trabalho de servidor roda, um navegador abre: faça login, um clique, e a chave fica armazenada criptografada. As etapas gratuitas nunca pedem nada.
+Sem cerimônia de configuração. Na primeira vez que um trabalho de servidor roda, um navegador abre: faça login, um clique, e a chave fica armazenada localmente. As etapas gratuitas nunca pedem nada.
 
 <br>
 
@@ -131,3 +131,5 @@ Sem cerimônia de configuração. Na primeira vez que um trabalho de servidor ro
 <sub>**Privacidade**: `/dubbing`, `/srt` e `/clip` enviam eventos de uso para melhorar as skills, cobrindo o que rodou e como foi, duração da mídia, escolhas de estilo, localidade aproximada, versão do app/SO e se uma chave da Perso API foi usada (e registrada). Cada evento tem um ID aleatório por instalação e o número do seu workspace; nunca sua chave, mídia, nomes de arquivo ou texto de legendas. Desative com `PERSO_NO_TELEMETRY`.</sub>
 
 <sub>**Licença**: o código das skills é [MIT](../../LICENSE). O uso da API está sujeito aos [Termos de Serviço da Perso AI](https://perso.ai) e à sua tabela de preços.</sub>
+
+[Plugin data handling and platform-specific credential protection (English)](../../PRIVACY.md)

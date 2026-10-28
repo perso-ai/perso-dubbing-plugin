@@ -10,9 +10,7 @@
 //   Phase 3 (sidecars, only if the user wants subtitles): node scripts/clip.mjs --sidecars <clips.json> [--karaoke]
 //     → writes <clip>.srt (and <clip>.timestamps.json ONLY with --karaoke) next to each clip, for style.mjs.
 // Shares the dubbing skill's libraries via ../../dubbing.
-import { createWriteStream, existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { Readable } from 'node:stream';
-import { pipeline } from 'node:stream/promises';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { join, extname, resolve, basename, dirname } from 'node:path';
@@ -20,18 +18,15 @@ import { fileURLToPath } from 'node:url';
 import { realpathSync } from 'node:fs';
 import { preloadKeyEnv } from '../../dubbing/scripts/resolve_key.mjs';
 import { UsageError, friendlyError, errorClass, errorCode, ensureKey } from '../../dubbing/lib/gates.mjs';
-import { get } from '../../dubbing/lib/http_client.mjs';
 import { findSpaceForProject } from '../../dubbing/lib/space.mjs';
 import { probe, pickVideoEncoder, encoderVideoArgs } from '../../dubbing/lib/ffmpeg.mjs';
-import { persoBaseUrl } from '../../dubbing/lib/config.mjs';
 import { makeTempDir, cleanupTempDirs } from '../../dubbing/lib/tmp.mjs';
 import { track, initTelemetry, setAgentHost, primeTelemetrySpace, setTelemetrySpace, setKeyUsed } from '../../dubbing/lib/telemetry.mjs';
+import { streamToFile, fetchTimestamps, fetchSummary, mediaUrl } from '../lib/project_media.mjs';
 import { orderMap, clipRange, reframe, clipCues, clipTimestamps, sanitize } from '../lib/clipper.mjs';
 
 const exec = promisify(execFile);
 const notify = (m) => console.log(`[progress] ${m}`);
-const MEDIA_BASE = persoBaseUrl('PERSO_MEDIA_BASE', process.env.PERSO_MEDIA_BASE, 'https://portal-media.perso.ai');
-const mediaUrl = (rel) => MEDIA_BASE + encodeURI(rel.startsWith('/') ? rel : `/${rel}`);
 const CLIP_MIN = 30, CLIP_MAX = 90;
 
 const USAGE = [
@@ -92,31 +87,6 @@ function parseRanges(raw) {
   return out;
 }
 
-async function streamToFile(url, out) {
-  const r = await fetch(url);
-  if (!r.ok || !r.body) throw new Error(`Download failed (${r.status})`);
-  const type = (r.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
-  if (type.startsWith('text/') || /(?:json|javascript|xml|html)/.test(type)) {
-    await r.body.cancel();
-    throw new Error('The project download returned a document instead of media.');
-  }
-  await pipeline(Readable.fromWeb(r.body), createWriteStream(out));
-  return out;
-}
-async function fetchTimestamps(seq, spaceSeq) {
-  const res = await get(`/video-translator/api/v1/projects/${seq}/spaces/${spaceSeq}/download`, { query: { target: 'scriptTimestamps' } });
-  const rel = res?.result?.audioFile?.scriptTimestampsDownloadLink;
-  if (!rel) throw new Error('This project has no word timestamps yet — clipping needs a completed STT project.');
-  const r = await fetch(mediaUrl(rel));
-  if (!r.ok) throw new Error(`Could not fetch script timestamps (${r.status}).`);
-  return r.json();
-}
-async function fetchSummary(seq, spaceSeq) {
-  try {
-    const res = await get(`/video-translator/api/v1/projects/${seq}/spaces/${spaceSeq}/summary`);
-    return { sections: JSON.parse(res?.result?.sections || '[]') };
-  } catch { return { sections: [] }; }
-}
 
 const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 const srtTime = (t) => { const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = Math.floor(t % 60), ms = Math.round((t % 1) * 1000); return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')},${String(ms).padStart(3, '0')}`; };
