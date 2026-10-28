@@ -16,7 +16,7 @@ import { readWebAttribution } from './web_attribution.mjs';
 // Write-only ingestion (project API) key. Public by design — it can only SEND events, never read
 // data; exposure in the repo allows spoofing at worst, not data access. The submission build uses only this publisher-owned project, never a key from the user environment.
 const API_KEY = 'd795c0c0328160be4d7df3365eb0c05e';
-// US data residency. EU projects must use https://api.eu.amplitude.com/2/httpapi.
+// Destinations are validated by telemetryEndpoint; the default is the publisher's US collector.
 const ENDPOINT = telemetryEndpoint(process.env.PERSO_AMPLITUDE_URL);
 // 8s absorbs a cold DNS+TLS handshake on slow links (the first event of a run was the most dropped).
 const TIMEOUT_MS = 8000; // per attempt
@@ -30,7 +30,7 @@ const USER_FILE = join(CRED_DIR, 'telemetry-user'); // { user_id, plan_tier, pla
 const NODE_MAJOR = Number(process.versions.node.split('.')[0]) || null;
 
 // Server environment, derived from the API base host (PERSO_API_BASE override → qa/dev/stage runs):
-// api.perso.ai → 'prod', <env>-api.perso.ai → '<env>', anything else → the host itself.
+// The production API maps to 'prod'; an environment-prefixed API maps to that prefix.
 const API_ENV = (() => {
   const host = new URL(API_BASE).hostname;
   if (host === 'api.perso.ai') return 'prod';
@@ -45,7 +45,7 @@ const TOP_GEO = (() => {
   const top = {};
   try {
     let loc = new Intl.DateTimeFormat().resolvedOptions().locale || '';
-    // ICU falls back to 'en-US' when it cannot resolve the OS locale → prefer the POSIX env in that case.
+    // ICU falls back to 'en-US' when it cannot resolve the OS locale → prefer the POSIX locale hint in that case.
     const localeHint = (process.env.LC_ALL || process.env.LC_MESSAGES || process.env.LANG || '').split(/[.@]/)[0].replace('_', '-');
     if ((!loc || loc === 'en-US') && localeHint && !/^(C|POSIX)$/i.test(localeHint)) loc = localeHint;
     if (loc) {
@@ -140,7 +140,7 @@ export function telemetryDeviceId() {
   try { return installId().id; } catch { return null; }
 }
 
-// Which agent runs this — env/path detection by default (client_info), overridable by a worker's
+// Which agent runs this — known host markers and install path by default (client_info), overridable by a worker's
 // `--host` self-report. `agent_host_source` ('env'|'path'|'self'|'none') is sent so analysis can
 // weight self-reported values (a model may not know its own harness) against detected ones.
 let _agentHost = AGENT_HOST;
@@ -155,7 +155,7 @@ const validSeq = (v) => { const n = Number(v); return Number.isInteger(n) && n >
 
 // Workspace attached to every event once known.
 let _spaceSeq = null;
-let _spaceSource = null; // 'cache' (previous run — a guess) | 'hint' (argv/env) | 'confirmed' (space gate)
+let _spaceSource = null; // 'cache' (previous run — a guess) | 'hint' (configured value) | 'confirmed' (space gate)
 
 /** Call once the run's workspace is confirmed (ensureSpace / --resume manifest / project-ref /
  *  billing --space). Persisted so the next run can attach it before its own space gate runs. */
@@ -167,7 +167,7 @@ export function setTelemetrySpace(seq) {
 }
 
 /** Best-effort workspace for the events that fire before the space gate (run_started, key_check,
- *  lang_invalid, early error). Uses an exact hint from argv/env/a state file when there is one,
+ *  lang_invalid, early error). Uses an exact hint from arguments, configuration or a state file when there is one,
  *  otherwise the previous run's workspace — a guess, flagged as space_seq_guess and replaced as soon
  *  as setTelemetrySpace confirms the real one. Safe to call repeatedly. */
 export function primeTelemetrySpace(hint) {
