@@ -43,7 +43,7 @@ Run: `node scripts/clip.mjs --project <seq> --clips '<json>' [--out folder]` (`-
 
 ## Subtitles → hand off to the srt skill
 
-Subtitles are off by default. After cutting, tell the user clips are ready and **ask whether to add subtitles**. If they want subtitles, **show the presets first — never jump straight to one**, exactly as the srt skill's styling flow does: the interactive **gallery** (select + Apply) in the Claude app, or the static `../srt/assets/style_presets.png` + `node ../srt/scripts/style.mjs --list-presets` menu elsewhere. Let the user pick a preset or describe a style (short-form presets like `karaoke`/`bold-punch` suit clips). Only after they pick:
+Subtitles are off by default. After cutting, tell the user clips are ready and **ask whether to add subtitles**. If they want subtitles, **show the presets first — never jump straight to one**, exactly as the srt skill's styling flow does: the interactive **gallery** (select + Apply) in the Claude app, or the static image preview described below elsewhere. The separate text menu is available through `node ../srt/scripts/style.mjs --list-presets`. Let the user pick a preset or describe a style (short-form presets like `karaoke`/`bold-punch` suit clips). Only after they pick:
 
 1. Write the sidecars: `node scripts/clip.mjs --sidecars "<out>/clips.json"` — add `--karaoke` **only** for a karaoke preset (it also writes `<clip>.timestamps.json` for measured word timing; a plain preset needs just the `.srt`).
 2. Style each clip with the **srt** skill: `node ../srt/scripts/style.mjs "<clip>.mp4" "<clip>.srt" --preset <id>` (append `--word-timestamps "<clip>.timestamps.json"` for karaoke). See the srt skill's "Style & burn subtitles" section.
@@ -53,3 +53,7 @@ Add `--host <runtime>` for telemetry (silent), same as the other workers.
 ## Config (env)
 
 Same as `/dubbing` / `/srt` (`PERSO_API_BASE`/`PERSO_MEDIA_BASE` — https `perso.ai` hosts only, `PERSO_SPACE_SEQ`, `XP_API_KEY`, `PERSO_NO_TELEMETRY`, …).
+
+## Static preview asset
+
+`../srt/assets/style_presets.png` is the SRT skill's display-only preview. Open it with the host's image viewer or attach it as an image. It is not executable input.

@@ -95,6 +95,11 @@ function parseRanges(raw) {
 async function streamToFile(url, out) {
   const r = await fetch(url);
   if (!r.ok || !r.body) throw new Error(`Download failed (${r.status})`);
+  const type = (r.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+  if (type.startsWith('text/') || /(?:json|javascript|xml|html)/.test(type)) {
+    await r.body.cancel();
+    throw new Error('The project download returned a document instead of media.');
+  }
   await pipeline(Readable.fromWeb(r.body), createWriteStream(out));
   return out;
 }
@@ -163,6 +168,7 @@ async function runClips(a, loc) {
   const video = await streamToFile(mediaUrl(rel), join(dl, `src${extname(rel) || '.mp4'}`));
   const map = orderMap(await fetchTimestamps(Number(a.project), spaceSeq));
   let { width, height, rotation, durationMs } = await probe(video);
+  if (!(width > 0 && height > 0)) throw new Error('The input has no decodable video stream.');
   if (Math.abs(rotation) % 180 === 90) [width, height] = [height, width];
   const rf = reframe(width, height);
   const outDir = resolve(a.out || process.cwd());
@@ -219,6 +225,7 @@ async function runLocalCut(a) {
   const ranges = parseRanges(a.ranges);
   const titles = a.titles ? a.titles.split(',').map((s) => s.trim()) : [];
   let { width, height, rotation, durationMs } = await probe(video);
+  if (!(width > 0 && height > 0)) throw new Error('The input has no decodable video stream.');
   if (Math.abs(rotation) % 180 === 90) [width, height] = [height, width];
   const rf = reframe(width, height);
   const outDir = resolve(a.out || process.cwd());
@@ -283,4 +290,4 @@ const isMain = (() => {
 })();
 if (isMain) await main();
 
-export { parseArgs, parseClips };
+export { parseArgs, parseClips, streamToFile };

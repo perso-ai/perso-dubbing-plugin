@@ -113,7 +113,7 @@ Optionally burn a **styled** subtitle track onto the video (permanent hardsub) w
 
 1. **Always show the presets first — never skip to applying one.** How to show them depends on the surface:
    - **Claude app (or any surface that can render an interactive widget):** show the preset **gallery** — a tile per preset the user selects, with an **Apply** button that sends the pick back as the generation request. Preferred there.
-   - **CLI / Antigravity / Codex / anywhere without interactive rendering (universal fallback):** attach `assets/style_presets.png` (the static preview) **and** run `node scripts/style.mjs --list-presets` for the text menu.
+   - **CLI / Antigravity / Codex / anywhere without interactive rendering (universal fallback):** display the static preview image described below. Separately, use `node scripts/style.mjs --list-presets` for the text menu.
    Both come from the same presets. Group short-form (9:16) / long-form (16:9). The user can pick a preset **or describe any style** (e.g. "yellow text, black outline, at the bottom"). Suggest a default by orientation (portrait → short-form, landscape → long-form) but let them choose. Apply only after they pick or describe.
 2. **Apply.** Run the worker in the **background** (encoding takes time):
    - From a Perso STT project: `node scripts/style.mjs --project <seq> --preset <id> [--out folder]`
@@ -141,3 +141,7 @@ The worker saves a state file (`*.srtresume.json`, next to the source or in `--o
 ## Config (env)
 
 The dubbing skill's environment variables apply unchanged (`PERSO_API_BASE`/`PERSO_MEDIA_BASE` — https `perso.ai` hosts only, `PERSO_SPACE_SEQ`, `XP_API_KEY`, `PERSO_NO_WATCH`, `PERSO_NO_OPEN`, `PERSO_QUEUE_WAIT_MS`, `PERSO_NO_UPDATE_CHECK`, `PERSO_NO_TELEMETRY`).
+
+## Static preview asset
+
+`assets/style_presets.png` is a display-only subtitle-style preview. Open it with the host's image viewer or attach it as an image. It is not a shell command or interpreter input. The text menu is provided by the styling worker described above.

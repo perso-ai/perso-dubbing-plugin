@@ -1,6 +1,7 @@
 // HTTP client. Attaches the XP-API-KEY header, waits on 429 rate limits, exposes error code/data.
 // The raw key is used only in the header and is never printed anywhere.
 import { API_BASE, AUTH_HEADER, BACKOFF_MAX_MS } from './config.mjs';
+import { assertApiDestination, fetchApi } from './request_safety.mjs';
 import { resolveKey } from '../scripts/resolve_key.mjs';
 import { CLIENT_USER_AGENT, CLIENT_HOST } from './client_info.mjs';
 
@@ -44,14 +45,15 @@ function toError(httpStatus, body) {
  * For 429/G0005, waits until X-RateLimit-Reset and then retries automatically.
  */
 export async function request(method, path, { body, headers = {}, query } = {}) {
-  const key = resolveKey();
-  if (!key) throw new MissingKeyError();
-
   let url = path.startsWith('http') ? path : `${API_BASE}${path}`;
   if (query && Object.keys(query).length) {
     const qs = new URLSearchParams(query).toString();
     url += (url.includes('?') ? '&' : '?') + qs;
   }
+
+  url = assertApiDestination(url, API_BASE);
+  const key = resolveKey();
+  if (!key) throw new MissingKeyError();
 
   const init = {
     method,
@@ -68,7 +70,7 @@ export async function request(method, path, { body, headers = {}, query } = {}) 
   }
 
   for (let attempt = 0; attempt < 6; attempt++) {
-    const res = await fetch(url, init);
+    const res = await fetchApi(url, init, API_BASE);
 
     if (res.status === 429) {
       const data = await parseBody(res);

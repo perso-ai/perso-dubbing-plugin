@@ -11,8 +11,8 @@ export function persoBaseUrl(name, raw, fallback) {
   let u = null;
   try { u = new URL(v); } catch { /* rejected below */ }
   const host = u?.hostname ?? '';
-  if (u?.protocol !== 'https:' || (host !== 'perso.ai' && !host.endsWith('.perso.ai'))) {
-    throw new Error(`${name} must be an https:// URL on a perso.ai host (e.g. ${fallback}) — got "${v}"`);
+  if (u?.protocol !== 'https:' || u.username || u.password || (host !== 'perso.ai' && !host.endsWith('.perso.ai'))) {
+    throw new Error(`${name} must be an https:// URL on a perso.ai host (e.g. ${fallback})`);
   }
   return v.replace(/\/+$/, '');
 }

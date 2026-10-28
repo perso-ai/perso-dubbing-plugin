@@ -1,3 +1,4 @@
+import { telemetryEndpoint } from './telemetry_endpoint.mjs';
 // Landing-page → plugin acquisition handshake, no server in between: after an install click the
 // still-open landing tab retries POSTing GA acquisition info (client_id, source, utm, clicked
 // button) to this fixed loopback port; whichever plugin process has the receiver open persists it
@@ -17,7 +18,7 @@ const ATTR_FILE = join(CRED_DIR, 'web-attribution');
 // Identify API: sets user properties WITHOUT an event. Same project key as telemetry.mjs; the
 // endpoint is derived from the same override so tests capture both.
 const AMP_KEY = process.env.PERSO_AMPLITUDE_KEY || 'd795c0c0328160be4d7df3365eb0c05e';
-const IDENTIFY_ENDPOINT = (process.env.PERSO_AMPLITUDE_URL || 'https://api2.amplitude.com/2/httpapi').replace(/\/2\/httpapi$/, '/identify');
+const IDENTIFY_ENDPOINT = telemetryEndpoint(process.env.PERSO_AMPLITUDE_URL, true);
 const MAX_BODY_BYTES = 4096;
 const MAX_WINDOW_MS = 15 * 60_000;
 // Only these keys are accepted, stored, and sent — anything else in the POST body is dropped.
@@ -56,11 +57,13 @@ function deviceId() {
 // $set the payload as user properties immediately via the Identify API (no event, so install counts
 // are untouched) — covers users who install but never run a skill (first_run never comes).
 async function sendIdentify(data) {
+  if (!IDENTIFY_ENDPOINT) return;
   try {
     const device_id = deviceId();
     if (!device_id) return;
     await fetch(IDENTIFY_ENDPOINT, {
       method: 'POST',
+      redirect: 'error',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ api_key: AMP_KEY, identification: JSON.stringify([{ device_id, user_properties: data }]) }),
       signal: AbortSignal.timeout(8000),

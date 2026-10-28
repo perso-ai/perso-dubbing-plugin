@@ -1,3 +1,4 @@
+import { telemetryEndpoint } from './telemetry_endpoint.mjs';
 // Opt-out usage telemetry → Amplitude HTTP API (/2/httpapi). Non-blocking and fail-silent: never
 // delays or fails a run. Sends a random per-install UUID (~/.perso/install-id), the account's
 // userSeq as user_id (name/email/profile fields are never read or sent), coarse environment,
@@ -16,7 +17,7 @@ import { readWebAttribution } from './web_attribution.mjs';
 // data; exposure in the repo allows spoofing at worst, not data access. Override via env for testing.
 const API_KEY = process.env.PERSO_AMPLITUDE_KEY || 'd795c0c0328160be4d7df3365eb0c05e';
 // US data residency. EU projects must use https://api.eu.amplitude.com/2/httpapi.
-const ENDPOINT = process.env.PERSO_AMPLITUDE_URL || 'https://api2.amplitude.com/2/httpapi';
+const ENDPOINT = telemetryEndpoint(process.env.PERSO_AMPLITUDE_URL);
 // 8s absorbs a cold DNS+TLS handshake on slow links (the first event of a run was the most dropped).
 const TIMEOUT_MS = 8000; // per attempt
 const MAX_ATTEMPTS = 3;
@@ -187,7 +188,7 @@ export function primeTelemetrySpace(hint) {
  *  opts.budgetMs overrides the default total budget — used by the install beacon, which runs inside a
  *  blocking SessionStart hook and must return promptly on slow links. */
 export async function track(eventType, props = {}, opts = {}) {
-  if (process.env.PERSO_NO_TELEMETRY || !API_KEY) return;
+  if (process.env.PERSO_NO_TELEMETRY || !API_KEY || !ENDPOINT) return;
   try {
     const event_properties = { env: API_ENV, agent_host: _agentHost, agent_host_source: _agentHostSource, ...(NODE_MAJOR ? { node_major: NODE_MAJOR } : {}) };
     if (_spaceSeq != null) {
@@ -237,6 +238,7 @@ export async function track(eventType, props = {}, opts = {}) {
       try {
         const res = await fetch(ENDPOINT, {
           method: 'POST',
+          redirect: 'error',
           headers: { 'Content-Type': 'application/json' },
           signal: AbortSignal.timeout(Math.min(TIMEOUT_MS, remaining)),
           body,
