@@ -4,7 +4,7 @@
 
 This submission-branch notice incorporates operator confirmations supplied on October 29, 2026. It supplements the Perso Privacy Policy effective June 26, 2026 and Terms of Use effective October 22, 2026; it does not replace or amend them. The operator confirms that the product's common terms and retention/deletion rules also apply to API use.
 
-Client behavior below refers to the submission source version 0.8.16-claude.5. Service-operation statements identified as operator confirmations come from the operator's responses supplied for this review. They are not an independent inspection of cloud settings. Items not yet established are listed separately in [open operational items](REVIEW.md#open-operational-items).
+Client behavior below refers to the submission source version 0.8.16-claude.6. Service-operation statements identified as operator confirmations come from the operator's responses supplied for this review. They are not an independent inspection of cloud settings. Items not yet established are listed separately in [open operational items](REVIEW.md#open-operational-items).
 
 ## 1. Requested operations and data
 
@@ -36,7 +36,7 @@ Analytics are enabled by default. Events are sent to Amplitude at https://api2.a
 
 Event fields can include a random installation ID, account userSeq when resolved, workspace ID, plan, application/agent version, OS, locale-derived language/country, operation type, media duration, selected options, outcome and error category. These identifiers can link activity and are not described as anonymous. The telemetry implementation is intended to exclude Perso API keys, media content, filenames, subtitle text and email addresses. Requested Perso service operations may still process such data.
 
-Runtime names supplied with --host are restricted to known agent labels. Error-code telemetry accepts short Perso code formats, HTTP statuses and known local error tokens; other values are omitted before transmission. This filtering applies to analytics and preserves the original processing and retry errors.
+Runtime names supplied with --host are restricted to known agent labels. Error-code telemetry accepts short Perso code formats, HTTP statuses and known local error tokens; other values are omitted before transmission. This filtering applies to analytics and preserves the original processing and retry errors. Resume-reason analytics accept only the known manual, quota, rejected and download categories. Unrecognized text from a local resume file is omitted from analytics without changing the stored state or resume behavior.
 
 The session-start installation hook can send an event once per installation/version and start a temporary loopback receiver at 127.0.0.1:41599. It accepts acquisition data from HTTPS perso.ai origins, including GA client/session IDs, campaign fields, referring host and installation method, and can send them to Amplitude. The normal background receiver window is five minutes. These actions may occur before a media job starts.
 

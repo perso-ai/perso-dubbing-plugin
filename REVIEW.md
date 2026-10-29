@@ -1,10 +1,14 @@
 # Perso Dubbing directory review notes
 
-Prepared October 29, 2026 for the `claude-directory-submission` branch, version `0.8.16-claude.5`. These notes describe review evidence and its limits. They do not claim Anthropic approval or replace the service Terms or Privacy Policy.
+Prepared October 29, 2026 for the `claude-directory-submission` branch, version `0.8.16-claude.6`. These notes describe review evidence and its limits. They do not claim Anthropic approval or replace the service Terms or Privacy Policy.
 
 ## Scope of this update
 
-This update incorporates operator-confirmed product/API rules and individual generation processing into [PRIVACY.md](PRIVACY.md) and the README. It aligns the marketplace publisher label with the existing plugin author, Perso AI (ESTsoft). It also moves the marketplace description into the supported metadata field; the plugin description remains. It changes documentation and version/publisher metadata only. Runtime scripts, authentication options and media features are unchanged.
+This update restricts resume-reason analytics to the known manual, quota, rejected and download categories. A local test using the real STT CLI path reproduced an unrecognized string in a resume file reaching the intercepted analytics payload. That same test passes after filtering the analytics field, and the known quota category is preserved. No real data was uploaded in the test. The stored resume state, operation logic, authentication options and media features are unchanged.
+
+This is an actual data-minimization correction. It is not presented as proof that Anthropic's separate cross-file credential finding is cleared. The source still openly contains its environment configuration and network destinations.
+
+The previous update incorporated operator confirmations into PRIVACY.md/README, documented publisher evidence, aligned the marketplace publisher label and corrected the marketplace description field. Those changes remain in this version.
 
 ## Credential data flow
 
@@ -43,6 +47,6 @@ Operator confirmation has established common product/API terms and retention/del
 
 ## Anthropic review
 
-The recorded source validation before this documentation update passed with two policy holds: credential use and publisher similarity. A validation result applies only to its scanned commit. This update must be revalidated before any later submission.
+The recorded source validation before this telemetry update passed with two policy holds: credential use and publisher similarity. A validation result applies only to its scanned commit. This update must be revalidated before any later submission.
 
 Written guidance on Software Directory Policy 4.B eligibility for AI dubbing and optional lip-sync remains pending in the available correspondence. Operator confirmations, local tests and public provenance do not resolve Anthropic's policy decision. The listing has not been submitted.

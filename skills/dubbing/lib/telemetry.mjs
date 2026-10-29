@@ -1,5 +1,5 @@
 import { telemetryEndpoint } from './telemetry_endpoint.mjs';
-import { telemetryAgentHost, telemetryErrorCode } from './telemetry_fields.mjs';
+import { telemetryAgentHost, telemetryErrorCode, telemetryResumeReason } from './telemetry_fields.mjs';
 // Opt-out usage telemetry → Amplitude HTTP API (/2/httpapi). Non-blocking and fail-silent: never
 // delays or fails a run. Sends a random per-install UUID (~/.perso/install-id), the account's
 // userSeq as user_id (name/email/profile fields are never read or sent), coarse environment,
@@ -207,7 +207,8 @@ export async function track(eventType, props = {}, opts = {}) {
       // All callers, including upload failures and older resume manifests, pass through here.
       // Caller properties cannot replace the validated runtime identity.
       if (k === 'agent_host' || k === 'agent_host_source') continue;
-      const value = k === 'code' ? telemetryErrorCode(v) : v;
+      const value = k === 'code' ? telemetryErrorCode(v)
+        : k === 'resumed_from' ? telemetryResumeReason(v) : v;
       if (value != null) event_properties[k] = value;
     }
     // Landing-page acquisition info rides only these two events — as event AND user properties.
