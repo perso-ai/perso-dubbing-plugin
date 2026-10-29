@@ -1,4 +1,5 @@
 import { telemetryEndpoint } from './telemetry_endpoint.mjs';
+import { telemetryAgentHost, telemetryErrorCode } from './telemetry_fields.mjs';
 // Opt-out usage telemetry → Amplitude HTTP API (/2/httpapi). Non-blocking and fail-silent: never
 // delays or fails a run. Sends a random per-install UUID (~/.perso/install-id), the account's
 // userSeq as user_id (name/email/profile fields are never read or sent), coarse environment,
@@ -150,7 +151,7 @@ export function telemetryDeviceId() {
 let _agentHost = AGENT_HOST;
 let _agentHostSource = AGENT_HOST_SOURCE;
 export function setAgentHost(host) {
-  const v = String(host ?? '').trim().toLowerCase();
+  const v = telemetryAgentHost(host);
   if (v) { _agentHost = v; _agentHostSource = 'self'; }
 }
 
@@ -202,7 +203,13 @@ export async function track(eventType, props = {}, opts = {}) {
       if (_spaceSource === 'cache') event_properties.space_seq_guess = true;
     }
     if (_keyUsed != null) event_properties.key_used = _keyUsed;
-    for (const [k, v] of Object.entries(props)) if (v != null) event_properties[k] = v;
+    for (const [k, v] of Object.entries(props)) {
+      // All callers, including upload failures and older resume manifests, pass through here.
+      // Caller properties cannot replace the validated runtime identity.
+      if (k === 'agent_host' || k === 'agent_host_source') continue;
+      const value = k === 'code' ? telemetryErrorCode(v) : v;
+      if (value != null) event_properties[k] = value;
+    }
     // Landing-page acquisition info rides only these two events — as event AND user properties.
     const attribution = (eventType === 'install' || eventType === 'first_run') ? readWebAttribution() : null;
     if (attribution) Object.assign(event_properties, attribution);

@@ -20,6 +20,8 @@ Analytics are on by default. The code sends events to Amplitude at `https://api2
 
 Event fields can include a random installation ID, account `userSeq` when resolved, workspace ID, plan, application/agent version, OS, locale-derived language/country, operation type, media duration, selected options, outcome and error category. These identifiers can link activity and must not be described as anonymous. The telemetry implementation is intended to exclude Perso API keys, media content, filenames, subtitle text and email addresses from analytics; this does not mean the requested Perso service operation never processes such data.
 
+Runtime names supplied with `--host` are restricted to known agent labels. Error-code telemetry accepts short Perso code formats, HTTP statuses and known local error tokens; other values are omitted before transmission. This filtering affects analytics only and preserves the original errors used by processing and retry logic.
+
 The session-start installation hook can send an event once per installation/version and start a temporary loopback receiver at `127.0.0.1:41599`. It accepts acquisition data from HTTPS `perso.ai` origins, including GA client/session IDs, campaign fields, referring host and installation method, and can send these to Amplitude. The normal background receiver window is five minutes. These actions may happen before a media job starts.
 
 ## Controls and retention
