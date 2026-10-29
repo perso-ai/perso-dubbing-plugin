@@ -1,59 +1,72 @@
-# Plugin data handling
+# Perso Dubbing plugin data handling
 
-This technical notice describes the Claude directory submission branch. It supplements, and does not replace, the [Perso service privacy policy](https://info.perso.ai/policy-perso-saas/policy/privacy-policy-en/docs/260619.html) (effective June 26, 2026) and [Terms of Use](https://info.perso.ai/policy-perso-saas/policy/terms-of-service-en/docs/261015.html) (effective October 22, 2026). Published commitments below are distinguished from verified client behavior and unconfirmed service implementation.
+## Scope and source of this notice
 
-Reviewed on October 29, 2026. Technical behavior below is based on the submission branch; unconfirmed service operations are explicitly identified.
+This submission-branch notice incorporates operator confirmations supplied on October 29, 2026. It supplements the Perso Privacy Policy effective June 26, 2026 and Terms of Use effective October 22, 2026; it does not replace or amend them. The operator confirms that the product's common terms and retention/deletion rules also apply to API use.
 
-## Requested service operations
+Client behavior below refers to the submission source version 0.8.16-claude.5. Service-operation statements identified as operator confirmations come from the operator's responses supplied for this review. They are not an independent inspection of cloud settings. Items not yet established are listed separately in [open operational items](REVIEW.md#open-operational-items).
 
-Dubbing, lip-sync, transcription and audio separation send selected media or source URLs to Perso services. Media may contain faces, voices or other personal information. Results and project metadata may be stored in the Perso workspace; local outputs and resume files may remain in the selected output directory. Use content you have permission to process.
+## 1. Requested operations and data
 
-Authenticated API requests use the configured Perso HTTPS API origin (default `https://api.perso.ai`). The client checks the destination before attaching the key and checks redirects before following them. Storage uploads and downloads can use URLs returned by the API. This is separate from usage analytics.
+Dubbing, lip-sync, transcription and audio separation send selected media or source URLs to Perso services. Media may contain faces, voices or other personal information. Results and project metadata may be stored in the Perso workspace; local outputs and resume files may remain in the selected output directory. Use content and voices you have permission to process.
 
-Privacy Policy Article 1 and Terms Article 4 permit learning or improvement uses. The Terms also provide a right to refuse learning consent, with possible service restrictions. The plugin-specific implementation, refusal route and effect on previously processed data remain unconfirmed; no exclusion from training is promised here.
+Authenticated API requests use the configured Perso HTTPS API origin, by default https://api.perso.ai. The client checks the destination before attaching the API key and checks redirects before following them. Storage uploads and downloads can use URLs returned by the API. Requested service processing is separate from usage analytics.
 
-Terms Article 5 limits biometric use to essential service provision and specifies encrypted, separate storage and prompt purpose-based destruction, with a destruction-request right. Article 29(5) limits access to private user-generated content, subject to legal exceptions. How these commitments interact with learning, API processing and support access requires operator clarification. These server commitments do not describe encryption of the local API-key file.
+## 2. Voice cloning, lip-sync and generation processing
 
-## Local credentials and state
+The operator clarified that the input processing described as "learning" in voice cloning and lip-sync means individual processing to generate the requested result. It is not a statement that those inputs are reused to retrain a shared model. The operator reports that inputs are not used for that described learning outside voice cloning and lip-sync.
 
-On Claude versions supporting `userConfig`, the optional masked **Perso API key** setting explicitly copies the user-provided value into `~/.perso/credentials` at session start, without printing it. This uses the same local storage as browser sign-in; it is an additional copy outside Claude's secure configuration store. Leaving the option empty does not overwrite an existing key. To remove it, clear the option and delete the local credential file; to revoke the key, use the Perso service.
+The operator reports that refusing this required processing prevents service use, with no exception and no separate rules by content category. The precise scope of the service restriction is recorded in the [open operational items](REVIEW.md#open-operational-items). This notice does not present a processing-free option for the same requested generation.
 
-An explicit `XP_API_KEY` environment override takes precedence over the saved key. Otherwise the worker reads `~/.perso/credentials`. On Windows, the credential file uses Windows DPAPI. On macOS/Linux, the key is plaintext and the file is created with mode `0600`; file permissions are not encryption. Never paste a key into chat. Local state can also include installation/account identifiers, workspace and plan information, acquisition records and update-check state. Uninstalling the plugin does not guarantee removal of this state or downloaded outputs.
+Privacy Policy Article 1 and Terms Article 4 contain broader permission for learning or improvement uses. The Terms also provide a right to refuse learning consent, with possible restrictions on certain services. The operator's description of current generation processing does not amend those published clauses or establish a blanket no-training guarantee for every provider.
 
-## Usage analytics and attribution
+Terms Article 5 limits biometric use to essential service provision and specifies encrypted, separate storage, prompt destruction after the service purpose is fulfilled, and a destruction-request right. Article 29(5) restricts access to private user-generated content, subject to legal exceptions. These are published service commitments; they do not describe encryption of the local API-key file.
 
-Analytics are on by default. The code sends events to Amplitude at `https://api2.amplitude.com/2/httpapi`, and acquisition user properties to `/identify`. Supported overrides are the corresponding EU Amplitude endpoint or an explicitly configured loopback test collector. Redirects are not followed for analytics requests. The Amplitude project key is a fixed publisher-owned public ingestion key, separate from the Perso API credential. This submission build does not read a user-supplied Amplitude key from the machine.
+## 3. Local credentials and state
 
-Event fields can include a random installation ID, account `userSeq` when resolved, workspace ID, plan, application/agent version, OS, locale-derived language/country, operation type, media duration, selected options, outcome and error category. These identifiers can link activity and must not be described as anonymous. The telemetry implementation is intended to exclude Perso API keys, media content, filenames, subtitle text and email addresses from analytics; this does not mean the requested Perso service operation never processes such data.
+On Claude versions supporting userConfig, the optional masked Perso API key setting copies the user-provided value into ~/.perso/credentials at session start, without printing it. This is the same local storage used by browser sign-in and creates an additional copy outside Claude's secure configuration store. Leaving the option empty does not overwrite an existing key.
 
-Runtime names supplied with `--host` are restricted to known agent labels. Error-code telemetry accepts short Perso code formats, HTTP statuses and known local error tokens; other values are omitted before transmission. This filtering affects analytics only and preserves the original errors used by processing and retry logic.
+An explicit XP_API_KEY environment override takes precedence over the saved key. Otherwise the worker reads ~/.perso/credentials. Windows uses Windows DPAPI for the credential file. On macOS/Linux, the key is plaintext and the file is created with mode 0600. File permissions are not encryption. Never paste a key into chat.
 
-The session-start installation hook can send an event once per installation/version and start a temporary loopback receiver at `127.0.0.1:41599`. It accepts acquisition data from HTTPS `perso.ai` origins, including GA client/session IDs, campaign fields, referring host and installation method, and can send these to Amplitude. The normal background receiver window is five minutes. These actions may happen before a media job starts.
+Local state can also include installation/account identifiers, workspace and plan information, acquisition records and update-check state. Uninstalling the plugin does not guarantee removal of this state or downloaded outputs.
 
-## Other connections and controls
+## 4. Analytics and attribution
 
-Browser sign-in uses `https://developers.perso.ai` by default. The separate version check contacts `https://registry.npmjs.org/perso-dubbing/latest`. Some media operations require ffmpeg/ffprobe, and missing dependencies can be installed through an available system package manager. Those downloads use the package manager's configured sources. No complete server-side processor inventory or processing-location guarantee is established by the client code.
+Analytics are enabled by default. Events are sent to Amplitude at https://api2.amplitude.com/2/httpapi and acquisition user properties to /identify. Supported overrides are the corresponding EU Amplitude endpoint or an explicitly configured loopback test collector. Analytics requests do not follow redirects. The fixed publisher-owned Amplitude ingestion key is public and separate from the Perso API credential; this submission build does not read a user-supplied Amplitude key.
 
-Privacy Policy Article 6 names Azure storage/IT operations and Amplitude analytics, among other providers. Article 7 lists US transfers for Google, ESTsoft, Stripe and Microsoft, but does not map every plugin flow or establish Azure/Amplitude storage regions. It provides a transfer-refusal contact at `privacy@estsoft.com`, with possible loss of relevant service access. Actual plugin processing and backup locations still require confirmation.
+Event fields can include a random installation ID, account userSeq when resolved, workspace ID, plan, application/agent version, OS, locale-derived language/country, operation type, media duration, selected options, outcome and error category. These identifiers can link activity and are not described as anonymous. The telemetry implementation is intended to exclude Perso API keys, media content, filenames, subtitle text and email addresses. Requested Perso service operations may still process such data.
 
-Set `PERSO_NO_TELEMETRY=1` in the environment inherited by the host and its hooks before launching the host to disable plugin analytics and attribution receiving, reading and sending. This does not erase past data, disable website analytics or stop service API traffic required for a requested job. Set `PERSO_NO_UPDATE_CHECK=1` to disable the separate npm version check.
+Runtime names supplied with --host are restricted to known agent labels. Error-code telemetry accepts short Perso code formats, HTTP statuses and known local error tokens; other values are omitted before transmission. This filtering applies to analytics and preserves the original processing and retry errors.
 
-## Retention and deletion
+The session-start installation hook can send an event once per installation/version and start a temporary loopback receiver at 127.0.0.1:41599. It accepts acquisition data from HTTPS perso.ai origins, including GA client/session IDs, campaign fields, referring host and installation method, and can send them to Amplitude. The normal background receiver window is five minutes. These actions may occur before a media job starts.
 
-The service policy (effective June 26, 2026), Articles 2 and 5, states:
+## 5. Infrastructure, other connections and controls
 
-- Membership information: one month after withdrawal. Internal dispute records: one month after processing ends, subject to statutory retention.
-- Statutory records: contracts/payments, tax and electronic financial transactions, five years; consumer disputes, three years; advertising, six months; access records, three months.
-- Media/content: the Privacy Policy gives no fixed duration for ordinary active use. Separate Terms provisions below specify deletion events.
+The operator describes an Azure-based cloud environment operated on a Korean basis with cloud encryption in use. This is an operator statement about the service environment, not a guarantee that every provider, transfer, backup or administrative access is confined to Korea.
 
-Terms Article 26(4) specifies immediate deletion on agreement termination, subject to legal and Privacy Policy retention exceptions. Article 29(8) specifies deletion of created/uploaded content when a member has not used the Service for over one year. This is an inactivity trigger, not a one-year maximum for all data. Subscription cancellation alone is not necessarily agreement termination.
+Privacy Policy Article 6 names Azure storage/IT operations and Amplitude analytics, among other providers. Article 7 lists US transfers involving Google, ESTsoft, Stripe and Microsoft. Transfer-refusal requests can be sent to privacy@estsoft.com, with possible loss of the relevant service access.
 
-Privacy Policy Article 4 separately describes website behavioral-data retention until consent withdrawal or membership termination. Its applicability to plugin telemetry is unconfirmed. Terms Article 35 describes a 45-day rights-request response period, extendable by 45 days, in its US/California provisions; it is not a global backup-erasure deadline.
+Browser sign-in uses https://developers.perso.ai by default. The separate version check contacts https://registry.npmjs.org/perso-dubbing/latest. Some media operations require ffmpeg/ffprobe; missing dependencies may be installed through an available system package manager using its configured sources.
 
-These published rules are not verified operational schedules for every plugin data flow. Analytics, attribution, API logs, project metadata and backups still need category-level mapping, including how termination, inactivity and biometric-purpose triggers are implemented. The three-month access-record rule must not be applied automatically to every API log.
+Set PERSO_NO_TELEMETRY=1 in the environment inherited by the host and its hooks before launching the host to disable plugin analytics and attribution receiving, reading and sending. This does not erase past data, disable website analytics or stop API traffic required for a requested job. It is not a control for refusing generation processing. Set PERSO_NO_UPDATE_CHECK=1 to disable the separate npm version check.
 
-Privacy Policy Articles 5 and 9 provide for destruction of unnecessary data, segregation of legally retained records, and access, correction, deletion and suspension requests. Withdrawal is requested through Account Settings > Membership Withdrawal. Contact `support@perso.ai`; privacy inquiries go to `privacy@estsoft.com`. Identity verification and legal exceptions apply.
+## 6. Common product and API retention rules
 
-Disabling analytics is not a deletion request. Removing a local credential file does not revoke the API key or delete remote projects. Clearing the optional Claude setting alone does not delete its local copy. To stop local credential reuse, stop active plugin processes, clear that setting and any configured `XP_API_KEY` override, and remove the selected local credential file. Request key revocation separately through the service or support.
+The operator confirms that product retention and deletion rules apply equally to API use. Privacy Policy Articles 2 and 5 state the following category-specific periods: membership information, one month after withdrawal; internal dispute records, one month after processing ends, subject to statutory retention; contracts/payments, tax and electronic financial transaction records, five years; consumer disputes, three years; advertising records, six months; access records, three months.
 
-Review local `~/.perso` state and chosen output/resume files separately before removing them: other Perso installations can share this state, and outputs may be outside `~/.perso`. Uninstalling the plugin or withdrawing the service account is not a verified local-cleanup procedure. Remote deletion coverage for backups, shared workspaces and processors still requires confirmation from the service operator.
+Terms Article 26(4) specifies immediate deletion on agreement termination, subject to legal and Privacy Policy retention exceptions. Article 29(8) specifies deletion of created/uploaded content when a member has not used the Service for over one year. The latter is an inactivity trigger, not a one-year maximum for all data. Subscription cancellation alone is not necessarily agreement termination. The Privacy Policy does not set a fixed duration for media during ordinary active use.
+
+Privacy Policy Article 4 separately describes website behavioral-data retention until consent withdrawal or membership termination. The three-month access-record period is not automatically a period for every API log. Terms Article 35 provides a 45-day rights-request response period, extendable by 45 days, in its US/California provisions; this is not a global deadline for erasing backups.
+
+## 7. Requests and local cleanup
+
+Privacy Policy Articles 5 and 9 provide for destruction of unnecessary data, segregation of legally retained records, and access, correction, deletion and suspension requests. Withdrawal is requested through Account Settings > Membership Withdrawal. Contact support@perso.ai for service requests and privacy@estsoft.com for privacy inquiries. Identity verification and legal exceptions apply.
+
+Disabling analytics is not a deletion request. Removing a local credential file does not revoke the API key or delete remote projects. Clearing the optional Claude setting alone does not delete its local copy. To stop local credential reuse, stop active plugin processes, clear that setting and any configured XP_API_KEY override, and remove the selected local credential file. Request key revocation separately through the service or support.
+
+Review local ~/.perso state and selected output/resume files before removing them. Other Perso installations may share that state, and outputs may be stored elsewhere. Uninstalling the plugin or withdrawing the service account is not a verified procedure for cleaning up all local files.
+
+## Published sources
+
+- [Perso Privacy Policy](https://info.perso.ai/policy-perso-saas/policy/privacy-policy-en/docs/260619.html), effective June 26, 2026.
+- [Perso Terms of Use](https://info.perso.ai/policy-perso-saas/policy/terms-of-service-en/docs/261015.html), effective October 22, 2026.
