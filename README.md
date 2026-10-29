@@ -59,7 +59,7 @@ claude marketplace add perso-ai/perso-dubbing-plugin && claude install perso-dub
 npx skills add perso-ai/perso-dubbing-plugin
 ```
 
-Requires **Node.js 18+**, nothing else. [Visual walkthrough](https://dubbing-plugin.perso.ai/en/) · [FAQ](FAQ.md)
+Requires **Node.js 18+**. Media processing also uses ffmpeg/ffprobe; the dependency helper may install missing tools through an available system package manager. [Visual walkthrough](https://dubbing-plugin.perso.ai/en/) · [FAQ](FAQ.md)
 
 <br>
 
@@ -124,5 +124,7 @@ On Claude versions that support plugin configuration, the optional masked **Pers
 ---
 
 **Privacy and data handling:** Server-side dubbing, transcription, lip-sync and separation send selected media or source URLs to Perso services. Usage analytics are enabled by default and sent to Amplitude, including linkable installation/account/workspace identifiers and operational metadata. Installation attribution can include GA client/session IDs and campaign fields. Set <code>PERSO_NO_TELEMETRY=1</code> before launching the host to disable plugin analytics and its attribution receiver. Local operations can otherwise still send analytics. See [plugin data handling](PRIVACY.md) for destinations, local credential storage, controls and retention limitations.
+
+**Other external connections:** Browser sign-in uses developers.perso.ai; API requests use api.perso.ai; media downloads use portal-media.perso.ai or storage URLs returned by the API. The version check contacts registry.npmjs.org and can be disabled with <code>PERSO_NO_UPDATE_CHECK=1</code>. Dependency installations use the system package manager's sources. The [service privacy policy](https://info.perso.ai/policy-perso-saas/policy/privacy-policy-en/docs/260619.html) permits service improvement or model training with submitted content; application to this plugin's API operations remains unconfirmed. Plugin-specific retention and deletion completion times also require operator confirmation.
 
 <sub>**License**: the skill code is [MIT](LICENSE). API usage is subject to the [Perso AI Terms of Service](https://perso.ai) and pricing.</sub>
